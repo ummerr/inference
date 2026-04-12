@@ -531,7 +531,6 @@ const audio: Modality = {
   ],
   deepDive: [
     {
-    {
       title: 'Autoregressive tokens + vocoders',
       body: 'Google\'s audio models (Gemini TTS, Gemini Flash Live, Lyria 3, plus research systems like SoundStorm and MusicLM) generate discrete audio tokens one at a time via a transformer, then a neural vocoder (SoundStream, HiFi-GAN) converts tokens to waveform. The transformer dominates cost; the vocoder is comparatively cheap. Open peers — Bark, VALL-E, MusicGen — use the same recipe.',
     },
