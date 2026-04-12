@@ -263,9 +263,9 @@ const video: Modality = {
     },
     { id: 'tier', type: 'select', label: 'Vertex tier', default: 'good',
       options: [
-        { value: 'fast', label: 'Veo 3.1 Fast ($0.15/s)' },
-        { value: 'good', label: 'Veo 3.1 Standard ($0.40/s)' },
-        { value: 'sota', label: 'Veo 3.1 Premium ($0.75/s)' },
+        { value: 'lite', label: 'Veo 3.1 Lite ($0.05/s, no audio)' },
+        { value: 'fast', label: 'Veo 3.1 Fast ($0.15/s, w/ audio)' },
+        { value: 'good', label: 'Veo 3.1 Standard ($0.40/s, w/ audio)' },
       ],
     },
   ],
@@ -277,11 +277,11 @@ const video: Modality = {
 
     const frames   = seconds * fps
     const pixelMul = (res / 720) ** 2
-    const tierMul  = tier === 'fast' ? 0.375 : tier === 'good' ? 1 : 1.875
+    const tierMul  = tier === 'lite' ? 0.125 : tier === 'fast' ? 0.375 : 1
 
     // Per-frame cost, tuned so a 6s/24fps/720p Standard clip lands on Vertex
-    // Veo 3.1 Standard pricing (6s × $0.40/s = $2.40). Fast and Premium tiers
-    // likewise hit $0.15/s and $0.75/s at their defaults.
+    // Veo 3.1 Standard pricing (6s × $0.40/s = $2.40). Lite and Fast tiers
+    // likewise hit $0.05/s and $0.15/s at their defaults.
     const perFrameGpuS = 2.5 * pixelMul * tierMul
     // Residual quadratic term (smaller than pre-sparse-attention era). Kept small
     // so the teaching point — that long clips still cost more than linearly — is
@@ -310,10 +310,10 @@ const video: Modality = {
     }
   },
   scenarios: [
-    { icon: '📱', title: '6s social clip',    blurb: 'Veo 3.1 Fast, 720p',        cost: '~$0.90',   footnote: 'Vertex $0.15/sec' },
-    { icon: '📺', title: '30s ad spot',       blurb: 'Veo 3.1 Standard, 1080p',   cost: '~$12',     footnote: 'Vertex $0.40/sec · stitched from ≤8s clips' },
-    { icon: '🎬', title: '2min short scene',  blurb: 'Veo 3.1 Premium, 1080p',    cost: '~$90',     footnote: 'Vertex $0.75/sec · stitched clips' },
-    { icon: '🎞️', title: '1hr generated film',blurb: 'Veo 3.1 Standard, 1080p',   cost: '~$1,440',  footnote: 'linear at $0.40/sec — before retries & edits' },
+    { icon: '📱', title: '6s social clip',    blurb: 'Veo 3.1 Fast, 720p',         cost: '~$0.90',   footnote: 'Vertex $0.15/sec w/ audio' },
+    { icon: '🎞️', title: '6s silent B-roll',  blurb: 'Veo 3.1 Lite, 720p',         cost: '~$0.30',   footnote: 'Vertex $0.05/sec, no audio' },
+    { icon: '📺', title: '30s ad spot',       blurb: 'Veo 3.1 Standard, 1080p',    cost: '~$12',     footnote: 'Vertex $0.40/sec · stitched from ≤8s clips' },
+    { icon: '🎬', title: '1hr generated film',blurb: 'Veo 3.1 Standard, 1080p',    cost: '~$1,440',  footnote: 'linear at $0.40/sec — before retries & edits' },
   ],
   deepDive: [
     {
@@ -361,7 +361,7 @@ const audio: Modality = {
     'Audio models come in two flavors: speech (TTS, voice cloning) and music. On Google Vertex AI, that\'s Chirp 3 HD for speech and Lyria 2 for music.',
     'Both typically generate audio tokens autoregressively — one small chunk at a time — then a vocoder turns tokens into waveform. Per second, audio is far cheaper than video. Per *hour* of output, it adds up.',
   ],
-  whyExpensive: 'Cost scales linearly with output duration. Music models cost roughly 30× speech models per second because they generate richer tokens (multiple instruments, wider frequency range).',
+  whyExpensive: 'Cost scales linearly with output duration. On Vertex, Lyria 2 music (~$0.002/sec) runs ~4× Chirp 3 HD speech (~$0.0005/sec) because music encodes richer tokens — multiple instruments, wider frequency range.',
   fields: [
     { id: 'kind', type: 'select', label: 'Kind', default: 'speech',
       options: [
@@ -390,14 +390,15 @@ const audio: Modality = {
     const quality  = String(inputs.quality)
     const cloning  = Boolean(inputs.cloning)
 
-    const kindMul    = kind === 'music' ? 28.5 : 1
+    const kindMul    = kind === 'music' ? 4 : 1
     const qualityMul = quality === 'fast' ? 0.5 : quality === 'standard' ? 1 : 1.5
     const cloneAdd   = kind === 'speech' && cloning ? 0.0005 : 0
 
-    // Per-second base tuned against Vertex Chirp 3 HD (speech, ~$0.002/sec
-    // at list) and Lyria 2 (music, ~$0.06/sec). Music costs more per second
-    // because it encodes richer signal (instruments, wider frequency range).
-    const gpuSeconds = seconds * 2.5 * kindMul * qualityMul
+    // Per-second base tuned against Vertex list pricing: Chirp 3 HD speech at
+    // $0.030 / 1K characters ≈ $0.0005/sec (at ~15 chars/sec), and Lyria 2
+    // music at $0.06 / 30 sec = $0.002/sec. Music costs ~4× speech because it
+    // encodes richer signal (instruments, wider frequency range).
+    const gpuSeconds = seconds * 0.6 * kindMul * qualityMul
     const dollars = gpuSeconds * GPU_SECOND * 1.4 + cloneAdd
 
     return {
@@ -414,10 +415,10 @@ const audio: Modality = {
     }
   },
   scenarios: [
-    { icon: '📢', title: '30s ad voiceover',    blurb: 'Chirp 3 HD · Vertex',       cost: '~$0.06',  footnote: '~$0.002/sec at list price' },
-    { icon: '🎙️', title: '1hr podcast TTS',     blurb: 'Chirp 3 HD · Vertex',       cost: '~$7',     footnote: '3600s × ~$0.002/sec' },
-    { icon: '🎵', title: '3min Lyria 2 track',  blurb: 'Lyria 2 · Vertex',          cost: '~$11',    footnote: '180s × ~$0.06/sec' },
-    { icon: '📚', title: '10hr audiobook',      blurb: 'Chirp 3 HD · cloned voice', cost: '~$70',    footnote: 'vs $1k+ for a human narrator' },
+    { icon: '📢', title: '30s ad voiceover',    blurb: 'Chirp 3 HD · Vertex',       cost: '~$0.015', footnote: '$0.030 / 1K chars ≈ $0.0005/sec' },
+    { icon: '🎙️', title: '1hr podcast TTS',     blurb: 'Chirp 3 HD · Vertex',       cost: '~$1.80',  footnote: '3600s × ~$0.0005/sec' },
+    { icon: '🎵', title: '3min Lyria 2 track',  blurb: 'Lyria 2 · Vertex',          cost: '~$0.36',  footnote: '180s × $0.06 / 30s = $0.002/sec' },
+    { icon: '📚', title: '10hr audiobook',      blurb: 'Chirp 3 HD · cloned voice', cost: '~$18',    footnote: 'vs $1k+ for a human narrator' },
   ],
   deepDive: [
     {
@@ -426,7 +427,7 @@ const audio: Modality = {
     },
     {
       title: 'Why music costs more than speech',
-      body: 'Music encodes multiple simultaneous instruments across a wider frequency range, usually at higher sample rates (44.1/48 kHz vs 16–24 kHz for speech). More tokens per second, bigger models, and typically more attempts per usable output. Vertex lists Lyria 2 at ~$0.06/sec versus Chirp 3 HD speech at ~$0.002/sec — roughly 30× the per-second cost.',
+      body: 'Music encodes multiple simultaneous instruments across a wider frequency range, usually at higher sample rates (44.1/48 kHz vs 16–24 kHz for speech). More tokens per second and bigger models. On Vertex, Lyria 2 is $0.06 per 30 seconds (~$0.002/sec) versus Chirp 3 HD at $0.030 / 1K characters (~$0.0005/sec at a normal speaking rate) — roughly 4× the per-second cost. Consumer music products like Suno and Udio ship at flat $10–$30/mo subscriptions that subsidize this cost.',
     },
     {
       title: 'Licensing is now the business model',
@@ -459,7 +460,7 @@ const world: Modality = {
   tagline: 'Video you can *play*. Every input generates the next frame in real time.',
   primer: [
     'World models (Genie 3, Oasis, GameNGen) are video models with a twist: you give them an action each frame — arrow key, mouse move, controller input — and they render the consequence.',
-    'Google DeepMind\'s Genie 3 serves one interactive 720p/24fps session on a cluster of 4× H100 GPUs. Oasis (the Minecraft world model) serves ~5 concurrent users on 8× H100s at 360p/20fps. These aren\'t "per-image" economics — you rent a whole cluster for as long as someone is playing.',
+    'Google DeepMind\'s Genie 3 is an ~11B-parameter autoregressive transformer that generates real-time navigable worlds at 720p/24fps. DeepMind hasn\'t published the exact inference cluster size; community estimates put it at roughly 4× H100 per concurrent session. Oasis (the Minecraft world model) is reported at ~5 concurrent users on 8× H100s at 360p/20fps. These aren\'t "per-image" economics — you rent a whole cluster for as long as someone is playing.',
     'Consistency is the other ceiling: after ~120 seconds of exploration, worlds tend to drift — textures jitter, collision rules fail, previously visited rooms warp. That\'s why nothing serious replaces a game engine yet.',
   ],
   whyExpensive: 'A video model generates 100 frames in a batch. A world model generates 1 frame, immediately, 30 times a second — and pays for compute that would have been batched.',
@@ -541,7 +542,7 @@ const world: Modality = {
     },
     {
       title: 'Memory bandwidth > raw TFLOPs',
-      body: 'A world model must keep a latent state for every object and location you\'ve visited this session, plus autoregressively predict the next frame under a sub-100ms budget. That\'s a memory-bandwidth problem, not a compute problem. On an H100 PCIe (2,000 GB/s), 4× GPUs is the minimum to hit 720p/24fps. Blackwell B200 (HBM3e, ~$5.49–$6.69/hr retail) eases this substantially but is still capacity-constrained — NVIDIA reportedly sold out 12 months of production in advance.',
+      body: 'A world model must keep a latent state for every object and location you\'ve visited this session, plus autoregressively predict the next frame under a sub-100ms budget. That\'s a memory-bandwidth problem, not a compute problem. On an H100 SXM (3.35 TB/s HBM3), community estimates put ~4 GPUs as the minimum to hit 720p/24fps on a Genie-3-sized model. Blackwell B200 (HBM3e, ~$5.49–$6.69/hr retail) eases this substantially but is still capacity-constrained.',
     },
     {
       title: 'Latent action models',

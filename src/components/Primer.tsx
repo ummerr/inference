@@ -37,10 +37,12 @@ export function Primer() {
       </div>
 
       <div className="mt-8 text-xs text-slate-500 max-w-2xl leading-relaxed">
-        Numbers are calibrated against April 2026 market rates — H100 on-demand at
-        ~$1.99–$3.93/hr (we use ~$2.16/hr blended), Flux 2 at $0.015–$0.055/image,
-        Kling 3.0 Pro at $0.10/sec, ElevenLabs Scale at $0.003/sec. They won't
-        forecast your exact bill, but the <em>shape</em> should match real invoices.
+        Numbers are calibrated against April 2026 Google Vertex AI list prices —
+        Imagen 4 at $0.02/$0.04/$0.06 per image (Fast / Standard / Ultra), Veo 3.1
+        at $0.05/$0.15/$0.40 per second (Lite / Fast / Standard), Chirp 3 HD at
+        $0.030 / 1K chars, Lyria 2 at $0.06 / 30s. H100 references use a ~$2.16/hr
+        blended rate. They won't forecast your exact bill, but the <em>shape</em>
+        should match real invoices.
       </div>
     </section>
   )

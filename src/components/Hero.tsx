@@ -3,13 +3,6 @@ import { MODALITIES } from '../modalities'
 export function Hero() {
   return (
     <header className="relative pt-20 sm:pt-32 pb-16 sm:pb-24">
-      {/* Decorative blobs */}
-      <div className="pointer-events-none absolute inset-0 overflow-hidden -z-10">
-        <div className="blob absolute -top-10 -right-10 w-[420px] h-[420px] rounded-full bg-indigo-300/40" />
-        <div className="blob absolute top-40 -left-16 w-[360px] h-[360px] rounded-full bg-rose-300/40" style={{ animationDelay: '-6s' }} />
-        <div className="blob absolute top-80 right-1/3 w-[320px] h-[320px] rounded-full bg-emerald-300/30" style={{ animationDelay: '-12s' }} />
-      </div>
-
       <div className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-500 fade-up">
         Gen Media Inference · 101
       </div>

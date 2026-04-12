@@ -9,6 +9,12 @@ import { Glossary } from './components/Glossary'
 export default function App() {
   return (
     <div className="min-h-screen text-slate-900">
+      <div className="pointer-events-none fixed inset-0 overflow-hidden -z-10">
+        <div className="blob absolute -top-32 -right-24 w-[55vw] h-[55vw] rounded-full bg-indigo-300/40" />
+        <div className="blob absolute top-1/3 -left-32 w-[45vw] h-[45vw] rounded-full bg-rose-300/40" style={{ animationDelay: '-6s' }} />
+        <div className="blob absolute bottom-[-10%] left-1/3 w-[45vw] h-[45vw] rounded-full bg-emerald-300/30" style={{ animationDelay: '-12s' }} />
+        <div className="blob absolute top-2/3 right-[-10%] w-[40vw] h-[40vw] rounded-full bg-amber-300/30" style={{ animationDelay: '-9s' }} />
+      </div>
       <ModalityNav />
       <main className="max-w-6xl mx-auto px-5 sm:px-8">
         <Hero />
