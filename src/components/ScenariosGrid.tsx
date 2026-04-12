@@ -97,7 +97,7 @@ export function ScenariosGrid() {
         return (
           <div
             key={s.title}
-            className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-[0_1px_2px_rgba(15,23,42,0.04),0_12px_40px_-12px_rgba(15,23,42,0.12)] ring-1 ring-slate-200/60 p-6 flex flex-col gap-3 transition-transform hover:-translate-y-0.5"
+            className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-[0_1px_2px_rgba(15,23,42,0.04),0_12px_40px_-12px_rgba(15,23,42,0.12)] ring-1 ring-slate-200/60 p-5 sm:p-6 flex flex-col gap-3 transition-transform hover:-translate-y-0.5"
           >
             <div className={'w-11 h-11 rounded-2xl flex items-center justify-center shadow-md shadow-slate-900/5 ring-1 ring-white/20 bg-gradient-to-br ' + s.accent}>
               <Icon className="w-6 h-6 text-white" />

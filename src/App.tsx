@@ -39,7 +39,7 @@ function ControlRow({ label, children }: { label: string; children: ReactNode })
 
 function Card({ children, className = '' }: { children: ReactNode; className?: string }) {
   return (
-    <div className={'bg-white/80 backdrop-blur-sm rounded-3xl shadow-[0_1px_2px_rgba(15,23,42,0.04),0_12px_40px_-12px_rgba(15,23,42,0.12)] ring-1 ring-slate-200/60 p-7 ' + className}>
+    <div className={'bg-white/80 backdrop-blur-sm rounded-3xl shadow-[0_1px_2px_rgba(15,23,42,0.04),0_12px_40px_-12px_rgba(15,23,42,0.12)] ring-1 ring-slate-200/60 p-5 sm:p-7 ' + className}>
       {children}
     </div>
   )
@@ -82,7 +82,7 @@ function SectionHeader({
       </div>
       <div>
         <div className="text-[11px] font-semibold text-slate-400 uppercase tracking-[0.18em]">{eyebrow}</div>
-        <h2 className="font-display text-3xl md:text-4xl text-slate-900 leading-tight">{title}</h2>
+        <h2 className="font-display text-2xl sm:text-3xl md:text-4xl text-slate-900 leading-tight">{title}</h2>
         {subtitle && <p className="text-slate-500 mt-1.5 leading-relaxed">{subtitle}</p>}
       </div>
     </div>
@@ -100,7 +100,7 @@ function Explainer({
 }) {
   const [open, setOpen] = useState(false)
   return (
-    <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-[0_1px_2px_rgba(15,23,42,0.04),0_12px_40px_-12px_rgba(15,23,42,0.12)] ring-1 ring-slate-200/60 p-6 flex flex-col gap-3 transition-transform hover:-translate-y-0.5">
+    <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-[0_1px_2px_rgba(15,23,42,0.04),0_12px_40px_-12px_rgba(15,23,42,0.12)] ring-1 ring-slate-200/60 p-5 sm:p-6 flex flex-col gap-3 transition-transform hover:-translate-y-0.5">
       <div className={'w-11 h-11 rounded-2xl flex items-center justify-center shadow-md shadow-slate-900/5 ring-1 ring-white/20 ' + accent}>
         <Icon className="w-6 h-6 text-white" />
       </div>
@@ -129,8 +129,8 @@ function Explainer({
 function Bar({ label, units, max }: { label: string; units: number; max: number }) {
   const pct = (units / max) * 100
   return (
-    <div className="flex items-center gap-3">
-      <div className="w-44 text-sm text-slate-700 font-medium shrink-0">{label}</div>
+    <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3">
+      <div className="sm:w-44 text-sm text-slate-700 font-medium shrink-0">{label}</div>
       <div className="flex-1 bg-slate-100 rounded-full h-7 overflow-hidden">
         <div
           className="h-full bg-gradient-to-r from-indigo-500 to-indigo-600 rounded-full flex items-center justify-end pr-3 text-xs font-semibold text-white transition-all duration-500"
@@ -188,7 +188,7 @@ function Ticker({
       </div>
       <div className="relative space-y-2">
         <div className="text-indigo-200/80 text-sm uppercase tracking-wider">Compute Units</div>
-        <div className="font-display text-8xl tabular-nums leading-none bg-gradient-to-br from-white to-indigo-200 bg-clip-text text-transparent">
+        <div className="font-display text-7xl sm:text-8xl tabular-nums leading-none bg-gradient-to-br from-white to-indigo-200 bg-clip-text text-transparent">
           {animUnits.toFixed(1)}
         </div>
         <div className="text-indigo-100 text-lg pt-1">
@@ -237,7 +237,7 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900">
-      <div className="max-w-7xl mx-auto px-6 py-12">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 sm:py-12">
         {/* Hero (full width, above the nav grid) */}
         <header className="relative text-center space-y-5 mb-16 pt-8 pb-4 fade-up">
           <div className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
@@ -249,7 +249,7 @@ export default function App() {
             <Sparkles className="w-4 h-4" />
             The Fun Inference Calculator
           </div>
-          <h1 className="font-display text-6xl md:text-7xl lg:text-8xl tracking-tight leading-[0.95] text-slate-900">
+          <h1 className="font-display text-5xl sm:text-6xl md:text-7xl lg:text-8xl tracking-tight leading-[0.95] text-slate-900 px-2">
             What does AI <em className="bg-gradient-to-r from-indigo-600 via-violet-600 to-rose-500 bg-clip-text text-transparent not-italic">actually</em> cost?
           </h1>
           <p className="text-lg md:text-xl text-slate-600 max-w-2xl mx-auto leading-relaxed">
@@ -376,17 +376,17 @@ export default function App() {
                 <div className="mt-6 grid md:grid-cols-3 gap-3">
                   <div className="bg-slate-50 rounded-xl p-4 ring-1 ring-slate-200">
                     <div className="text-xs font-bold text-slate-500 uppercase tracking-[0.15em]">Frames</div>
-                    <div className="font-display text-3xl text-slate-900 leading-tight">120+</div>
+                    <div className="font-display text-2xl sm:text-3xl text-slate-900 leading-tight">120+</div>
                     <div className="text-xs text-slate-500 mt-1">5 seconds × 24 fps</div>
                   </div>
                   <div className="bg-rose-50 rounded-xl p-4 ring-1 ring-rose-100">
                     <div className="text-xs font-bold text-rose-600 uppercase tracking-[0.15em]">Per-frame work</div>
-                    <div className="font-display text-3xl text-rose-900 leading-tight">~1 image</div>
+                    <div className="font-display text-2xl sm:text-3xl text-rose-900 leading-tight">~1 image</div>
                     <div className="text-xs text-rose-600 mt-1">Each frame = one denoise pass</div>
                   </div>
                   <div className="bg-indigo-50 rounded-xl p-4 ring-1 ring-indigo-100">
                     <div className="text-xs font-bold text-indigo-600 uppercase tracking-[0.15em]">Attention cost</div>
-                    <div className="font-display text-3xl text-indigo-900 leading-tight">O(n²)</div>
+                    <div className="font-display text-2xl sm:text-3xl text-indigo-900 leading-tight">O(n²)</div>
                     <div className="text-xs text-indigo-600 mt-1">Every frame checks every other</div>
                   </div>
                 </div>
@@ -427,7 +427,7 @@ export default function App() {
                 accent="bg-gradient-to-br from-indigo-400 to-indigo-600"
               />
               <div className="grid lg:grid-cols-2 gap-6">
-                <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-[0_1px_2px_rgba(15,23,42,0.04),0_12px_40px_-12px_rgba(15,23,42,0.12)] ring-1 ring-slate-200/60 p-7 space-y-6">
+                <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-[0_1px_2px_rgba(15,23,42,0.04),0_12px_40px_-12px_rgba(15,23,42,0.12)] ring-1 ring-slate-200/60 p-5 sm:p-7 space-y-6">
                   <div className="space-y-2">
                     <div className="flex justify-between items-baseline">
                       <span className="text-xs font-semibold text-slate-500 uppercase tracking-[0.18em]">Steps</span>

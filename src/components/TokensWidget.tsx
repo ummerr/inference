@@ -46,17 +46,17 @@ export function TokensWidget() {
         )}
       </div>
 
-      <div className="grid grid-cols-3 gap-3 text-center">
+      <div className="grid grid-cols-3 gap-2 sm:gap-3 text-center">
         <div className="bg-slate-50 rounded-lg p-3 ring-1 ring-slate-200">
-          <div className="text-2xl font-bold text-slate-900 tabular-nums">{tokens.length}</div>
+          <div className="text-xl sm:text-2xl font-bold text-slate-900 tabular-nums">{tokens.length}</div>
           <div className="text-xs text-slate-500 uppercase tracking-wide">tokens</div>
         </div>
         <div className="bg-slate-50 rounded-lg p-3 ring-1 ring-slate-200">
-          <div className="text-2xl font-bold text-slate-900 tabular-nums">{text.length}</div>
+          <div className="text-xl sm:text-2xl font-bold text-slate-900 tabular-nums">{text.length}</div>
           <div className="text-xs text-slate-500 uppercase tracking-wide">characters</div>
         </div>
         <div className="bg-indigo-50 rounded-lg p-3 ring-1 ring-indigo-200">
-          <div className="text-2xl font-bold text-indigo-700 tabular-nums">
+          <div className="text-xl sm:text-2xl font-bold text-indigo-700 tabular-nums">
             ${costPer1k.toFixed(4)}
           </div>
           <div className="text-xs text-indigo-600 uppercase tracking-wide">per 1k inputs</div>
