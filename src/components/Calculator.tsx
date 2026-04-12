@@ -1,23 +1,24 @@
-import { useMemo, useState } from 'react'
+import { useState } from 'react'
 import type { Modality, Inputs, Field } from '../modalities'
 
-export function Calculator({ modality }: { modality: Modality }) {
-  const initial: Inputs = useMemo(() => {
-    const o: Inputs = {}
-    for (const f of modality.fields) o[f.id] = f.default
-    return o
-  }, [modality])
-
-  const [inputs, setInputs] = useState<Inputs>(initial)
+export function Calculator({
+  modality,
+  inputs,
+  onChange,
+}: {
+  modality: Modality
+  inputs: Inputs
+  onChange: (next: Inputs) => void
+}) {
+  const [showMath, setShowMath] = useState(false)
   const result = modality.calc(inputs)
 
   const set = (id: string, v: Inputs[string]) =>
-    setInputs(prev => ({ ...prev, [id]: v }))
+    onChange({ ...inputs, [id]: v })
 
   return (
     <div className={`rounded-3xl border ${modality.accent.border} bg-white/80 backdrop-blur shadow-sm overflow-hidden`}>
       <div className="grid md:grid-cols-[1fr_auto]">
-        {/* Controls */}
         <div className="p-5 sm:p-7 space-y-5">
           <div className="flex items-center justify-between">
             <h3 className="text-sm font-semibold text-slate-600 uppercase tracking-wider">Play with the knobs</h3>
@@ -28,7 +29,6 @@ export function Calculator({ modality }: { modality: Modality }) {
           ))}
         </div>
 
-        {/* Result */}
         <div className={`p-5 sm:p-7 md:min-w-[280px] md:border-l ${modality.accent.border} ${modality.accent.bgSoft}`}>
           <div className="text-xs font-semibold uppercase tracking-wider text-slate-500">Estimated cost</div>
           <div className={`font-display text-5xl sm:text-6xl leading-none mt-2 ${modality.accent.text}`}>
@@ -51,6 +51,22 @@ export function Calculator({ modality }: { modality: Modality }) {
             </div>
           )}
         </div>
+      </div>
+
+      <div className={`border-t ${modality.accent.border} bg-white/60`}>
+        <button
+          type="button"
+          onClick={() => setShowMath(v => !v)}
+          className="w-full flex items-center justify-between px-5 sm:px-7 py-3 text-xs font-semibold uppercase tracking-wider text-slate-500 hover:text-slate-700 transition-colors"
+        >
+          <span>{showMath ? 'Hide' : 'Show'} the math</span>
+          <span className={`font-mono ${modality.accent.text}`}>{showMath ? '−' : '+'}</span>
+        </button>
+        {showMath && (
+          <pre className="px-5 sm:px-7 pb-5 text-[11px] sm:text-xs text-slate-700 font-mono leading-relaxed whitespace-pre-wrap">
+{modality.formula}
+          </pre>
+        )}
       </div>
     </div>
   )
@@ -110,7 +126,6 @@ function FieldControl({
       </div>
     )
   }
-  // select
   const v = String(value)
   return (
     <div>

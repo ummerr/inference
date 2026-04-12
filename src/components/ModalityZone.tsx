@@ -1,12 +1,35 @@
-import type { Modality } from '../modalities'
+import { useMemo, useRef, useState } from 'react'
+import type { Modality, Inputs } from '../modalities'
 import { Calculator } from './Calculator'
 import { ScenarioCard } from './ScenarioCard'
 import { DeepDive } from './DeepDive'
 
 export function ModalityZone({ modality }: { modality: Modality }) {
+  const initial: Inputs = useMemo(() => {
+    const o: Inputs = {}
+    for (const f of modality.fields) o[f.id] = f.default
+    return o
+  }, [modality])
+
+  const [inputs, setInputs] = useState<Inputs>(initial)
+  const calcRef = useRef<HTMLDivElement>(null)
+  const [pulse, setPulse] = useState(false)
+
+  const applyInputs = (partial: Partial<Inputs>) => {
+    setInputs(prev => {
+      const next: Inputs = { ...prev }
+      for (const [k, v] of Object.entries(partial)) {
+        if (v !== undefined) next[k] = v
+      }
+      return next
+    })
+    calcRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    setPulse(true)
+    window.setTimeout(() => setPulse(false), 900)
+  }
+
   return (
     <section id={`zone-${modality.id}`} className="scroll-mt-20 py-16 sm:py-24">
-      {/* Header */}
       <div className="flex items-center gap-3 mb-4">
         <span className={`inline-block w-2.5 h-2.5 rounded-full ${modality.accent.bg}`} />
         <span className={`text-xs font-bold uppercase tracking-[0.2em] ${modality.accent.text}`}>
@@ -17,14 +40,12 @@ export function ModalityZone({ modality }: { modality: Modality }) {
         {modality.tagline}
       </h2>
 
-      {/* Primer */}
       <div className="mt-6 max-w-2xl space-y-4 text-slate-700 leading-relaxed">
         {modality.primer.map((p, i) => (
           <p key={i} className={i === 0 ? 'text-lg' : ''}>{p}</p>
         ))}
       </div>
 
-      {/* Why expensive */}
       <div className={`mt-6 max-w-2xl rounded-2xl ${modality.accent.bgSoft} border ${modality.accent.border} px-5 py-4`}>
         <div className={`text-[11px] font-bold uppercase tracking-wider ${modality.accent.text} mb-1`}>
           The cost shape
@@ -32,24 +53,34 @@ export function ModalityZone({ modality }: { modality: Modality }) {
         <div className="text-slate-800 text-sm leading-relaxed">{modality.whyExpensive}</div>
       </div>
 
-      {/* Calculator */}
-      <div className="mt-10">
-        <Calculator modality={modality} />
+      <div
+        ref={calcRef}
+        className={`mt-10 transition-shadow duration-500 rounded-3xl ${pulse ? `ring-4 ${modality.accent.ring}` : ''}`}
+      >
+        <Calculator modality={modality} inputs={inputs} onChange={setInputs} />
       </div>
 
-      {/* Scenarios */}
       <div className="mt-12">
-        <div className="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-3">
-          What real things cost
+        <div className="flex items-baseline justify-between mb-3">
+          <div className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+            What real things cost
+          </div>
+          <div className="text-xs text-slate-400 italic">
+            click a card to load it into the calculator ↑
+          </div>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {modality.scenarios.map(s => (
-            <ScenarioCard key={s.title} scenario={s} accent={modality.accent} />
+            <ScenarioCard
+              key={s.title}
+              scenario={s}
+              accent={modality.accent}
+              onApply={applyInputs}
+            />
           ))}
         </div>
       </div>
 
-      {/* Deep dive */}
       <DeepDive modality={modality} />
     </section>
   )

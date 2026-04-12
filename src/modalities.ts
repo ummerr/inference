@@ -59,6 +59,9 @@ export interface CostResult {
 export interface ScenarioTier {
   label: string
   cost: string
+  // Optional: extra inputs to merge on top of the scenario's base inputs
+  // when this tier is clicked.
+  inputs?: Partial<Inputs>
 }
 
 export interface Scenario {
@@ -71,6 +74,10 @@ export interface Scenario {
   // Standard). When present, the card shows the breakdown instead of the
   // single cost.
   tiers?: ScenarioTier[]
+  // Optional: base inputs to apply to the calculator when the card (or a
+  // tier inside it) is clicked. If omitted, the scenario is a pure display
+  // card and is not clickable.
+  inputs?: Partial<Inputs>
 }
 
 export interface DeepDiveBlock {
@@ -97,6 +104,9 @@ export interface Modality {
   tagline: string
   primer: string[]       // short paragraphs
   whyExpensive: string   // one-liner explaining the cost shape
+  // Plain-English rendering of what the calc is doing. Shown behind a
+  // "Show the math" toggle so curious readers can see the formula.
+  formula: string
   fields: Field[]
   calc: (inputs: Inputs) => CostResult
   scenarios: Scenario[]
@@ -145,6 +155,7 @@ const images: Modality = {
     'On Google Vertex AI, the Imagen 4 family prices this three ways: Fast ($0.02/image), Standard ($0.04), and Ultra ($0.06). Same mechanic, more or less compute per call.',
   ],
   whyExpensive: 'More steps = better image, linearly more compute. Guidance (CFG) runs the model twice per step. Resolution scales the per-step work by pixels². Vertex hides the knobs behind a tier name — you pick Fast / Standard / Ultra, it picks the steps for you.',
+  formula: 'gpu_seconds = steps × passes × size_mul × (res / 1024)² × 0.05\ndollars    = gpu_seconds × $0.0006/s × 27   # retail API markup\n\n# size_mul: Fast 0.5, Standard 1.0, Ultra 1.5\n# passes:   guided = 2, unguided = 1',
   fields: [
     {
       id: 'steps', type: 'slider', label: 'Denoising steps',
@@ -207,19 +218,21 @@ const images: Modality = {
     {
       icon: '🖼️', title: 'One 1024² image', blurb: 'Single Imagen 4 call',
       cost: '$0.02 → $0.06', footnote: 'Vertex list price per image — tier = how many inference steps + refiner passes',
+      inputs: { steps: 25, guided: true, resolution: '1024' },
       tiers: [
-        { label: 'Fast',     cost: '$0.02' },
-        { label: 'Standard', cost: '$0.04' },
-        { label: 'Ultra',    cost: '$0.06' },
+        { label: 'Fast',     cost: '$0.02', inputs: { modelSize: 'small' } },
+        { label: 'Standard', cost: '$0.04', inputs: { modelSize: 'medium' } },
+        { label: 'Ultra',    cost: '$0.06', inputs: { modelSize: 'large' } },
       ],
     },
     {
       icon: '🖨️', title: '2048² print-ready', blurb: '4× the pixels of 1024²',
       cost: '$0.02 → $0.06', footnote: 'Vertex charges per image, not per pixel — users self-select Ultra for print',
+      inputs: { steps: 25, guided: true, resolution: '2048' },
       tiers: [
-        { label: 'Fast',     cost: '$0.02' },
-        { label: 'Standard', cost: '$0.04' },
-        { label: 'Ultra',    cost: '$0.06' },
+        { label: 'Fast',     cost: '$0.02', inputs: { modelSize: 'small' } },
+        { label: 'Standard', cost: '$0.04', inputs: { modelSize: 'medium' } },
+        { label: 'Ultra',    cost: '$0.06', inputs: { modelSize: 'large' } },
       ],
     },
     {
@@ -284,9 +297,10 @@ const video: Modality = {
     'Sora shut down on March 24, 2026 — ~$15M/day in inference against $2.1M lifetime revenue. The market has since moved to per-second billing that tracks compute honestly.',
   ],
   whyExpensive: 'Cost ≈ (per-frame work) × frames. The old O(n²) temporal attention has been flattened to near-linear by sparse attention, but each frame still does image-worthy compute at higher resolutions. Every extra second or pixel is still real money.',
+  formula: 'frames      = seconds × fps\nper_frame   = 2.5 × (res / 720)² × tier_mul     # linear\ntemporal    = frames² / 8000 × tier_mul × pixel_mul  # quadratic residue\ngpu_seconds = frames × per_frame + temporal\ndollars     = gpu_seconds × $0.0006/s × 11       # retail markup\n\n# tier_mul: Lite 0.125, Fast 0.375, Standard 1.0',
   fields: [
-    { id: 'seconds',    type: 'slider', label: 'Length',     min: 1, max: 60, step: 1,  default: 6, unit: 's',
-      hint: v => v <= 8 ? 'social clip' : v <= 20 ? 'short ad' : v <= 40 ? 'scene' : 'short film',
+    { id: 'seconds',    type: 'slider', label: 'Length',     min: 1, max: 120, step: 1,  default: 6, unit: 's',
+      hint: v => v <= 8 ? 'social clip' : v <= 20 ? 'short ad' : v <= 60 ? 'scene' : 'short film',
     },
     { id: 'fps',        type: 'slider', label: 'Frame rate', min: 8, max: 30, step: 2, default: 24, unit: ' fps' },
     { id: 'resolution', type: 'select', label: 'Resolution', default: '720',
@@ -349,28 +363,31 @@ const video: Modality = {
     {
       icon: '📱', title: '6s social clip', blurb: '720p, one generation',
       cost: '$0.30 → $2.40', footnote: 'Lite has no audio; Fast/Standard include synchronized audio',
+      inputs: { seconds: 6, fps: 24, resolution: '720' },
       tiers: [
-        { label: 'Lite',     cost: '$0.30' },
-        { label: 'Fast',     cost: '$0.90' },
-        { label: 'Standard', cost: '$2.40' },
+        { label: 'Lite',     cost: '$0.30', inputs: { tier: 'lite' } },
+        { label: 'Fast',     cost: '$0.90', inputs: { tier: 'fast' } },
+        { label: 'Standard', cost: '$2.40', inputs: { tier: 'good' } },
       ],
     },
     {
       icon: '📺', title: '30s ad spot', blurb: 'Stitched from ≤8s clips',
       cost: '$1.50 → $12', footnote: '30 × per-second rate; retries and edits add 1.5–3× in practice',
+      inputs: { seconds: 30, fps: 24, resolution: '1080' },
       tiers: [
-        { label: 'Lite',     cost: '$1.50' },
-        { label: 'Fast',     cost: '$4.50' },
-        { label: 'Standard', cost: '$12' },
+        { label: 'Lite',     cost: '$1.50', inputs: { tier: 'lite' } },
+        { label: 'Fast',     cost: '$4.50', inputs: { tier: 'fast' } },
+        { label: 'Standard', cost: '$12',   inputs: { tier: 'good' } },
       ],
     },
     {
       icon: '🎬', title: '2min short scene', blurb: '~15 clips stitched',
       cost: '$6 → $48', footnote: 'before the VFX/color pass that a real short needs',
+      inputs: { seconds: 120, fps: 24, resolution: '1080' },
       tiers: [
-        { label: 'Lite',     cost: '$6' },
-        { label: 'Fast',     cost: '$18' },
-        { label: 'Standard', cost: '$48' },
+        { label: 'Lite',     cost: '$6',  inputs: { tier: 'lite' } },
+        { label: 'Fast',     cost: '$18', inputs: { tier: 'fast' } },
+        { label: 'Standard', cost: '$48', inputs: { tier: 'good' } },
       ],
     },
     {
@@ -430,6 +447,7 @@ const audio: Modality = {
     'Both typically generate audio tokens autoregressively — one small chunk at a time — then a vocoder turns tokens into waveform. Per second, audio is far cheaper than video. Per *hour* of output, it adds up.',
   ],
   whyExpensive: 'Cost scales linearly with output duration. On Vertex, Lyria 2 music (~$0.002/sec) runs ~4× Chirp 3 HD speech (~$0.0005/sec) because music encodes richer tokens — multiple instruments, wider frequency range.',
+  formula: 'gpu_seconds = seconds × 0.6 × kind_mul × quality_mul\ndollars     = gpu_seconds × $0.0006/s × 1.4 + clone_overhead\n\n# kind_mul:    speech 1.0, music 4.0\n# quality_mul: fast 0.5, standard 1.0, hifi 1.5\n# clone:       +$0.0005/request for speech + voice cloning',
   fields: [
     { id: 'kind', type: 'select', label: 'Kind', default: 'speech',
       options: [
@@ -437,8 +455,8 @@ const audio: Modality = {
         { value: 'music',  label: 'Music generation' },
       ],
     },
-    { id: 'seconds', type: 'slider', label: 'Duration', min: 5, max: 600, step: 5, default: 60, unit: 's',
-      hint: v => v < 30 ? 'one-liner' : v < 120 ? 'short VO' : v < 300 ? 'podcast segment' : 'full episode',
+    { id: 'seconds', type: 'slider', label: 'Duration', min: 5, max: 3600, step: 5, default: 60, unit: 's',
+      hint: v => v < 30 ? 'one-liner' : v < 120 ? 'short VO' : v < 600 ? 'podcast segment' : v < 1800 ? 'full episode' : 'feature length',
     },
     { id: 'quality', type: 'select', label: 'Quality', default: 'standard',
       options: [
@@ -486,26 +504,30 @@ const audio: Modality = {
     {
       icon: '📢', title: '30s voiceover', blurb: 'Chirp 3 HD vs Lyria 2 jingle',
       cost: '$0.015 → $0.06', footnote: 'same duration, music ~4× speech',
+      inputs: { seconds: 30, quality: 'standard', cloning: false },
       tiers: [
-        { label: 'Chirp 3 HD (speech)', cost: '$0.015' },
-        { label: 'Lyria 2 (music)',     cost: '$0.06' },
+        { label: 'Chirp 3 HD (speech)', cost: '$0.015', inputs: { kind: 'speech' } },
+        { label: 'Lyria 2 (music)',     cost: '$0.06',  inputs: { kind: 'music'  } },
       ],
     },
     {
       icon: '🎙️', title: '1hr podcast episode', blurb: 'Speech TTS vs music bed',
       cost: '$1.80 → $7.20', footnote: '3600s × per-second rate',
+      inputs: { seconds: 3600, quality: 'standard', cloning: false },
       tiers: [
-        { label: 'Chirp 3 HD (speech)', cost: '$1.80' },
-        { label: 'Lyria 2 (music)',     cost: '$7.20' },
+        { label: 'Chirp 3 HD (speech)', cost: '$1.80', inputs: { kind: 'speech' } },
+        { label: 'Lyria 2 (music)',     cost: '$7.20', inputs: { kind: 'music'  } },
       ],
     },
     {
       icon: '🎵', title: '3min music track', blurb: 'Lyria 2 generated song',
       cost: '~$0.36', footnote: '180s × $0.06 / 30s = $0.002/sec',
+      inputs: { kind: 'music', seconds: 180, quality: 'standard', cloning: false },
     },
     {
       icon: '📚', title: '10hr audiobook', blurb: 'Chirp 3 HD · cloned voice',
       cost: '~$18', footnote: '36,000s × ~$0.0005/sec — vs $1k+ for a human narrator',
+      inputs: { kind: 'speech', seconds: 600, quality: 'standard', cloning: true },
     },
   ],
   deepDive: [
@@ -552,6 +574,7 @@ const world: Modality = {
     'Consistency is the other ceiling: after ~120 seconds of exploration, worlds tend to drift — textures jitter, collision rules fail, previously visited rooms warp. That\'s why nothing serious replaces a game engine yet.',
   ],
   whyExpensive: 'A video model generates 100 frames in a batch. A world model generates 1 frame, immediately, 30 times a second — and pays for compute that would have been batched.',
+  formula: 'cluster_size = max(1, round( (res / 360)² × tier_mul ))  # H100s\ngpu_hours    = (minutes / 60) × cluster_size\ndollars      = gpu_hours × $2.16/hr × 1.5            # retail markup\n\n# tier_mul: Lite 0.5, Mid 1.0, SOTA 2.0\n# you rent the whole cluster for the session — fps doesn\'t enter the bill',
   fields: [
     { id: 'minutes',    type: 'slider', label: 'Session length', min: 1, max: 120, step: 1, default: 10, unit: 'min',
       hint: v => v < 5 ? 'demo' : v < 30 ? 'short session' : v < 90 ? 'gameplay session' : 'long session',
@@ -618,14 +641,17 @@ const world: Modality = {
     }
   },
   scenarios: [
-    { icon: '🕹️', title: '2-min demo playthrough', blurb: 'Genie 3 · 360p · 1× H100',    cost: '~$0.11',  footnote: 'research / solo session' },
+    { icon: '🕹️', title: '2-min demo playthrough', blurb: 'Genie 3 · 360p · 1× H100',    cost: '~$0.11',  footnote: 'research / solo session',
+      inputs: { minutes: 2, fps: 24, resolution: '360', tier: 'lite' },
+    },
     {
       icon: '🎮', title: '1hr gameplay session', blurb: '720p · varies by model tier',
       cost: '$6.50 → $26', footnote: 'tier drives cluster size — Lite 2×, Mid 4×, SOTA 8× H100 at 720p',
+      inputs: { minutes: 60, fps: 24, resolution: '720' },
       tiers: [
-        { label: 'Lite (distilled)',    cost: '~$6.50' },
-        { label: 'Mid (research SOTA)', cost: '~$13' },
-        { label: 'SOTA (film-quality)', cost: '~$26' },
+        { label: 'Lite (distilled)',    cost: '~$6.50', inputs: { tier: 'lite' } },
+        { label: 'Mid (research SOTA)', cost: '~$13',   inputs: { tier: 'mid'  } },
+        { label: 'SOTA (film-quality)', cost: '~$26',   inputs: { tier: 'sota' } },
       ],
     },
     { icon: '🧪', title: '10k evaluation rollouts', blurb: 'Genie 3 Lite · 30s each · 360p',  cost: '~$270',   footnote: '10k × 30s on 1× H100 Lite ≈ 83 GPU-hrs × $3.24/hr retail' },

@@ -1,68 +1,115 @@
-import { MODALITIES, defaultCost } from '../modalities'
+// "What your dollar buys you" — native units, no bars, each row sourced.
+// The four modalities live on wildly different scales; the units themselves
+// (counts vs seconds vs minutes) carry the punchline. Bars would pretend
+// they're comparable, which they aren't.
 
-// How much output you get from one dollar, per modality, using each modality's
-// default calculator settings.
+interface Row {
+  modality: string
+  accent: string          // text color class
+  amount: string          // the headline number
+  unit: string            // what the number is of
+  priced: boolean         // true = Vertex list price, false = estimated compute
+  source: { label: string; href: string }
+  note?: string
+}
+
+const ROWS: Row[] = [
+  {
+    modality: 'Images',
+    accent: 'text-indigo-600',
+    amount: '25',
+    unit: 'Imagen 4 Standard images',
+    priced: true,
+    source: { label: 'Vertex AI pricing', href: 'https://cloud.google.com/vertex-ai/generative-ai/pricing' },
+    note: '$0.04 / image',
+  },
+  {
+    modality: 'Video',
+    accent: 'text-rose-600',
+    amount: '2.5 seconds',
+    unit: 'of Veo 3.1 Standard (1080p, with audio)',
+    priced: true,
+    source: { label: 'Vertex AI pricing', href: 'https://cloud.google.com/vertex-ai/generative-ai/pricing' },
+    note: '$0.40 / second',
+  },
+  {
+    modality: 'Audio',
+    accent: 'text-emerald-600',
+    amount: '33 minutes',
+    unit: 'of Chirp 3 HD speech',
+    priced: true,
+    source: { label: 'Vertex AI pricing', href: 'https://cloud.google.com/vertex-ai/generative-ai/pricing' },
+    note: '~$0.0005 / second ($0.030 / 1K chars)',
+  },
+  {
+    modality: 'World models',
+    accent: 'text-amber-600',
+    amount: '~4.6 minutes',
+    unit: 'of Genie 3 gameplay (720p / 24fps, est.)',
+    priced: false,
+    source: { label: 'Genie 3 — Google DeepMind', href: 'https://deepmind.google/models/genie/' },
+    note: 'Not sold on Vertex. Gated to AI Ultra subscribers in the U.S. Cost is an estimate: ~4× H100 per session at blended retail ($2.16/GPU-hr × 1.5); cluster size is a community estimate, not DeepMind-published.',
+  },
+]
+
 export function CrossModalityDollar() {
-  const rows = MODALITIES.map(m => {
-    const r = defaultCost(m)
-    const perDollar = r.dollars > 0 ? 1 / r.dollars : 0
-    return { m, perDollar, unitLabel: r.unitLabel, costEach: r.dollars }
-  })
-
-  const max = Math.max(...rows.map(r => r.perDollar))
-
   return (
     <section className="py-16 sm:py-24 border-t border-slate-200/60">
       <div className="text-xs font-semibold uppercase tracking-[0.25em] text-slate-500 mb-3">
         The punchline
       </div>
       <h2 className="font-display text-4xl sm:text-5xl text-slate-900 leading-tight max-w-3xl">
-        Same $1. Wildly different amounts of stuff.
+        What your dollar buys you.
       </h2>
       <p className="mt-4 max-w-2xl text-slate-600 leading-relaxed">
-        At the default settings for each calculator above, here's what a single dollar buys you.
+        One dollar, four modalities. Native units — because seconds of video and minutes of audio
+        aren't the same thing, and pretending they are hides the actual story.
       </p>
 
-      <div className="mt-10 space-y-5 max-w-3xl">
-        {rows.map(({ m, perDollar, unitLabel, costEach }) => {
-          const width = max > 0 ? Math.max(4, (perDollar / max) * 100) : 0
-          const label = formatPerDollar(perDollar, unitLabel)
-          return (
-            <div key={m.id}>
-              <div className="flex items-baseline justify-between mb-1.5">
-                <span className="font-medium text-slate-800">{m.label}</span>
-                <span className={`font-mono text-sm ${m.accent.text}`}>{label}</span>
+      <div className="mt-10 max-w-3xl divide-y divide-slate-200/70 border-y border-slate-200/70">
+        {ROWS.map(row => (
+          <div key={row.modality} className="py-5 sm:py-6 grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-2 sm:gap-8 items-baseline">
+            <div>
+              <div className="flex items-center gap-2">
+                <span className={`text-sm font-semibold uppercase tracking-wider ${row.accent}`}>
+                  {row.modality}
+                </span>
+                {!row.priced && (
+                  <span className="text-[10px] font-medium uppercase tracking-wider text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded">
+                    estimate
+                  </span>
+                )}
               </div>
-              <div className="h-4 bg-slate-100 rounded-full overflow-hidden">
-                <div
-                  className={`h-full ${m.accent.bg} rounded-full transition-all duration-700`}
-                  style={{ width: `${width}%` }}
-                />
-              </div>
-              <div className="text-xs text-slate-500 mt-1">
-                ≈ ${costEach.toFixed(costEach < 0.01 ? 4 : 2)} each, at default settings
-              </div>
+              {row.note && (
+                <div className="text-xs text-slate-500 mt-1.5 leading-relaxed">
+                  {row.note}
+                </div>
+              )}
             </div>
-          )
-        })}
+            <div className="sm:text-right">
+              <div className="font-display text-3xl sm:text-4xl text-slate-900 leading-none">
+                {row.amount}
+              </div>
+              <div className="text-sm text-slate-600 mt-1">{row.unit}</div>
+              <a
+                href={row.source.href}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-block text-xs text-slate-500 hover:text-slate-700 underline underline-offset-2 mt-1.5"
+              >
+                {row.source.label} ↗
+              </a>
+            </div>
+          </div>
+        ))}
       </div>
 
       <div className="mt-10 text-sm text-slate-600 max-w-2xl leading-relaxed">
         The takeaway isn't that one modality is "better" than another — it's that they live on totally
         different scales. A thousand AI images cost about as much as a single AI short film. Audio is
-        nearly free per second; video is never free, and world models barely exist yet because the unit
-        economics don't work <em>today</em>.
+        nearly free per second. World models barely exist as a product yet — Genie 3 is research-access
+        only, and the unit economics aren't ready for a public API.
       </div>
     </section>
   )
-}
-
-function formatPerDollar(perDollar: number, unit: string) {
-  if (!isFinite(perDollar) || perDollar <= 0) return 'n/a'
-  const strip = unit.replace(/^per\s+/, '')
-  if (perDollar >= 1) {
-    return `${Math.round(perDollar).toLocaleString()} × ${strip}`
-  }
-  // If you get less than 1 whole output per dollar, flip to "$ per unit"
-  return `$${(1 / perDollar).toFixed(2)} per ${strip}`
 }
