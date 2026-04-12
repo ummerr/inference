@@ -239,7 +239,7 @@ export default function App() {
     <div className="min-h-screen bg-slate-50 text-slate-900">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 sm:py-12">
         {/* Hero (full width, above the nav grid) */}
-        <header className="relative text-center space-y-5 mb-16 pt-8 pb-4 fade-up">
+        <header className="relative text-center space-y-5 mb-12 sm:mb-16 pt-4 sm:pt-8 pb-4 fade-up overflow-hidden">
           <div className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
             <div className="blob absolute -top-20 left-1/4 w-96 h-96 rounded-full bg-indigo-300/40" />
             <div className="blob absolute -top-10 right-1/4 w-[28rem] h-[28rem] rounded-full bg-emerald-200/40" style={{ animationDelay: '-6s' }} />
@@ -249,7 +249,7 @@ export default function App() {
             <Sparkles className="w-4 h-4" />
             The Fun Inference Calculator
           </div>
-          <h1 className="font-display text-5xl sm:text-6xl md:text-7xl lg:text-8xl tracking-tight leading-[0.95] text-slate-900 px-2">
+          <h1 className="font-display text-4xl sm:text-6xl md:text-7xl lg:text-8xl tracking-tight leading-[1.02] sm:leading-[0.95] text-slate-900 px-2 break-words">
             What does AI <em className="bg-gradient-to-r from-indigo-600 via-violet-600 to-rose-500 bg-clip-text text-transparent not-italic">actually</em> cost?
           </h1>
           <p className="text-lg md:text-xl text-slate-600 max-w-2xl mx-auto leading-relaxed">
@@ -262,7 +262,7 @@ export default function App() {
         <div className="lg:grid lg:grid-cols-[12rem_1fr] lg:gap-12">
           <SideNav items={NAV_ITEMS} />
 
-          <main className="space-y-16 min-w-0">
+          <main className="space-y-12 sm:space-y-16 min-w-0 w-full">
             {/* 1 — What is inference? */}
             <section id="what" className="scroll-mt-8">
               <Card>

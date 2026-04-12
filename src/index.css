@@ -6,6 +6,12 @@
   --font-display: "Instrument Serif", ui-serif, Georgia, serif;
 }
 
+html, body {
+  overflow-x: hidden;
+  overflow-x: clip;
+  max-width: 100vw;
+}
+
 html {
   scroll-behavior: smooth;
   scroll-padding-top: 2rem;
