@@ -210,8 +210,8 @@ const images: Modality = {
       body: 'Modern image models don\'t denoise pixels — they denoise a compressed latent (e.g. 128×128 for a 1024² image), then a VAE decoder upsamples at the end. Denoising in latent space is ~64× cheaper than pixel space. Without this, image diffusion would be unaffordable.',
     },
     {
-      title: 'The "juiced" endpoint stack',
-      body: 'Production endpoints stack First Block Cache (FBCache), graph compilation (torch_compile), and FP8 quantization on top of the base model. On L20, this drops Flux.1 Dev 1024² from ~26s to ~7.5s (3.5× speedup); on 4× L20 it hits ~3.9s (6.75×). That gap — between a cold reference and a juiced endpoint — is the difference between $0.03/image being profitable and being a money pit.',
+      title: 'How Vertex serves Imagen 4 at $0.02/image',
+      body: 'The Fast/Standard/Ultra split isn\'t a different model — it\'s the same Imagen 4 family served with different inference budgets. Fast uses a step-distilled variant (4–8 steps), graph-compiled kernels (XLA), and INT8/FP8 weights on TPU v5e pods. Standard runs the full 25-ish-step model. Ultra adds more steps plus a higher-res refiner pass. The external equivalent is the "juiced endpoint" stack — First Block Cache, torch_compile, FP8 quantization — that third-party providers layer onto Flux.1 Dev to hit single-digit-second latency on L20. Same techniques, different silicon.',
     },
     {
       title: 'Consumer GPUs are now competitive',
@@ -219,7 +219,7 @@ const images: Modality = {
     },
     {
       title: 'Why guidance doubles your bill',
-      body: 'Classifier-free guidance runs the model twice per step — once with your prompt, once without — and extrapolates. Dramatically improves prompt-following but literally doubles the FLOPs. Some models (Flux Schnell, LCM distillations) compile this away so one pass suffices.',
+      body: 'Classifier-free guidance runs the model twice per step — once with your prompt, once without — and extrapolates. Dramatically improves prompt-following but literally doubles the FLOPs. Step-distilled variants (Imagen 4 Fast, Flux Schnell, LCM distillations) compile this away so one pass suffices — which is how Vertex can ship Imagen 4 Fast at half the price of Standard.',
     },
   ],
 }
@@ -322,11 +322,11 @@ const video: Modality = {
     },
     {
       title: 'Why video is much more expensive than an image',
-      body: 'A 6s/24fps clip is 144 frames. Even with sparse attention, each frame has to do per-frame diffusion (roughly a 1024² image\'s worth of FLOPs) plus enough cross-frame work to stay consistent. That\'s why even the cheapest serious tier (Kling 3.0 Pro) is ~$0.10/sec of output — roughly $0.004 per frame, ~10× what a Flux 2 Schnell image costs when batched.',
+      body: 'A 6s/24fps clip is 144 frames. Even with sparse attention, each frame has to do per-frame diffusion (roughly a 1024² image\'s worth of FLOPs) plus enough cross-frame work to stay consistent. That\'s why Veo 3.1 Standard at $0.40/sec comes out to roughly $0.017 per frame — ~40× what an Imagen 4 Standard image costs when amortized. Even the Lite tier at $0.05/sec is still ~2× per frame what a Fast image costs.',
     },
     {
       title: 'Sparse attention broke the O(n²) curse',
-      body: 'Until late 2025, temporal attention scaled quadratically with the number of frames. VideoNSA (Native Sparse Attention) and DSA (Distributed Sparse Attention) changed that in 2026: by using only ~3.6% of the attention budget on tokens that actually matter for frame coherence, they get up to ~10× faster inference on long contexts. This is the single biggest reason Kling Gen-4 clips render in under 90 seconds while Sora was stuck at 3–8 minutes.',
+      body: 'Until late 2025, temporal attention scaled quadratically with the number of frames. Native Sparse Attention (NSA) and DeepSeek Sparse Attention (DSA) changed that in 2026: by using only ~3.6% of the attention budget on tokens that actually matter for frame coherence, they get up to ~10× faster inference on long contexts. Veo 3.1, Kling 3.0, and Runway Gen-4 all ship variants of this — which is why their 10s clips render in under 90 seconds while Sora was stuck at 3–8 minutes.',
     },
     {
       title: 'Why long clips still "drift"',
@@ -334,7 +334,7 @@ const video: Modality = {
     },
     {
       title: 'The caching + compilation stack',
-      body: 'Production endpoints (Fal.ai, Replicate, BFL) layer First Block Cache (FBCache), graph compilation (torch_compile), and FP8 quantization on top of the base model. This can drop wall time by ~3.5× vs. a cold reference implementation. Aggregators run 30–50% cheaper than direct providers because they maintain higher GPU utilization across multi-tenant clusters.',
+      body: 'Serving infra — whether it\'s Vertex fronting Veo on TPU v5p pods or Fal.ai / Replicate / BFL fronting Flux on H100s — layers the same ideas: First Block Cache (FBCache), graph compilation (XLA or torch_compile), and FP8/INT8 quantization on top of the base model. This can drop wall time by ~3.5× vs. a cold reference implementation. The reason Vertex list prices beat what a naive reproduction would cost on rented GPUs is almost entirely sustained-utilization plus this compilation stack.',
     },
   ],
 }
@@ -431,11 +431,11 @@ const audio: Modality = {
     },
     {
       title: 'Licensing is now the business model',
-      body: 'In 2026, technical quality between Suno, Udio, and ElevenLabs Music has converged. The differentiator is training-data licensing: ElevenLabs trained on licensed corpora and offers clean commercial rights from the Starter tier ($5/mo). Suno and Udio are cheaper but carry ongoing legal risk from copyright settlements. For automated production, "will this clear Content ID" matters more than "does it sound great".',
+      body: 'In 2026, technical quality between Lyria 2, Suno, Udio, and ElevenLabs Music has converged. The differentiator is training-data licensing. Google\'s Lyria lineage was trained in partnership with YouTube / music labels and ships with Vertex\'s standard generative-AI indemnification. Suno and Udio are cheaper but carry ongoing legal risk from copyright settlements. For anything that has to clear Content ID at scale, the enterprise answer is usually "run it on Vertex so the provenance and indemnity are somebody else\'s problem".',
     },
     {
       title: 'Streaming changes the math',
-      body: 'Real-time TTS streams audio as it generates — the model never has to "see the whole future". This keeps latency low but doesn\'t change total cost. If you need sub-200ms latency (voice agents, phone), you\'re paying for smaller, faster models — usually at some quality cost.',
+      body: 'Real-time TTS streams audio as it generates — the model never has to "see the whole future". This keeps latency low but doesn\'t change total cost. If you need sub-200ms latency (voice agents, phone, live-translate), Chirp 3 HD streaming and the dedicated `journey` voices are tuned for it; higher-fidelity studio voices sacrifice latency for quality.',
     },
   ],
 }
