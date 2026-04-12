@@ -152,10 +152,10 @@ const images: Modality = {
   tagline: 'Diffusion: sculpt an image out of pure static.',
   primer: [
     'Image models start with random noise and, step by step, "de-noise" it into a picture. Each step is one full pass through a big neural network.',
-    'On Google Vertex AI, the Imagen 4 family prices this three ways: Fast ($0.02/image), Standard ($0.04), and Ultra ($0.06). Same mechanic, more or less compute per call.',
+    'Google\'s current image family on Vertex AI is the Gemini-native "Nano Banana" line: Nano Banana (Gemini 2.5 Flash Image, $0.039/image), Nano Banana 2 (Gemini 3.1 Flash Image, $0.067/image at 1K), and Nano Banana Pro (Gemini 3 Pro Image, $0.134/image at 1K/2K). Same diffusion mechanic, more compute per call at the top.',
   ],
-  whyExpensive: 'More steps = better image, linearly more compute. Guidance (CFG) runs the model twice per step. Resolution scales the per-step work by pixels². Vertex hides the knobs behind a tier name — you pick Fast / Standard / Ultra, it picks the steps for you.',
-  formula: 'gpu_seconds = steps × passes × size_mul × (res / 1024)² × 0.05\ndollars    = gpu_seconds × $0.0006/s × 27   # retail API markup\n\n# size_mul: Fast 0.5, Standard 1.0, Ultra 1.5\n# passes:   guided = 2, unguided = 1',
+  whyExpensive: 'More steps = better image, linearly more compute. Guidance (CFG) runs the model twice per step. Resolution scales the per-step work by pixels². Vertex hides the knobs behind a tier name — you pick Nano Banana / NB 2 / NB Pro, it picks the steps for you.',
+  formula: 'gpu_seconds = steps × passes × size_mul × (res / 1024)² × 0.083\ndollars    = gpu_seconds × $0.0006/s × 27   # retail API markup\n\n# size_mul: Nano Banana 0.58, NB 2 1.0, NB Pro 2.0\n# passes:   guided = 2, unguided = 1',
   fields: [
     {
       id: 'steps', type: 'slider', label: 'Denoising steps',
@@ -178,9 +178,9 @@ const images: Modality = {
     {
       id: 'modelSize', type: 'select', label: 'Vertex tier', default: 'medium',
       options: [
-        { value: 'small',  label: 'Imagen 4 Fast ($0.02/img)' },
-        { value: 'medium', label: 'Imagen 4 Standard ($0.04/img)' },
-        { value: 'large',  label: 'Imagen 4 Ultra ($0.06/img)' },
+        { value: 'small',  label: 'Nano Banana · Gemini 2.5 Flash Image ($0.039/img)' },
+        { value: 'medium', label: 'Nano Banana 2 · Gemini 3.1 Flash Image ($0.067/img)' },
+        { value: 'large',  label: 'Nano Banana Pro · Gemini 3 Pro Image ($0.134/img)' },
       ],
     },
   ],
@@ -192,13 +192,13 @@ const images: Modality = {
 
     // Per-step cost scales ~linearly with pixel count and ~linearly with params.
     const pixelMul = (res / 1024) ** 2     // 0.25 at 512, 1 at 1024, 4 at 2048
-    const sizeMul  = size === 'small' ? 0.5 : size === 'medium' ? 1 : 1.5
+    const sizeMul  = size === 'small' ? 0.58 : size === 'medium' ? 1 : 2
     const passes   = guided ? 2 : 1
 
-    // Calibrated so the default knobs (Standard tier, 25 steps, guided, 1024²)
-    // land on the real Vertex Imagen 4 Standard price of $0.04/image. Fast tier
-    // defaults likewise hit $0.02, Ultra hits $0.06.
-    const gpuSeconds = steps * passes * sizeMul * pixelMul * 0.05
+    // Calibrated so the default knobs (Nano Banana 2, 25 steps, guided, 1024²)
+    // land on the real Vertex list price of $0.067/image. Nano Banana hits
+    // $0.039 and Nano Banana Pro hits $0.134 at the same defaults.
+    const gpuSeconds = steps * passes * sizeMul * pixelMul * 0.083
     const dollars = gpuSeconds * GPU_SECOND * 27 // retail API markup
 
     return {
@@ -216,59 +216,58 @@ const images: Modality = {
   },
   scenarios: [
     {
-      icon: '🖼️', title: 'One 1024² image', blurb: 'Single Imagen 4 call',
-      cost: '$0.02 → $0.06', footnote: 'Vertex list price per image — tier = how many inference steps + refiner passes',
+      icon: '🖼️', title: 'One 1024² image', blurb: 'Single Gemini image call',
+      cost: '$0.039 → $0.134', footnote: 'Vertex list price per image — tier = Nano Banana (2.5 Flash Image) / NB 2 (3.1 Flash Image) / NB Pro (3 Pro Image)',
       inputs: { steps: 25, guided: true, resolution: '1024' },
       tiers: [
-        { label: 'Fast',     cost: '$0.02', inputs: { modelSize: 'small' } },
-        { label: 'Standard', cost: '$0.04', inputs: { modelSize: 'medium' } },
-        { label: 'Ultra',    cost: '$0.06', inputs: { modelSize: 'large' } },
+        { label: 'Nano Banana',     cost: '$0.039', inputs: { modelSize: 'small' } },
+        { label: 'Nano Banana 2',   cost: '$0.067', inputs: { modelSize: 'medium' } },
+        { label: 'Nano Banana Pro', cost: '$0.134', inputs: { modelSize: 'large' } },
       ],
     },
     {
-      icon: '🖨️', title: '2048² print-ready', blurb: '4× the pixels of 1024²',
-      cost: '$0.02 → $0.06', footnote: 'Vertex charges per image, not per pixel — users self-select Ultra for print',
+      icon: '🖨️', title: '2K print-ready', blurb: 'Native 2048² output',
+      cost: '$0.101 → $0.134', footnote: 'NB 2 scales with resolution ($0.101 at 2K); NB Pro is flat $0.134 through 2K (then $0.24 at 4K). Nano Banana is fixed at 1024².',
       inputs: { steps: 25, guided: true, resolution: '2048' },
       tiers: [
-        { label: 'Fast',     cost: '$0.02', inputs: { modelSize: 'small' } },
-        { label: 'Standard', cost: '$0.04', inputs: { modelSize: 'medium' } },
-        { label: 'Ultra',    cost: '$0.06', inputs: { modelSize: 'large' } },
+        { label: 'Nano Banana 2',   cost: '$0.101', inputs: { modelSize: 'medium' } },
+        { label: 'Nano Banana Pro', cost: '$0.134', inputs: { modelSize: 'large' } },
       ],
     },
     {
       icon: '📦', title: 'Catalogue of 10k', blurb: 'Batched via Vertex batch API',
-      cost: '$200 → $600', footnote: 'Batch API is ~50% cheaper than online; committed-use discounts stack on top',
+      cost: '$195 → $670', footnote: 'Batch API is ~50% cheaper than online; committed-use discounts stack on top',
       tiers: [
-        { label: 'Fast',     cost: '$200' },
-        { label: 'Standard', cost: '$400' },
-        { label: 'Ultra',    cost: '$600' },
+        { label: 'Nano Banana',     cost: '$195' },
+        { label: 'Nano Banana 2',   cost: '$335' },
+        { label: 'Nano Banana Pro', cost: '$670' },
       ],
     },
     {
-      icon: '✂️', title: 'Edit / upscale pass', blurb: 'Vertex edit + upscale endpoints',
-      cost: '$0.003 – $0.02', footnote: 'Upscale $0.003/image · Edit $0.02/operation',
+      icon: '✂️', title: 'Edit pass', blurb: 'Image-in → image-out with a Nano Banana call',
+      cost: '$0.039 – $0.134', footnote: 'Edits and generations bill the same on Gemini image models — one call, one image out',
     },
   ],
   deepDive: [
     {
-      title: 'U-Net → DiT → 2026 reality',
-      body: 'Early diffusion models (SD 1.5, SDXL) used a U-Net: a convolutional hourglass on pixel-like space. Modern models (Flux 2, GPT Image 1.5, Imagen 4, Nano Banana Pro) use Diffusion Transformers — the attention-based architecture of LLMs applied to image patches. DiTs scale cleanly and hit photorealism, but Flux 2 in FP16 wants ~24GB of VRAM. Quantization (FP8/FP4) brings that down to 12GB/8GB at some quality cost.',
+      title: 'Why Google moved image gen into Gemini itself',
+      body: 'Imagen 1–3 were standalone image models with separate text encoders. Imagen 4 (May 2025) was a Latent Diffusion Transformer with a Gemini-derived text encoder bolted on, which is most of why prompt adherence jumped. The Nano Banana family goes one step further: the image head is part of Gemini itself, so the same model that reasons about your prompt also emits the picture. That is why Nano Banana Pro can take multi-turn edit instructions, maintain a character across calls, and render legible text — capabilities classical diffusion pipelines bolt on through ControlNets and IP-Adapters. The pricing reflects this: image output is just "more tokens" on a multimodal model, billed at $30/M (Nano Banana), $60/M (NB 2), or $120/M (NB Pro) output tokens.',
     },
     {
-      title: 'Latent space, the secret weapon',
-      body: 'Modern image models don\'t denoise pixels — they denoise a compressed latent (e.g. 128×128 for a 1024² image), then a VAE decoder upsamples at the end. Denoising in latent space is ~64× cheaper than pixel space. Without this, image diffusion would be unaffordable.',
+      title: 'Latent space is why any of this is affordable',
+      body: 'These models never denoise pixels. A VAE encoder compresses a 1024² image (~1M pixels × 3 channels) into a roughly 128×128×4 latent — ~64× fewer values to touch per step. The transformer runs ~20–30 denoising steps over that latent, then the VAE decoder reconstructs pixels in a single forward pass at the end. Without this trick, a single image call would cost dollars, not cents, and consumer-visible pricing like $0.039/image would not exist. Imagen 3/4, the Nano Banana line, Flux 2, and GPT Image 1.5 all rely on the same latent-space shortcut.',
     },
     {
-      title: 'How Vertex serves Imagen 4 at $0.02/image',
-      body: 'The Fast/Standard/Ultra split isn\'t a different model — it\'s the same Imagen 4 family served with different inference budgets. Fast uses a step-distilled variant (4–8 steps), graph-compiled kernels (XLA), and INT8/FP8 weights on TPU v5e pods. Standard runs the full 25-ish-step model. Ultra adds more steps plus a higher-res refiner pass. The external equivalent is the "juiced endpoint" stack — First Block Cache, torch_compile, FP8 quantization — that third-party providers layer onto Flux.1 Dev to hit single-digit-second latency on L20. Same techniques, different silicon.',
-    },
-    {
-      title: 'Consumer GPUs are now competitive',
-      body: 'The RTX 5090 has 1,792 GB/s of GDDR7 bandwidth — only 11% behind the H100 PCIe\'s 2,000 GB/s — but rents for ~$0.76/hr vs. ~$2.00 for an H100 PCIe. For standard 1024² diffusion, a 5090 does ~38 SDXL images/min vs. 42 on H100 PCIe. For everything that fits in 32GB VRAM, consumer GPUs now win on $/image. H100s only pull ahead when you need the 80GB for large batches or video.',
+      title: 'Nano Banana / NB 2 / NB Pro is three inference budgets, one family',
+      body: 'Nano Banana (Gemini 2.5 Flash Image, $0.039) is a step-distilled, FP8-quantised variant on Trillium-class TPUs, fixed at 1024² and tuned for latency. Nano Banana 2 (Gemini 3.1 Flash Image, $0.045–$0.151 across 0.5K–4K) keeps the speed profile of a Flash model but unlocks native resolution scaling. Nano Banana Pro (Gemini 3 Pro Image, $0.134 at 1K/2K, $0.24 at 4K) runs the full Gemini 3 Pro weights with the image head active — that is where reasoning-heavy capabilities like multi-object composition and in-image text rendering actually come from. Same family, radically different compute envelopes.',
     },
     {
       title: 'Why guidance doubles your bill',
-      body: 'Classifier-free guidance runs the model twice per step — once with your prompt, once without — and extrapolates. Dramatically improves prompt-following but literally doubles the FLOPs. Step-distilled variants (Imagen 4 Fast, Flux Schnell, LCM distillations) compile this away so one pass suffices — which is how Vertex can ship Imagen 4 Fast at half the price of Standard.',
+      body: 'Classifier-free guidance, the trick that makes diffusion follow prompts, runs the model twice per denoising step — once conditioned on the prompt, once unconditioned — and extrapolates between them. It roughly doubles the FLOPs per step. Step-distilled Flash variants (Nano Banana, Flux Schnell, LCM distillations) collapse both CFG and the step count into a single-pass student network, which is why the cheapest tier is dramatically faster and cheaper without looking visibly worse at 1024². Once you move to NB Pro or need native 4K, you are back to the full sampler and the FLOPs show up on the invoice.',
+    },
+    {
+      title: 'Why Vertex\'s $0.039 beats self-hosting Flux',
+      body: 'You can run Flux 2 on a rented RTX 5090 (~$0.89/hr spot, 1,792 GB/s GDDR7, only ~12% behind an H100\'s memory bandwidth) or an H100 PCIe (~$2/hr) and get competitive per-image compute cost on paper. What you cannot reproduce is Google\'s serving stack at that price point: sustained TPU utilization, step + CFG distillation baked into the Flash tier, graph-compiled kernels, FP8 weights, First-Block-Cache-style skip logic, and indemnification on the training data. Third-party "juiced endpoint" providers (Fal, Replicate, BFL) rebuild some of this on top of Flux and land around the same per-image cost — which is the honest comparison. A self-hosted 5090 wins only when you need control, custom LoRAs, or offline generation; for API traffic, the managed economics dominate.',
     },
   ],
 }
@@ -297,7 +296,7 @@ const video: Modality = {
     'Sora shut down on March 24, 2026 — ~$15M/day in inference against $2.1M lifetime revenue. The market has since moved to per-second billing that tracks compute honestly.',
   ],
   whyExpensive: 'Cost ≈ (per-frame work) × frames. The old O(n²) temporal attention has been flattened to near-linear by sparse attention, but each frame still does image-worthy compute at higher resolutions. Every extra second or pixel is still real money.',
-  formula: 'frames      = seconds × fps\nper_frame   = 2.5 × (res / 720)² × tier_mul     # linear\ntemporal    = frames² / 8000 × tier_mul × pixel_mul  # quadratic residue\ngpu_seconds = frames × per_frame + temporal\ndollars     = gpu_seconds × $0.0006/s × 11       # retail markup\n\n# tier_mul: Lite 0.125, Fast 0.375, Standard 1.0',
+  formula: 'frames      = seconds × fps\nper_frame   = 2.5 × (res / 720)² × tier_mul     # linear\ntemporal    = frames² / 8000 × tier_mul × pixel_mul  # quadratic residue\ngpu_seconds = frames × per_frame + temporal\ndollars     = gpu_seconds × $0.0006/s × 11       # retail markup\n\n# tier_mul: Lite 0.125, Fast 0.25, Standard 1.0',
   fields: [
     { id: 'seconds',    type: 'slider', label: 'Length',     min: 1, max: 120, step: 1,  default: 6, unit: 's',
       hint: v => v <= 8 ? 'social clip' : v <= 20 ? 'short ad' : v <= 60 ? 'scene' : 'short film',
@@ -314,7 +313,7 @@ const video: Modality = {
     { id: 'tier', type: 'select', label: 'Vertex tier', default: 'good',
       options: [
         { value: 'lite', label: 'Veo 3.1 Lite ($0.05/s, no audio)' },
-        { value: 'fast', label: 'Veo 3.1 Fast ($0.15/s, w/ audio)' },
+        { value: 'fast', label: 'Veo 3.1 Fast ($0.10/s, w/ audio)' },
         { value: 'good', label: 'Veo 3.1 Standard ($0.40/s, w/ audio)' },
       ],
     },
@@ -327,11 +326,11 @@ const video: Modality = {
 
     const frames   = seconds * fps
     const pixelMul = (res / 720) ** 2
-    const tierMul  = tier === 'lite' ? 0.125 : tier === 'fast' ? 0.375 : 1
+    const tierMul  = tier === 'lite' ? 0.125 : tier === 'fast' ? 0.25 : 1
 
     // Per-frame cost, tuned so a 6s/24fps/720p Standard clip lands on Vertex
     // Veo 3.1 Standard pricing (6s × $0.40/s = $2.40). Lite and Fast tiers
-    // likewise hit $0.05/s and $0.15/s at their defaults.
+    // likewise hit $0.05/s and $0.10/s at their defaults.
     const perFrameGpuS = 2.5 * pixelMul * tierMul
     // Residual quadratic term (smaller than pre-sparse-attention era). Kept small
     // so the teaching point — that long clips still cost more than linearly — is
@@ -366,28 +365,28 @@ const video: Modality = {
       inputs: { seconds: 6, fps: 24, resolution: '720' },
       tiers: [
         { label: 'Lite',     cost: '$0.30', inputs: { tier: 'lite' } },
-        { label: 'Fast',     cost: '$0.90', inputs: { tier: 'fast' } },
+        { label: 'Fast',     cost: '$0.60', inputs: { tier: 'fast' } },
         { label: 'Standard', cost: '$2.40', inputs: { tier: 'good' } },
       ],
     },
     {
       icon: '📺', title: '30s ad spot', blurb: 'Stitched from ≤8s clips',
-      cost: '$1.50 → $12', footnote: '30 × per-second rate; retries and edits add 1.5–3× in practice',
+      cost: '$2.40 → $12', footnote: '30 × per-second rate; retries and edits add 1.5–3× in practice',
       inputs: { seconds: 30, fps: 24, resolution: '1080' },
       tiers: [
-        { label: 'Lite',     cost: '$1.50', inputs: { tier: 'lite' } },
-        { label: 'Fast',     cost: '$4.50', inputs: { tier: 'fast' } },
+        { label: 'Lite',     cost: '$2.40', inputs: { tier: 'lite' } },
+        { label: 'Fast',     cost: '$3.60', inputs: { tier: 'fast' } },
         { label: 'Standard', cost: '$12',   inputs: { tier: 'good' } },
       ],
     },
     {
       icon: '🎬', title: '2min short scene', blurb: '~15 clips stitched',
-      cost: '$6 → $48', footnote: 'before the VFX/color pass that a real short needs',
+      cost: '$9.60 → $48', footnote: 'before the VFX/color pass that a real short needs',
       inputs: { seconds: 120, fps: 24, resolution: '1080' },
       tiers: [
-        { label: 'Lite',     cost: '$6',  inputs: { tier: 'lite' } },
-        { label: 'Fast',     cost: '$18', inputs: { tier: 'fast' } },
-        { label: 'Standard', cost: '$48', inputs: { tier: 'good' } },
+        { label: 'Lite',     cost: '$9.60',  inputs: { tier: 'lite' } },
+        { label: 'Fast',     cost: '$14.40', inputs: { tier: 'fast' } },
+        { label: 'Standard', cost: '$48',    inputs: { tier: 'good' } },
       ],
     },
     {
@@ -395,7 +394,7 @@ const video: Modality = {
       cost: '$180 → $1,440', footnote: 'just inference — before retries, rejects, and post',
       tiers: [
         { label: 'Lite',     cost: '$180' },
-        { label: 'Fast',     cost: '$540' },
+        { label: 'Fast',     cost: '$360' },
         { label: 'Standard', cost: '$1,440' },
       ],
     },
@@ -406,8 +405,8 @@ const video: Modality = {
       body: 'OpenAI shut Sora down on March 24, 2026 — not because the model was bad, but because the unit economics were catastrophic. At peak, Sora burned ~$15M/day in inference against ~$2.1M in lifetime in-app revenue. A single 10-second clip used ~40 GPU-minutes (10 min of wall time across 4× H100), so the marginal cost was ~$1.30 per clip. A $20/mo subscriber who generated 15 clips already cost more than they paid. The industry learned: you cannot flat-rate high-fidelity video. Kling, Runway Gen-4, and Veo 3.1 all now price per-second because that is the only way the math works.',
     },
     {
-      title: 'Why video is much more expensive than an image',
-      body: 'A 6s/24fps clip is 144 frames. Even with sparse attention, each frame has to do per-frame diffusion (roughly a 1024² image\'s worth of FLOPs) plus enough cross-frame work to stay consistent. That\'s why Veo 3.1 Standard at $0.40/sec comes out to roughly $0.017 per frame — ~40× what an Imagen 4 Standard image costs when amortized. Even the Lite tier at $0.05/sec is still ~2× per frame what a Fast image costs.',
+      title: 'Why a video clip costs 40× an image',
+      body: 'A 6s/24fps clip is 144 frames. Each frame does roughly a 1024² image\'s worth of diffusion FLOPs plus enough cross-frame attention to stay consistent. Veo 3.1 Standard at $0.40/sec means a single 6s clip is $2.40 — about 36× a Nano Banana image ($0.067) or 60× a Nano Banana Flash ($0.039). The per-frame number is actually low (~$0.017 at Standard, ~$0.0021 at Lite) because Veo amortizes compute across the whole clip. The cost comes from volume: you are not paying for one generation, you are paying for 144 of them at once.',
     },
     {
       title: 'Sparse attention broke the O(n²) curse',
@@ -419,7 +418,7 @@ const video: Modality = {
     },
     {
       title: 'The caching + compilation stack',
-      body: 'Serving infra — whether it\'s Vertex fronting Veo on TPU v5p pods or Fal.ai / Replicate / BFL fronting Flux on H100s — layers the same ideas: First Block Cache (FBCache), graph compilation (XLA or torch_compile), and FP8/INT8 quantization on top of the base model. This can drop wall time by ~3.5× vs. a cold reference implementation. The reason Vertex list prices beat what a naive reproduction would cost on rented GPUs is almost entirely sustained-utilization plus this compilation stack.',
+      body: 'Serving infra — whether it\'s Google fronting Veo on Trillium-class TPU pods or Fal.ai / Replicate / BFL fronting Flux on H100s — layers the same ideas: First Block Cache (FBCache), graph compilation (XLA or torch_compile), and FP8/INT8 quantization on top of the base model. This can drop wall time by ~3.5× vs. a cold reference implementation. The reason Vertex list prices beat what a naive reproduction would cost on rented GPUs is almost entirely sustained-utilization plus this compilation stack.',
     },
   ],
 }
@@ -443,11 +442,11 @@ const audio: Modality = {
   },
   tagline: 'Cheap per second — but audio is often *long*.',
   primer: [
-    'Audio models come in two flavors: speech (TTS, voice cloning) and music. On Google Vertex AI, that\'s Chirp 3 HD for speech and Lyria 2 for music.',
+    'Audio models come in two flavors: speech (TTS, voice cloning) and music. On the Gemini API that\'s Gemini TTS (Flash & Pro) plus Gemini 3.1 Flash Live for real-time audio-to-audio, and Lyria 3 (Clip / Pro) for music.',
     'Both typically generate audio tokens autoregressively — one small chunk at a time — then a vocoder turns tokens into waveform. Per second, audio is far cheaper than video. Per *hour* of output, it adds up.',
   ],
-  whyExpensive: 'Cost scales linearly with output duration. On Vertex, Lyria 2 music (~$0.002/sec) runs ~4× Chirp 3 HD speech (~$0.0005/sec) because music encodes richer tokens — multiple instruments, wider frequency range.',
-  formula: 'gpu_seconds = seconds × 0.6 × kind_mul × quality_mul\ndollars     = gpu_seconds × $0.0006/s × 1.4 + clone_overhead\n\n# kind_mul:    speech 1.0, music 4.0\n# quality_mul: fast 0.5, standard 1.0, hifi 1.5\n# clone:       +$0.0005/request for speech + voice cloning',
+  whyExpensive: 'Cost scales linearly with output duration. Lyria 3 music (~$0.00133/sec via the $0.04/30s clip tier) runs ~4× Gemini Flash Live speech (~$0.0003/sec at $0.018/min audio output) because music encodes richer tokens — multiple instruments, wider frequency range.',
+  formula: 'gpu_seconds = seconds × 0.36 × kind_mul × quality_mul\ndollars     = gpu_seconds × $0.0006/s × 1.4 + clone_overhead\n\n# kind_mul:    speech 1.0, music 4.0\n# quality_mul: fast 0.5, standard 1.0, hifi 1.5\n# clone:       +$0.0005/request for speech + voice cloning',
   fields: [
     { id: 'kind', type: 'select', label: 'Kind', default: 'speech',
       options: [
@@ -480,11 +479,11 @@ const audio: Modality = {
     const qualityMul = quality === 'fast' ? 0.5 : quality === 'standard' ? 1 : 1.5
     const cloneAdd   = kind === 'speech' && cloning ? 0.0005 : 0
 
-    // Per-second base tuned against Vertex list pricing: Chirp 3 HD speech at
-    // $0.030 / 1K characters ≈ $0.0005/sec (at ~15 chars/sec), and Lyria 2
-    // music at $0.06 / 30 sec = $0.002/sec. Music costs ~4× speech because it
-    // encodes richer signal (instruments, wider frequency range).
-    const gpuSeconds = seconds * 0.6 * kindMul * qualityMul
+    // Per-second base tuned against Gemini API list pricing: Gemini 3.1 Flash
+    // Live audio output at $0.018/min ≈ $0.0003/sec, and Lyria 3 Clip music at
+    // $0.04 / 30 sec ≈ $0.00133/sec. Music costs ~4× speech because it encodes
+    // richer signal (instruments, wider frequency range).
+    const gpuSeconds = seconds * 0.36 * kindMul * qualityMul
     const dollars = gpuSeconds * GPU_SECOND * 1.4 + cloneAdd
 
     return {
@@ -493,7 +492,7 @@ const audio: Modality = {
       dollars,
       unitLabel: kind === 'music' ? `per ${seconds}s track` : `per ${seconds}s`,
       breakdown: [
-        { label: 'Kind', value: kind === 'music' ? `Lyria 2 music (${kindMul}×)` : 'Chirp 3 HD speech (1×)' },
+        { label: 'Kind', value: kind === 'music' ? `Lyria 3 music (${kindMul}×)` : 'Gemini TTS speech (1×)' },
         { label: 'Quality multiplier', value: `${qualityMul}×` },
         { label: 'GPU-seconds', value: gpuSeconds.toFixed(3) },
         ...(cloneAdd > 0 ? [{ label: 'Voice-clone overhead', value: fmt(cloneAdd) }] : []),
@@ -502,50 +501,51 @@ const audio: Modality = {
   },
   scenarios: [
     {
-      icon: '📢', title: '30s voiceover', blurb: 'Chirp 3 HD vs Lyria 2 jingle',
-      cost: '$0.015 → $0.06', footnote: 'same duration, music ~4× speech',
+      icon: '📢', title: '30s voiceover', blurb: 'Gemini TTS vs Lyria 3 jingle',
+      cost: '$0.009 → $0.04', footnote: 'same duration, music ~4× speech',
       inputs: { seconds: 30, quality: 'standard', cloning: false },
       tiers: [
-        { label: 'Chirp 3 HD (speech)', cost: '$0.015', inputs: { kind: 'speech' } },
-        { label: 'Lyria 2 (music)',     cost: '$0.06',  inputs: { kind: 'music'  } },
+        { label: 'Gemini TTS (speech)', cost: '$0.009', inputs: { kind: 'speech' } },
+        { label: 'Lyria 3 Clip (music)', cost: '$0.04', inputs: { kind: 'music'  } },
       ],
     },
     {
       icon: '🎙️', title: '1hr podcast episode', blurb: 'Speech TTS vs music bed',
-      cost: '$1.80 → $7.20', footnote: '3600s × per-second rate',
+      cost: '$1.08 → $4.80', footnote: '3600s × per-second rate',
       inputs: { seconds: 3600, quality: 'standard', cloning: false },
       tiers: [
-        { label: 'Chirp 3 HD (speech)', cost: '$1.80', inputs: { kind: 'speech' } },
-        { label: 'Lyria 2 (music)',     cost: '$7.20', inputs: { kind: 'music'  } },
+        { label: 'Gemini TTS (speech)', cost: '$1.08', inputs: { kind: 'speech' } },
+        { label: 'Lyria 3 (music)',     cost: '$4.80', inputs: { kind: 'music'  } },
       ],
     },
     {
-      icon: '🎵', title: '3min music track', blurb: 'Lyria 2 generated song',
-      cost: '~$0.36', footnote: '180s × $0.06 / 30s = $0.002/sec',
+      icon: '🎵', title: '3min music track', blurb: 'Lyria 3 Pro generated song',
+      cost: '~$0.08', footnote: 'Lyria 3 Pro ships a full song at a flat $0.08 — length doesn\'t enter the bill',
       inputs: { kind: 'music', seconds: 180, quality: 'standard', cloning: false },
     },
     {
-      icon: '📚', title: '10hr audiobook', blurb: 'Chirp 3 HD · cloned voice',
-      cost: '~$18', footnote: '36,000s × ~$0.0005/sec — vs $1k+ for a human narrator',
+      icon: '📚', title: '10hr audiobook', blurb: 'Gemini TTS · cloned voice',
+      cost: '~$11', footnote: '36,000s × ~$0.0003/sec — vs $1k+ for a human narrator',
       inputs: { kind: 'speech', seconds: 600, quality: 'standard', cloning: true },
     },
   ],
   deepDive: [
     {
+    {
       title: 'Autoregressive tokens + vocoders',
-      body: 'Most audio models (Chirp 3 HD, Lyria 2, Bark, VALL-E, MusicGen) generate discrete audio tokens one at a time via a transformer, then a neural vocoder (HiFi-GAN, SoundStream) converts tokens to waveform. The transformer dominates cost; the vocoder is comparatively cheap.',
+      body: 'Google\'s audio models (Gemini TTS, Gemini Flash Live, Lyria 3, plus research systems like SoundStorm and MusicLM) generate discrete audio tokens one at a time via a transformer, then a neural vocoder (SoundStream, HiFi-GAN) converts tokens to waveform. The transformer dominates cost; the vocoder is comparatively cheap. Open peers — Bark, VALL-E, MusicGen — use the same recipe.',
     },
     {
       title: 'Why music costs more than speech',
-      body: 'Music encodes multiple simultaneous instruments across a wider frequency range, usually at higher sample rates (44.1/48 kHz vs 16–24 kHz for speech). More tokens per second and bigger models. On Vertex, Lyria 2 is $0.06 per 30 seconds (~$0.002/sec) versus Chirp 3 HD at $0.030 / 1K characters (~$0.0005/sec at a normal speaking rate) — roughly 4× the per-second cost. Consumer music products like Suno and Udio ship at flat $10–$30/mo subscriptions that subsidize this cost.',
+      body: 'Music encodes multiple simultaneous instruments across a wider frequency range, usually at higher sample rates (44.1/48 kHz vs 16–24 kHz for speech). More tokens per second and bigger models. The Gemini API prices Lyria 3 Clip at $0.04 per 30 seconds (~$0.00133/sec) and a full Lyria 3 Pro song flat at $0.08, versus Gemini 3.1 Flash Live speech output at $0.018/min (~$0.0003/sec) — roughly 4× the per-second cost for music. Consumer music products like Suno and Udio ship at flat $10–$30/mo subscriptions that subsidize this cost.',
     },
     {
       title: 'Licensing is now the business model',
-      body: 'In 2026, technical quality between Lyria 2, Suno, Udio, and ElevenLabs Music has converged. The differentiator is training-data licensing. Google\'s Lyria lineage was trained in partnership with YouTube / music labels and ships with Vertex\'s standard generative-AI indemnification. Suno and Udio are cheaper but carry ongoing legal risk from copyright settlements. For anything that has to clear Content ID at scale, the enterprise answer is usually "run it on Vertex so the provenance and indemnity are somebody else\'s problem".',
+      body: 'In 2026, technical quality between Lyria 3, Suno, Udio, and ElevenLabs Music has largely converged. The differentiator is training-data licensing. Google\'s Lyria lineage was trained in partnership with YouTube / music labels and ships with Vertex\'s standard generative-AI indemnification. Suno and Udio are cheaper but carry ongoing legal risk from copyright settlements. For anything that has to clear Content ID at scale, the enterprise answer is usually "run it on the Gemini API so the provenance and indemnity are somebody else\'s problem".',
     },
     {
-      title: 'Streaming changes the math',
-      body: 'Real-time TTS streams audio as it generates — the model never has to "see the whole future". This keeps latency low but doesn\'t change total cost. If you need sub-200ms latency (voice agents, phone, live-translate), Chirp 3 HD streaming and the dedicated `journey` voices are tuned for it; higher-fidelity studio voices sacrifice latency for quality.',
+      title: 'Streaming and Live change the math',
+      body: 'Real-time TTS streams audio as it generates — the model never has to "see the whole future". This keeps latency low but doesn\'t change total cost. Gemini 3.1 Flash Live takes this further: a bidirectional audio-to-audio endpoint billed per minute of audio in/out ($0.005/min input, $0.018/min output) for voice agents, phones, and live-translate. Studio-grade Gemini TTS Pro ($20/1M output tokens) sacrifices latency for higher fidelity and is the right fit for audiobooks and narration where batch quality beats ms-level responsiveness.',
     },
   ],
 }

@@ -17,11 +17,11 @@ const ROWS: Row[] = [
   {
     modality: 'Images',
     accent: 'text-indigo-600',
-    amount: '25',
-    unit: 'Imagen 4 Standard images',
+    amount: '15',
+    unit: 'Nano Banana 2 images',
     priced: true,
     source: { label: 'Vertex AI pricing', href: 'https://cloud.google.com/vertex-ai/generative-ai/pricing' },
-    note: '$0.04 / image',
+    note: '$0.067 / image · Gemini 3.1 Flash Image at 1K',
   },
   {
     modality: 'Video',
