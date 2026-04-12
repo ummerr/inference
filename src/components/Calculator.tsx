@@ -29,9 +29,9 @@ export function Calculator({
           ))}
         </div>
 
-        <div className={`p-5 sm:p-7 md:min-w-[280px] md:border-l ${modality.accent.border} ${modality.accent.bgSoft}`}>
+        <div className={`p-5 sm:p-7 md:min-w-[280px] border-t md:border-t-0 md:border-l ${modality.accent.border} ${modality.accent.bgSoft}`}>
           <div className="text-xs font-semibold uppercase tracking-wider text-slate-500">Estimated cost</div>
-          <div className={`font-display text-5xl sm:text-6xl leading-none mt-2 ${modality.accent.text}`}>
+          <div className={`font-display text-4xl sm:text-5xl leading-none mt-2 ${modality.accent.text}`}>
             {result.headline}
           </div>
           <div className="text-sm text-slate-600 mt-1">{result.sub}</div>

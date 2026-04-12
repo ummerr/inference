@@ -33,13 +33,22 @@ const ROWS: Row[] = [
     note: '$0.40 / second',
   },
   {
-    modality: 'Audio',
+    modality: 'Music',
     accent: 'text-emerald-600',
-    amount: '33 minutes',
-    unit: 'of Chirp 3 HD speech',
+    amount: '8.3 minutes',
+    unit: 'of Lyria 2 music (48 kHz WAV)',
     priced: true,
     source: { label: 'Vertex AI pricing', href: 'https://cloud.google.com/vertex-ai/generative-ai/pricing' },
-    note: '~$0.0005 / second ($0.030 / 1K chars)',
+    note: '$0.06 / 30s clip · ~$0.002 / second',
+  },
+  {
+    modality: 'Voice',
+    accent: 'text-emerald-800',
+    amount: '55 minutes',
+    unit: 'of Gemini 3.1 Flash Live spoken output',
+    priced: true,
+    source: { label: 'Vertex AI pricing', href: 'https://cloud.google.com/vertex-ai/generative-ai/pricing' },
+    note: '$0.018 / min audio output ($0.005 / min input)',
   },
   {
     modality: 'World models',
@@ -62,7 +71,7 @@ export function CrossModalityDollar() {
         What your dollar buys you.
       </h2>
       <p className="mt-4 max-w-2xl text-slate-600 leading-relaxed">
-        One dollar, four modalities. Native units — because seconds of video and minutes of audio
+        One dollar, five modalities. Native units — because seconds of video and minutes of audio
         aren't the same thing, and pretending they are hides the actual story.
       </p>
 
@@ -106,9 +115,10 @@ export function CrossModalityDollar() {
 
       <div className="mt-10 text-sm text-slate-600 max-w-2xl leading-relaxed">
         The takeaway isn't that one modality is "better" than another — it's that they live on totally
-        different scales. A thousand AI images cost about as much as a single AI short film. Audio is
-        nearly free per second. World models barely exist as a product yet — Genie 3 is research-access
-        only, and the unit economics aren't ready for a public API.
+        different scales. A thousand AI images cost about as much as a single AI short film. Music is
+        a few cents a clip; voice output is measured in minutes per dollar. World models barely exist
+        as a product yet — Genie 3 is research-access only, and the unit economics aren't ready for
+        a public API.
       </div>
     </section>
   )

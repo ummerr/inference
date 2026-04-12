@@ -40,10 +40,11 @@ export function Primer() {
         Numbers are calibrated against April 2026 Google Vertex AI list prices —
         the Nano Banana family at $0.039/$0.067/$0.134 per image (Gemini 2.5 Flash
         Image / Gemini 3.1 Flash Image / Gemini 3 Pro Image), Veo 3.1
-        at $0.05/$0.15/$0.40 per second (Lite / Fast / Standard), Chirp 3 HD at
-        $0.030 / 1K chars, Lyria 2 at $0.06 / 30s. H100 references use a ~$2.16/hr
-        blended rate. They won't forecast your exact bill, but the <em>shape</em>
-        should match real invoices.
+        at $0.05/$0.15/$0.40 per second (Lite / Fast / Standard), Lyria 2 at
+        $0.06 / 30s clip, and Gemini 3.1 Flash Live at $0.005/$0.018 per minute
+        of audio (input/output). H100 references use a ~$2.16/hr blended rate.
+        They won't forecast your exact bill, but the <em>shape</em> should match
+        real invoices.
       </div>
     </section>
   )

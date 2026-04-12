@@ -6,12 +6,13 @@ export function Hero() {
       <div className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-500 fade-up">
         Gen Media Inference · 101
       </div>
-      <h1 className="font-display text-5xl sm:text-7xl md:text-8xl leading-[0.95] text-slate-900 mt-4 fade-up">
+      <h1 className="font-display text-[2.5rem] sm:text-7xl md:text-8xl leading-[0.95] text-slate-900 mt-4 fade-up break-words">
         What does it <em className="italic">actually</em> cost
         <br />
         to generate a <span className="text-indigo-500">picture</span>,
         a <span className="text-rose-500">video</span>,
         a <span className="text-emerald-500">song</span>,
+        a <span className="text-emerald-800">voice</span>,
         a <span className="text-amber-500">world</span>?
       </h1>
       <p className="mt-6 text-lg sm:text-xl text-slate-600 max-w-2xl leading-relaxed fade-up">
