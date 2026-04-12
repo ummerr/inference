@@ -56,12 +56,21 @@ export interface CostResult {
   warn?: string
 }
 
+export interface ScenarioTier {
+  label: string
+  cost: string
+}
+
 export interface Scenario {
   icon: string
   title: string
   blurb: string
   cost: string
   footnote: string
+  // Optional: per-tier pricing for the same scenario (e.g. Veo Lite / Fast /
+  // Standard). When present, the card shows the breakdown instead of the
+  // single cost.
+  tiers?: ScenarioTier[]
 }
 
 export interface DeepDiveBlock {
@@ -195,10 +204,37 @@ const images: Modality = {
     }
   },
   scenarios: [
-    { icon: '🖼️', title: 'Product thumbnail',  blurb: 'Imagen 4 Fast, 1024²',         cost: '$0.02',   footnote: 'Vertex list price per image' },
-    { icon: '🎨', title: 'Hero banner',        blurb: 'Imagen 4 Standard, 1024²',     cost: '$0.04',   footnote: 'Vertex list price per image' },
-    { icon: '🖨️', title: 'Photography / print',blurb: 'Imagen 4 Ultra, 1024²',        cost: '$0.06',   footnote: 'Vertex list price per image' },
-    { icon: '📦', title: 'Catalogue of 10k',   blurb: 'Imagen 4 Fast, batched',       cost: '~$200',   footnote: '10k × $0.02; committed-use discounts apply' },
+    {
+      icon: '🖼️', title: 'One 1024² image', blurb: 'Single Imagen 4 call',
+      cost: '$0.02 → $0.06', footnote: 'Vertex list price per image — tier = how many inference steps + refiner passes',
+      tiers: [
+        { label: 'Fast',     cost: '$0.02' },
+        { label: 'Standard', cost: '$0.04' },
+        { label: 'Ultra',    cost: '$0.06' },
+      ],
+    },
+    {
+      icon: '🖨️', title: '2048² print-ready', blurb: '4× the pixels of 1024²',
+      cost: '~$0.08 → $0.24', footnote: 'Vertex charges per image not per pixel, but users self-select Ultra for print',
+      tiers: [
+        { label: 'Fast',     cost: '$0.02' },
+        { label: 'Standard', cost: '$0.04' },
+        { label: 'Ultra',    cost: '$0.06' },
+      ],
+    },
+    {
+      icon: '📦', title: 'Catalogue of 10k', blurb: 'Batched via Vertex batch API',
+      cost: '$200 → $600', footnote: 'Batch API is ~50% cheaper than online; committed-use discounts stack on top',
+      tiers: [
+        { label: 'Fast',     cost: '$200' },
+        { label: 'Standard', cost: '$400' },
+        { label: 'Ultra',    cost: '$600' },
+      ],
+    },
+    {
+      icon: '✂️', title: 'Edit / upscale pass', blurb: 'Vertex edit + upscale endpoints',
+      cost: '$0.003 – $0.02', footnote: 'Upscale $0.003/image · Edit $0.02/operation',
+    },
   ],
   deepDive: [
     {
@@ -310,10 +346,42 @@ const video: Modality = {
     }
   },
   scenarios: [
-    { icon: '📱', title: '6s social clip',    blurb: 'Veo 3.1 Fast, 720p',         cost: '~$0.90',   footnote: 'Vertex $0.15/sec w/ audio' },
-    { icon: '🎞️', title: '6s silent B-roll',  blurb: 'Veo 3.1 Lite, 720p',         cost: '~$0.30',   footnote: 'Vertex $0.05/sec, no audio' },
-    { icon: '📺', title: '30s ad spot',       blurb: 'Veo 3.1 Standard, 1080p',    cost: '~$12',     footnote: 'Vertex $0.40/sec · stitched from ≤8s clips' },
-    { icon: '🎬', title: '1hr generated film',blurb: 'Veo 3.1 Standard, 1080p',    cost: '~$1,440',  footnote: 'linear at $0.40/sec — before retries & edits' },
+    {
+      icon: '📱', title: '6s social clip', blurb: '720p, one generation',
+      cost: '$0.30 → $2.40', footnote: 'Lite has no audio; Fast/Standard include synchronized audio',
+      tiers: [
+        { label: 'Lite',     cost: '$0.30' },
+        { label: 'Fast',     cost: '$0.90' },
+        { label: 'Standard', cost: '$2.40' },
+      ],
+    },
+    {
+      icon: '📺', title: '30s ad spot', blurb: 'Stitched from ≤8s clips',
+      cost: '$1.50 → $12', footnote: '30 × per-second rate; retries and edits add 1.5–3× in practice',
+      tiers: [
+        { label: 'Lite',     cost: '$1.50' },
+        { label: 'Fast',     cost: '$4.50' },
+        { label: 'Standard', cost: '$12' },
+      ],
+    },
+    {
+      icon: '🎬', title: '2min short scene', blurb: '~15 clips stitched',
+      cost: '$6 → $48', footnote: 'before the VFX/color pass that a real short needs',
+      tiers: [
+        { label: 'Lite',     cost: '$6' },
+        { label: 'Fast',     cost: '$18' },
+        { label: 'Standard', cost: '$48' },
+      ],
+    },
+    {
+      icon: '🎞️', title: '1hr generated film', blurb: 'Linear extrapolation',
+      cost: '$180 → $1,440', footnote: 'just inference — before retries, rejects, and post',
+      tiers: [
+        { label: 'Lite',     cost: '$180' },
+        { label: 'Fast',     cost: '$540' },
+        { label: 'Standard', cost: '$1,440' },
+      ],
+    },
   ],
   deepDive: [
     {
@@ -415,10 +483,30 @@ const audio: Modality = {
     }
   },
   scenarios: [
-    { icon: '📢', title: '30s ad voiceover',    blurb: 'Chirp 3 HD · Vertex',       cost: '~$0.015', footnote: '$0.030 / 1K chars ≈ $0.0005/sec' },
-    { icon: '🎙️', title: '1hr podcast TTS',     blurb: 'Chirp 3 HD · Vertex',       cost: '~$1.80',  footnote: '3600s × ~$0.0005/sec' },
-    { icon: '🎵', title: '3min Lyria 2 track',  blurb: 'Lyria 2 · Vertex',          cost: '~$0.36',  footnote: '180s × $0.06 / 30s = $0.002/sec' },
-    { icon: '📚', title: '10hr audiobook',      blurb: 'Chirp 3 HD · cloned voice', cost: '~$18',    footnote: 'vs $1k+ for a human narrator' },
+    {
+      icon: '📢', title: '30s voiceover', blurb: 'Chirp 3 HD vs Lyria 2 jingle',
+      cost: '$0.015 → $0.06', footnote: 'same duration, music ~4× speech',
+      tiers: [
+        { label: 'Chirp 3 HD (speech)', cost: '$0.015' },
+        { label: 'Lyria 2 (music)',     cost: '$0.06' },
+      ],
+    },
+    {
+      icon: '🎙️', title: '1hr podcast episode', blurb: 'Speech TTS vs music bed',
+      cost: '$1.80 → $7.20', footnote: '3600s × per-second rate',
+      tiers: [
+        { label: 'Chirp 3 HD (speech)', cost: '$1.80' },
+        { label: 'Lyria 2 (music)',     cost: '$7.20' },
+      ],
+    },
+    {
+      icon: '🎵', title: '3min music track', blurb: 'Lyria 2 generated song',
+      cost: '~$0.36', footnote: '180s × $0.06 / 30s = $0.002/sec',
+    },
+    {
+      icon: '📚', title: '10hr audiobook', blurb: 'Chirp 3 HD · cloned voice',
+      cost: '~$18', footnote: '36,000s × ~$0.0005/sec — vs $1k+ for a human narrator',
+    },
   ],
   deepDive: [
     {
@@ -531,7 +619,15 @@ const world: Modality = {
   },
   scenarios: [
     { icon: '🕹️', title: '2-min demo playthrough', blurb: 'Genie 3 · 360p · 1× H100',    cost: '~$0.11',  footnote: 'research / solo session' },
-    { icon: '🎮', title: '1hr gameplay session',    blurb: 'Genie 3 · 720p · 4× H100',    cost: '~$13',    footnote: '4 GPU-hrs × ~$3.24 retail' },
+    {
+      icon: '🎮', title: '1hr gameplay session', blurb: '720p · varies by model tier',
+      cost: '$1.60 → $13', footnote: 'tier sets the required cluster size (1× → 2× → 4× H100)',
+      tiers: [
+        { label: 'Lite (distilled)',   cost: '~$1.60' },
+        { label: 'Mid (research SOTA)', cost: '~$6.50' },
+        { label: 'SOTA (film-quality)', cost: '~$13' },
+      ],
+    },
     { icon: '🧪', title: '10k evaluation rollouts', blurb: 'Genie 3 Lite · RL sweep',     cost: '~$135',   footnote: '~50 GPU-hrs at lite tier' },
     { icon: '🌍', title: '1M users × 20min',        blurb: 'Genie 3 · 4× H100/session',   cost: '~$4M',    footnote: 'why this isn\'t yet free-to-play' },
   ],
