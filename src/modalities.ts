@@ -106,9 +106,12 @@ const fmt = (n: number) => {
   return `$${n.toExponential(2)}`
 }
 
-// A single "GPU-second" unit cost for a modern accelerator (~H100 class, cloud-rented).
-// Real rates: ~$2–4 / GPU-hour ⇒ ~$0.0006–$0.001 / GPU-second. We use $0.0008.
-const GPU_SECOND = 0.0008
+// A single "GPU-second" unit cost for a modern accelerator (H100-class, cloud-rented).
+// As of April 2026 the H100 on-demand market has settled around $1.38–$3.93/hr
+// (RunPod $1.99, TensorDock $2.25, Lambda $2.99, AWS $3.93; Azure/Oracle are
+// outliers). Blackwell B200 is $5.49–$6.69/hr. We use $2.16/hr ≈ $0.0006/GPU-s
+// as the representative H100 figure.
+const GPU_SECOND = 0.0006
 
 // ---------------------------------------------------------------------------
 // Images
@@ -190,23 +193,31 @@ const images: Modality = {
     }
   },
   scenarios: [
-    { icon: '🖼️', title: 'Product thumbnail',  blurb: 'Flux 2 Schnell, 1024²',        cost: '~$0.015', footnote: '$0.015/image, the Schnell rate' },
-    { icon: '🎨', title: 'Hero banner',        blurb: 'Flux 2 Dev, 1024²',            cost: '~$0.025', footnote: '$0.025/image on bfl.ai' },
-    { icon: '🖨️', title: 'Print poster',       blurb: 'GPT Image 1 High, 1024²',      cost: '~$0.17',  footnote: 'HQ tier — same $ at 2K via upscale' },
-    { icon: '📦', title: 'Catalogue of 10k',   blurb: 'Flux 2 Schnell, batched',      cost: '~$150',   footnote: '10k × $0.015, bulk discounts help' },
+    { icon: '🖼️', title: 'Product thumbnail',  blurb: 'Flux 2 Klein, 1024²',          cost: '~$0.015', footnote: '$0.015/image on bfl.ai' },
+    { icon: '🎨', title: 'Hero banner',        blurb: 'Flux 2 Pro, 1024²',            cost: '~$0.031', footnote: 'DiT, photorealistic tier' },
+    { icon: '🖨️', title: 'Typography / poster',blurb: 'Ideogram v3, 1024²',           cost: '~$0.09',  footnote: 'premium for text rendering' },
+    { icon: '📦', title: 'Catalogue of 10k',   blurb: 'Imagen 4 Fast, batched',       cost: '~$200',   footnote: '$0.02 × 10k; Fal.ai routing helps' },
   ],
   deepDive: [
     {
-      title: 'U-Net vs DiT',
-      body: 'Early diffusion models (SD 1.5, SDXL) used a U-Net: a convolutional hourglass that works in pixel-like space. Newer models (SD3, Flux, Sora internals) use Diffusion Transformers — the same attention-based architecture as LLMs, applied to image patches. DiTs scale more predictably with compute but cost more per step.',
+      title: 'U-Net → DiT → 2026 reality',
+      body: 'Early diffusion models (SD 1.5, SDXL) used a U-Net: a convolutional hourglass on pixel-like space. Modern models (Flux 2, GPT Image 1.5, Imagen 4, Nano Banana Pro) use Diffusion Transformers — the attention-based architecture of LLMs applied to image patches. DiTs scale cleanly and hit photorealism, but Flux 2 in FP16 wants ~24GB of VRAM. Quantization (FP8/FP4) brings that down to 12GB/8GB at some quality cost.',
     },
     {
       title: 'Latent space, the secret weapon',
-      body: 'Modern image models don\'t actually denoise pixels — they denoise a compressed "latent" representation (e.g. 128×128 for a 1024² image), then a VAE decoder upsamples at the end. Denoising in latent space is ~64× cheaper than pixel space. Without this trick, image diffusion would be unaffordable.',
+      body: 'Modern image models don\'t denoise pixels — they denoise a compressed latent (e.g. 128×128 for a 1024² image), then a VAE decoder upsamples at the end. Denoising in latent space is ~64× cheaper than pixel space. Without this, image diffusion would be unaffordable.',
+    },
+    {
+      title: 'The "juiced" endpoint stack',
+      body: 'Production endpoints stack First Block Cache (FBCache), graph compilation (torch_compile), and FP8 quantization on top of the base model. On L20, this drops Flux.1 Dev 1024² from ~26s to ~7.5s (3.5× speedup); on 4× L20 it hits ~3.9s (6.75×). That gap — between a cold reference and a juiced endpoint — is the difference between $0.03/image being profitable and being a money pit.',
+    },
+    {
+      title: 'Consumer GPUs are now competitive',
+      body: 'The RTX 5090 has 1,792 GB/s of GDDR7 bandwidth — only 11% behind the H100 PCIe\'s 2,000 GB/s — but rents for ~$0.76/hr vs. ~$2.00 for an H100 PCIe. For standard 1024² diffusion, a 5090 does ~38 SDXL images/min vs. 42 on H100 PCIe. For everything that fits in 32GB VRAM, consumer GPUs now win on $/image. H100s only pull ahead when you need the 80GB for large batches or video.',
     },
     {
       title: 'Why guidance doubles your bill',
-      body: 'Classifier-free guidance runs the model twice per step — once with your prompt, once without — and extrapolates. It dramatically improves prompt-following but literally doubles the FLOPs. Some new models (Flux-schnell, LCM) distill this away so one pass suffices.',
+      body: 'Classifier-free guidance runs the model twice per step — once with your prompt, once without — and extrapolates. Dramatically improves prompt-following but literally doubles the FLOPs. Some models (Flux Schnell, LCM distillations) compile this away so one pass suffices.',
     },
   ],
 }
@@ -231,9 +242,10 @@ const video: Modality = {
   tagline: 'An image is one frame. Video is hundreds — and each frame has to agree with the others.',
   primer: [
     'A video model has to generate every frame *and* keep them consistent — a cup on a table in frame 1 must be the same cup in frame 120.',
-    'That consistency isn\'t free. Models use temporal attention: every frame looks at every other frame. That\'s where the cost blows up.',
+    'Classic temporal attention made every frame look at every other frame — O(n²) and brutal. In 2026, sparse-attention methods (VideoNSA, DSA) cut the attention budget to ~3.6% while preserving quality, which is why Kling and Runway Gen-4 generate a 10-second clip in under 90 seconds while Sora needed 3–8 minutes.',
+    'Sora shut down on March 24, 2026 — ~$15M/day in inference against $2.1M lifetime revenue. The market has since moved to per-second billing that tracks compute honestly.',
   ],
-  whyExpensive: 'Cost = (per-frame image cost) × frames + temporal attention, which grows with frames² (O(n²)). A 6-second clip isn\'t 6× an image — it\'s more like 100–1000×.',
+  whyExpensive: 'Cost ≈ (per-frame work) × frames. The old O(n²) temporal attention has been flattened to near-linear by sparse attention, but each frame still does image-worthy compute at higher resolutions. Every extra second or pixel is still real money.',
   fields: [
     { id: 'seconds',    type: 'slider', label: 'Length',     min: 1, max: 60, step: 1,  default: 6, unit: 's',
       hint: v => v <= 8 ? 'social clip' : v <= 20 ? 'short ad' : v <= 40 ? 'scene' : 'short film',
@@ -249,9 +261,9 @@ const video: Modality = {
     },
     { id: 'tier', type: 'select', label: 'Model tier', default: 'good',
       options: [
-        { value: 'fast', label: 'Fast (LTX, AnimateDiff)' },
-        { value: 'good', label: 'Good (Kling, Runway Gen-3)' },
-        { value: 'sota', label: 'SOTA (Veo 3, Sora)' },
+        { value: 'fast', label: 'Fast (Kling 2.6 Pro · ~$0.07/s)' },
+        { value: 'good', label: 'Good (Kling 3.0 Pro · ~$0.10/s)' },
+        { value: 'sota', label: 'SOTA (Veo 3.1 · ~$0.20/s)' },
       ],
     },
   ],
@@ -263,18 +275,19 @@ const video: Modality = {
 
     const frames   = seconds * fps
     const pixelMul = (res / 720) ** 2
-    const tierMul  = tier === 'fast' ? 0.4 : tier === 'good' ? 1 : 3.5
+    const tierMul  = tier === 'fast' ? 0.7 : tier === 'good' ? 1 : 2.0
 
-    // Per-frame cost, tuned so a 6s/24fps/720p good-tier clip lands near Runway Gen-3
-    // real public pricing (~$0.50). A single video frame at "good" tier is substantially
-    // more expensive than one SDXL image because of 3D attention, longer contexts, and
-    // higher-quality VAEs.
+    // Per-frame cost, tuned so a 6s/24fps/720p good-tier clip lands near real Kling
+    // 3.0 Pro pricing (6s × ~$0.10/s ≈ $0.60). Retail API markup ~2.5× over raw
+    // GPU-second cost accounts for aggregator margin and peak-load capacity.
     const perFrameGpuS = 2.5 * pixelMul * tierMul
-    // Temporal attention: quadratic in frames, but attention is only *part* of the net.
-    const temporalGpuS = (frames * frames / 1000) * tierMul * pixelMul
+    // Residual quadratic term (smaller than pre-sparse-attention era). Kept small
+    // so the teaching point — that long clips still cost more than linearly — is
+    // visible without overpowering the per-frame term.
+    const temporalGpuS = (frames * frames / 8000) * tierMul * pixelMul
 
     const gpuSeconds = frames * perFrameGpuS + temporalGpuS
-    const dollars = gpuSeconds * GPU_SECOND * 1.5
+    const dollars = gpuSeconds * GPU_SECOND * 2.5
 
     const warn = res >= 2160 && seconds >= 20
       ? 'At 4K for 20s+, real models hit VRAM walls and have to chunk — real cost often balloons 2–4× over this estimate.'
@@ -295,23 +308,31 @@ const video: Modality = {
     }
   },
   scenarios: [
-    { icon: '📱', title: '6s TikTok clip',    blurb: 'Kling 3.0, 720p',           cost: '~$0.45',   footnote: '~$0.075/sec, the cheapest tier' },
-    { icon: '📺', title: '30s ad spot',       blurb: 'Veo 3 Standard, 1080p',     cost: '~$12',     footnote: '$0.40/sec × 30s' },
-    { icon: '🎬', title: '2min short scene',  blurb: 'Veo 3 Standard, 1080p',     cost: '~$50',     footnote: 'stitched from shorter clips' },
-    { icon: '🎞️', title: '1hr generated film',blurb: 'Veo 3 Standard, 1080p',     cost: '~$1,500',  footnote: 'pure inference — before retries & editing' },
+    { icon: '📱', title: '6s TikTok clip',    blurb: 'Kling 3.0 Pro, 720p',       cost: '~$0.60',   footnote: '$0.10/sec, the volume leader' },
+    { icon: '📺', title: '30s ad spot',       blurb: 'Runway Gen-4, 1080p',       cost: '~$3.60',   footnote: '$0.12/sec · 60–90s to render' },
+    { icon: '🎬', title: '2min short scene',  blurb: 'Veo 3.1, 1080p',            cost: '~$24',     footnote: 'stitched from sub-20s clips' },
+    { icon: '🎞️', title: '1hr generated film',blurb: 'Kling 3.0 Pro, 1080p',      cost: '~$360',    footnote: 'linear at $0.10/s — before retries & edits' },
   ],
   deepDive: [
     {
-      title: 'Why video is ~100–1000× an image',
-      body: 'If a 1024² image takes N FLOPs, a 6-second 24fps 720² video takes roughly (144 frames × per-frame cost) + temporal-attention overhead. The per-frame part alone is ~70× an image. The attention part scales with frames squared — doubling video length more than doubles cost.',
+      title: 'The Sora postmortem (March 2026)',
+      body: 'OpenAI shut Sora down on March 24, 2026 — not because the model was bad, but because the unit economics were catastrophic. At peak, Sora burned ~$15M/day in inference against ~$2.1M in lifetime in-app revenue. A single 10-second clip used ~40 GPU-minutes (10 min of wall time across 4× H100), so the marginal cost was ~$1.30 per clip. A $20/mo subscriber who generated 15 clips already cost more than they paid. The industry learned: you cannot flat-rate high-fidelity video. Kling, Runway Gen-4, and Veo 3.1 all now price per-second because that is the only way the math works.',
     },
     {
-      title: 'Spatiotemporal attention, chunking, and VAEs',
-      body: 'Modern video models (Sora, Veo) use 3D transformers that attend across space *and* time, over a compressed spatiotemporal latent. Generating more than a few seconds at once exceeds VRAM, so models chunk + blend, sacrificing some consistency for cost. This is why long videos sometimes "drift".',
+      title: 'Why video is much more expensive than an image',
+      body: 'A 6s/24fps clip is 144 frames. Even with sparse attention, each frame has to do per-frame diffusion (roughly a 1024² image\'s worth of FLOPs) plus enough cross-frame work to stay consistent. That\'s why even the cheapest serious tier (Kling 3.0 Pro) is ~$0.10/sec of output — roughly $0.004 per frame, ~10× what a Flux 2 Schnell image costs when batched.',
     },
     {
-      title: 'The caching trick',
-      body: 'A lot of production cost is saved by caching intermediate activations across steps (DeepCache, block caching). A 30-step video generation can run at ~15-step cost with negligible quality loss. If you\'re building on top of video APIs, most providers already do this for you.',
+      title: 'Sparse attention broke the O(n²) curse',
+      body: 'Until late 2025, temporal attention scaled quadratically with the number of frames. VideoNSA (Native Sparse Attention) and DSA (Distributed Sparse Attention) changed that in 2026: by using only ~3.6% of the attention budget on tokens that actually matter for frame coherence, they get up to ~10× faster inference on long contexts. This is the single biggest reason Kling Gen-4 clips render in under 90 seconds while Sora was stuck at 3–8 minutes.',
+    },
+    {
+      title: 'Why long clips still "drift"',
+      body: 'Generating more than a few seconds at once still exceeds VRAM at 1080p+, so models chunk + blend. Sparse attention helps the attention math, but the model still has to remember what happened in chunk 1 when rendering chunk 6. Beyond ~20 seconds of continuous generation, most systems show subtle texture jitter or physics inconsistencies — the reason providers cap max clip length at 16–30 seconds.',
+    },
+    {
+      title: 'The caching + compilation stack',
+      body: 'Production endpoints (Fal.ai, Replicate, BFL) layer First Block Cache (FBCache), graph compilation (torch_compile), and FP8 quantization on top of the base model. This can drop wall time by ~3.5× vs. a cold reference implementation. Aggregators run 30–50% cheaper than direct providers because they maintain higher GPU utilization across multi-tenant clusters.',
     },
   ],
 }
@@ -372,11 +393,12 @@ const audio: Modality = {
     const cloneAdd   = kind === 'speech' && cloning ? 0.0005 : 0
 
     // Per-second base tuned against real ElevenLabs API pricing: ~$0.003/sec
-    // (Scale tier, ~$0.18/min) for standard speech. Music is more expensive
-    // per second of output because it encodes more information (instruments,
-    // wider frequency range) — retail Suno/Udio subscriptions are subsidized
-    // growth pricing and don't reflect inference cost.
-    const gpuSeconds = seconds * 2 * kindMul * qualityMul
+    // (Scale tier, $330/mo for 2M credits ≈ $0.18/min) for standard speech.
+    // Music is more expensive per second of output because it encodes more
+    // information (instruments, wider frequency range) — retail Suno/Udio
+    // subscriptions ($10–$30/mo) are subsidized growth pricing and don't
+    // reflect the true inference cost.
+    const gpuSeconds = seconds * 2.5 * kindMul * qualityMul
     const dollars = gpuSeconds * GPU_SECOND * 1.4 + cloneAdd
 
     return {
@@ -393,23 +415,27 @@ const audio: Modality = {
     }
   },
   scenarios: [
-    { icon: '📢', title: '30s ad voiceover',   blurb: 'ElevenLabs Multilingual v2', cost: '~$0.07',   footnote: '~$0.003/sec at Scale tier' },
-    { icon: '🎙️', title: '1hr podcast TTS',    blurb: 'ElevenLabs Scale tier',     cost: '~$8',       footnote: '$0.18/min × 60' },
-    { icon: '🎵', title: '3min generated song',blurb: 'Pro music gen (true cost)', cost: '~$2',      footnote: 'Suno subs are subsidized to ~$0.10' },
-    { icon: '📚', title: '10hr audiobook',     blurb: 'HQ cloned voice',           cost: '~$120',    footnote: 'vs $1k+ for a human narrator' },
+    { icon: '📢', title: '30s ad voiceover',    blurb: 'ElevenLabs Multilingual v2', cost: '~$0.08',  footnote: '$0.003/sec at Scale tier' },
+    { icon: '🎙️', title: '1hr podcast TTS',     blurb: 'ElevenLabs Scale · $330/mo', cost: '~$8',     footnote: '2M credits/mo → ~$0.003/sec' },
+    { icon: '🎵', title: '3min song (MiniMax)', blurb: 'MiniMax Music 2.5 · Fal.ai', cost: '~$0.035', footnote: 'true inference; Suno Premier is $30/mo flat' },
+    { icon: '📚', title: '10hr audiobook',      blurb: 'HQ cloned voice · 44.1kHz',  cost: '~$120',   footnote: 'vs $1k+ for a human narrator' },
   ],
   deepDive: [
     {
       title: 'Autoregressive tokens + vocoders',
-      body: 'Most audio models (Bark, VALL-E, MusicGen) generate discrete audio tokens one at a time via a transformer, then a neural vocoder (HiFi-GAN, EnCodec) converts tokens to waveform. The transformer dominates cost; the vocoder is comparatively cheap.',
+      body: 'Most audio models (Bark, VALL-E, MusicGen, ElevenLabs Multilingual v2) generate discrete audio tokens one at a time via a transformer, then a neural vocoder (HiFi-GAN, EnCodec) converts tokens to waveform. The transformer dominates cost; the vocoder is comparatively cheap.',
     },
     {
       title: 'Why music costs more than speech',
-      body: 'Music needs to encode multiple simultaneous instruments across a wider frequency range, usually at higher sample rates (44.1/48 kHz vs 16–24 kHz for speech). More tokens per second, bigger models, and typically more attempts per usable output.',
+      body: 'Music encodes multiple simultaneous instruments across a wider frequency range, usually at higher sample rates (44.1/48 kHz vs 16–24 kHz for speech). More tokens per second, bigger models, and typically more attempts per usable output. The retail prices you see for Suno v5 ($10–$30/mo, effectively ~$0.10 per generated song) are subsidized — the true inference cost is closer to $1–3 per song.',
+    },
+    {
+      title: 'Licensing is now the business model',
+      body: 'In 2026, technical quality between Suno, Udio, and ElevenLabs Music has converged. The differentiator is training-data licensing: ElevenLabs trained on licensed corpora and offers clean commercial rights from the Starter tier ($5/mo). Suno and Udio are cheaper but carry ongoing legal risk from copyright settlements. For automated production, "will this clear Content ID" matters more than "does it sound great".',
     },
     {
       title: 'Streaming changes the math',
-      body: 'Real-time TTS streams audio as it generates — the model never has to "see the whole future". This keeps latency low but doesn\'t change total cost. If you need sub-200ms latency (phone agents), you\'re paying for smaller, faster models — usually at some quality cost.',
+      body: 'Real-time TTS streams audio as it generates — the model never has to "see the whole future". This keeps latency low but doesn\'t change total cost. If you need sub-200ms latency (voice agents, phone), you\'re paying for smaller, faster models — usually at some quality cost.',
     },
   ],
 }
@@ -433,8 +459,9 @@ const world: Modality = {
   },
   tagline: 'Video you can *play*. Every input generates the next frame in real time.',
   primer: [
-    'World models (Genie, Oasis, GameNGen) are video models with a twist: you give them an action each frame — an arrow key, a mouse move, a controller input — and they render the consequence.',
-    'That means inference can\'t run in the background. It runs now, every frame, at the framerate of the experience. The hard constraint isn\'t cost — it\'s latency.',
+    'World models (Genie 3, Oasis, GameNGen) are video models with a twist: you give them an action each frame — arrow key, mouse move, controller input — and they render the consequence.',
+    'Google DeepMind\'s Genie 3 serves one interactive 720p/24fps session on a cluster of 4× H100 GPUs. Oasis (the Minecraft world model) serves ~5 concurrent users on 8× H100s at 360p/20fps. These aren\'t "per-image" economics — you rent a whole cluster for as long as someone is playing.',
+    'Consistency is the other ceiling: after ~120 seconds of exploration, worlds tend to drift — textures jitter, collision rules fail, previously visited rooms warp. That\'s why nothing serious replaces a game engine yet.',
   ],
   whyExpensive: 'A video model generates 100 frames in a batch. A world model generates 1 frame, immediately, 30 times a second — and pays for compute that would have been batched.',
   fields: [
@@ -465,22 +492,27 @@ const world: Modality = {
     const res     = Number(inputs.resolution)
     const tier    = String(inputs.tier)
 
-    const frames   = minutes * 60 * fps
-    const pixelMul = (res / 360) ** 2
-    const tierMul  = tier === 'lite' ? 0.5 : tier === 'mid' ? 1.5 : 5
-    // Interactivity penalty: unbatched, single-frame inference is ~2–3× the amortized cost
-    // of batch video generation at the same quality.
-    const interactivity = 2.5
+    // World-model inference isn't per-frame work you can batch. You rent a
+    // whole GPU cluster for the session duration. Cluster size is a function
+    // of resolution + tier (Genie 3 at 720p/mid uses 4× H100; Oasis at 360p
+    // serves ~5 users on 8× H100 ≈ 1.6/user).
+    const pixelMul = (res / 360) ** 2            // 0.5 at 256, 1 at 360, 4 at 720
+    const tierMul  = tier === 'lite' ? 0.5 : tier === 'mid' ? 1 : 2
+    const rawCluster = pixelMul * tierMul
+    const clusterSize = Math.max(1, Math.round(rawCluster))
 
-    const perFrameGpuS = 0.02 * pixelMul * tierMul * interactivity
-    const gpuSeconds = frames * perFrameGpuS
-    const dollars = gpuSeconds * GPU_SECOND * 1.5
+    const gpuHours = (minutes / 60) * clusterSize
+    const H100_HOURLY = GPU_SECOND * 3600        // $2.16/hr at our blended rate
+    const dollars = gpuHours * H100_HOURLY * 1.5 // retail margin
 
-    // Latency budget check
+    // Latency budget check — fps is what the cluster has to hit, not what
+    // it pays for. If the tier × resolution exceeds what the chosen cluster
+    // can sustain at fps, the session will drop frames on real hardware.
+    const frames = minutes * 60 * fps
     const msPerFrameBudget = 1000 / fps
-    const msPerFrameActual = perFrameGpuS * 1000 // 1 GPU is the budget
-    const warn = msPerFrameActual > msPerFrameBudget
-      ? `At this tier + resolution, one frame takes ~${msPerFrameActual.toFixed(0)}ms but you only have ${msPerFrameBudget.toFixed(0)}ms per frame — the session would drop below target fps on a single GPU.`
+    const perFrameMsNeeded = (pixelMul * tierMul / clusterSize) * 80  // 80ms is a loose Genie-3 baseline
+    const warn = perFrameMsNeeded > msPerFrameBudget
+      ? `At this tier + resolution, the cluster needs ~${perFrameMsNeeded.toFixed(0)}ms per frame but the ${fps}fps budget is only ${msPerFrameBudget.toFixed(0)}ms — you'd need a larger cluster to stay interactive.`
       : undefined
 
     return {
@@ -489,32 +521,36 @@ const world: Modality = {
       dollars,
       unitLabel: `per ${minutes}-min session`,
       breakdown: [
-        { label: 'Frames generated',         value: `${frames.toLocaleString()} (${minutes}min × 60 × ${fps}fps)` },
-        { label: 'Per-frame GPU time',       value: `${(perFrameGpuS * 1000).toFixed(0)} ms` },
-        { label: 'Latency budget per frame', value: `${msPerFrameBudget.toFixed(0)} ms` },
-        { label: 'Interactivity penalty',    value: `${interactivity}× (no batching)` },
+        { label: 'Cluster size',             value: `${clusterSize}× H100` },
+        { label: 'Session length',           value: `${minutes} min · ${frames.toLocaleString()} frames` },
+        { label: 'GPU-hours',                value: gpuHours.toFixed(3) },
+        { label: 'Blended H100 retail rate', value: `$${(H100_HOURLY * 1.5).toFixed(2)}/GPU-hr` },
       ],
       warn,
     }
   },
   scenarios: [
-    { icon: '🕹️', title: '2-min demo playthrough', blurb: 'Genie-ish, 360p',       cost: '~$0.30',  footnote: 'research quality' },
-    { icon: '🎮', title: '1hr gameplay session',    blurb: 'SOTA, 720p, 30fps',      cost: '~$130',    footnote: 'pricier than a AAA game' },
-    { icon: '🧪', title: '10k evaluation rollouts', blurb: '100-step research rollouts', cost: '~$80', footnote: 'cost of RL research' },
-    { icon: '🌍', title: '1M users × 20min',        blurb: 'SOTA, scaled',           cost: '~$40M',   footnote: 'why this isn\'t live yet' },
+    { icon: '🕹️', title: '2-min demo playthrough', blurb: '360p/24fps · 1× H100',   cost: '~$0.11',  footnote: 'research / solo session' },
+    { icon: '🎮', title: '1hr gameplay session',    blurb: 'Genie 3-tier · 720p · 4× H100', cost: '~$13',   footnote: '4 GPU-hrs × ~$3.24 retail' },
+    { icon: '🧪', title: '10k evaluation rollouts', blurb: '~30s each · RL sweep',   cost: '~$135',   footnote: '~50 GPU-hrs at lite tier' },
+    { icon: '🌍', title: '1M users × 20min',        blurb: 'Genie 3-tier · 4× H100', cost: '~$4M',    footnote: 'why this isn\'t yet free-to-play' },
   ],
   deepDive: [
     {
       title: 'Why real-time is the hard part',
-      body: 'Regular video models amortize compute across a whole clip — they generate many frames in parallel. World models can\'t: the next frame depends on the user input that just happened. You lose batching, lose pipelining, and pay for every frame serially.',
+      body: 'Regular video models amortize compute across a whole clip — they generate many frames in parallel. World models can\'t: the next frame depends on the user input that just happened. You lose batching, lose pipelining, and pay for every frame serially. That\'s why the unit of cost is "cluster-hours," not "generations."',
     },
     {
-      title: 'Action conditioning',
-      body: 'The model takes the previous frame(s) plus an action embedding and predicts the next frame. Genie learns this unsupervised from gameplay video; Oasis was trained on Minecraft. The action space is the interesting design choice — keyboard, mouse, continuous controls all have very different token budgets.',
+      title: 'Memory bandwidth > raw TFLOPs',
+      body: 'A world model must keep a latent state for every object and location you\'ve visited this session, plus autoregressively predict the next frame under a sub-100ms budget. That\'s a memory-bandwidth problem, not a compute problem. On an H100 PCIe (2,000 GB/s), 4× GPUs is the minimum to hit 720p/24fps. Blackwell B200 (HBM3e, ~$5.49–$6.69/hr retail) eases this substantially but is still capacity-constrained — NVIDIA reportedly sold out 12 months of production in advance.',
     },
     {
-      title: 'The distillation race',
-      body: 'Most world-model cost reduction right now comes from distilling diffusion-based teachers into smaller single-pass student models (consistency models, LCMs adapted for video). Expect 5–10× cost drops over the next couple of years — this is the gating factor for consumer use cases.',
+      title: 'Latent action models',
+      body: 'Genie 3\'s innovation is learning physics and interaction rules directly from video, not from hard-coded engines. Arrow keys translating to "move forward" is now ~70–80% consistent across generated environments — a big leap from 2024, where controls had to be re-learned for every new seed scene.',
+    },
+    {
+      title: 'The drift ceiling',
+      body: 'After ~120 seconds of continuous exploration, current world models drift: textures jitter, collision rules fail, previously visited rooms warp. This is the reason no one has yet replaced a game engine with a world model for anything more than short demos.',
     },
   ],
 }

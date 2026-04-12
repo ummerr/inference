@@ -37,8 +37,10 @@ export function Primer() {
       </div>
 
       <div className="mt-8 text-xs text-slate-500 max-w-2xl leading-relaxed">
-        The numbers on this site are <em>illustrative</em> — tuned to match the shape of real pricing,
-        not to quote a specific provider. Use them to build intuition, not to forecast your bill.
+        Numbers are calibrated against April 2026 market rates — H100 on-demand at
+        ~$1.99–$3.93/hr (we use ~$2.16/hr blended), Flux 2 at $0.015–$0.055/image,
+        Kling 3.0 Pro at $0.10/sec, ElevenLabs Scale at $0.003/sec. They won't
+        forecast your exact bill, but the <em>shape</em> should match real invoices.
       </div>
     </section>
   )

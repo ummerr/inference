@@ -9,8 +9,12 @@ const TERMS: { term: string; def: string; emoji: string }[] = [
   { term: 'Autoregressive',   emoji: '➡️', def: 'Generating one piece at a time, each conditioned on the last. Audio and LLMs mostly work this way; it resists batching.' },
   { term: 'Vocoder',          emoji: '🔊', def: 'A neural network that turns abstract audio tokens into actual waveform samples.' },
   { term: 'Batching',         emoji: '📦', def: 'Running many requests through a GPU together to amortize fixed costs. The single biggest cost lever in production.' },
-  { term: 'GPU-second',       emoji: '⏱️', def: 'One second of one GPU\'s time. ~$0.0008 at modern cloud rates for an H100-class chip.' },
-  { term: 'World model',      emoji: '🌍', def: 'A model that predicts the next frame of an interactive environment given a user action — video you can play.' },
+  { term: 'GPU-second',       emoji: '⏱️', def: 'One second of one GPU\'s time. ~$0.0006 on an H100 at 2026 market rates (~$2.16/hr blended across RunPod, TensorDock, Lambda, AWS).' },
+  { term: 'World model',      emoji: '🌍', def: 'A model that predicts the next frame of an interactive environment given a user action — video you can play. Genie 3 and Oasis are the 2026 leaders.' },
+  { term: 'Sparse attention', emoji: '🕸️', def: 'VideoNSA / DSA — using only ~3.6% of the attention budget on tokens that actually matter. ~10× faster long-context inference; the reason Kling and Runway Gen-4 beat Sora on wall time.' },
+  { term: 'FBCache',          emoji: '♻️', def: 'First Block Cache — reuses computation across similar prompts in a batch. Part of the "juiced endpoint" stack that cuts Flux inference by 3–7×.' },
+  { term: 'HBM',              emoji: '🧠', def: 'High-Bandwidth Memory — the fast VRAM on H100 (HBM3) and B200 (HBM3e) cards. Memory bandwidth is the bottleneck for diffusion and world models, not raw TFLOPs.' },
+  { term: 'Subsidy trap',     emoji: '💸', def: 'When a product sells output below its true inference cost to buy growth (Sora\'s $20/mo plan, Suno\'s $10/mo). Sora\'s March 2026 shutdown made this the canonical example.' },
 ]
 
 export function Glossary() {
@@ -20,7 +24,7 @@ export function Glossary() {
         Glossary
       </div>
       <h2 className="font-display text-3xl sm:text-4xl text-slate-900 mb-2">The vocabulary</h2>
-      <p className="text-slate-600 mb-8 max-w-2xl">Twelve terms that keep showing up. Skim once, refer back whenever.</p>
+      <p className="text-slate-600 mb-8 max-w-2xl">The vocabulary that keeps showing up. Skim once, refer back whenever.</p>
       <dl className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {TERMS.map(({ term, def, emoji }) => (
           <div
