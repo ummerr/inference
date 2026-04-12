@@ -297,8 +297,8 @@ const video: Modality = {
   scenarios: [
     { icon: '📱', title: '6s TikTok clip',    blurb: 'Gen-3-ish, 720p',           cost: '~$0.50',   footnote: 'the "cheap" video' },
     { icon: '📺', title: '30s ad spot',       blurb: 'Veo-ish, 1080p',            cost: '~$15',     footnote: 'still < a stock-footage license' },
-    { icon: '🎬', title: '2min short scene',  blurb: 'SOTA, 1080p',               cost: '~$200',    footnote: 'and this is just the inference' },
-    { icon: '🎞️', title: '1hr generated film',blurb: 'SOTA, 1080p',               cost: '~$30,000', footnote: 'why nobody does this yet' },
+    { icon: '🎬', title: '2min short scene',  blurb: 'SOTA, 1080p',               cost: '~$100',    footnote: 'and this is just the inference' },
+    { icon: '🎞️', title: '1hr generated film',blurb: 'SOTA, 1080p',               cost: '~$5,000',  footnote: 'why nobody does this yet' },
   ],
   deepDive: [
     {
