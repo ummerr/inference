@@ -265,10 +265,12 @@ const video: Modality = {
     const pixelMul = (res / 720) ** 2
     const tierMul  = tier === 'fast' ? 0.4 : tier === 'good' ? 1 : 3.5
 
-    // Per-frame cost (roughly like a mid-quality image, shared across frames in a chunk).
-    const perFrameGpuS = 0.08 * pixelMul * tierMul
+    // Per-frame cost, tuned so a 6s/24fps/720p good-tier clip lands near Runway Gen-3
+    // real public pricing (~$0.50). A single video frame at "good" tier is substantially
+    // more expensive than one SDXL image because of 3D attention, longer contexts, and
+    // higher-quality VAEs.
+    const perFrameGpuS = 2.5 * pixelMul * tierMul
     // Temporal attention: quadratic in frames, but attention is only *part* of the net.
-    // Coefficient tuned so a 6s/24fps/720p good-tier clip lands near real public pricing.
     const temporalGpuS = (frames * frames / 1000) * tierMul * pixelMul
 
     const gpuSeconds = frames * perFrameGpuS + temporalGpuS
@@ -296,7 +298,7 @@ const video: Modality = {
     { icon: '📱', title: '6s TikTok clip',    blurb: 'Gen-3-ish, 720p',           cost: '~$0.50',   footnote: 'the "cheap" video' },
     { icon: '📺', title: '30s ad spot',       blurb: 'Veo-ish, 1080p',            cost: '~$15',     footnote: 'still < a stock-footage license' },
     { icon: '🎬', title: '2min short scene',  blurb: 'SOTA, 1080p',               cost: '~$200',    footnote: 'and this is just the inference' },
-    { icon: '🎞️', title: '1hr generated film',blurb: 'SOTA, 1080p',               cost: '~$6,000',  footnote: 'why nobody does this yet' },
+    { icon: '🎞️', title: '1hr generated film',blurb: 'SOTA, 1080p',               cost: '~$30,000', footnote: 'why nobody does this yet' },
   ],
   deepDive: [
     {
@@ -365,12 +367,13 @@ const audio: Modality = {
     const quality  = String(inputs.quality)
     const cloning  = Boolean(inputs.cloning)
 
-    const kindMul    = kind === 'music' ? 8 : 1
+    const kindMul    = kind === 'music' ? 5 : 1
     const qualityMul = quality === 'fast' ? 0.5 : quality === 'standard' ? 1 : 2
     const cloneAdd   = kind === 'speech' && cloning ? 0.0005 : 0
 
-    // ~0.002 GPU-seconds per second of speech, standard quality.
-    const gpuSeconds = seconds * 0.002 * kindMul * qualityMul
+    // Per-second base cost tuned against real TTS pricing (ElevenLabs-ish:
+    // ~$0.0002/sec standard speech, ~$0.001/sec studio).
+    const gpuSeconds = seconds * 0.15 * kindMul * qualityMul
     const dollars = gpuSeconds * GPU_SECOND * 1.4 + cloneAdd
 
     return {
@@ -389,7 +392,7 @@ const audio: Modality = {
   scenarios: [
     { icon: '📢', title: '30s ad voiceover',   blurb: 'ElevenLabs-ish, standard',  cost: '~$0.005', footnote: 'basically free' },
     { icon: '🎙️', title: '1hr podcast TTS',    blurb: 'Standard TTS',              cost: '~$0.60',   footnote: 'audiobooks are feasible' },
-    { icon: '🎵', title: '3min generated song',blurb: 'Suno/Udio-ish',             cost: '~$0.08',   footnote: 'per retry, and you\'ll retry a lot' },
+    { icon: '🎵', title: '3min generated song',blurb: 'Suno/Udio-ish',             cost: '~$0.15',   footnote: 'per retry, and you\'ll retry a lot' },
     { icon: '📚', title: '10hr audiobook',     blurb: 'HQ TTS with cloned voice',  cost: '~$12',     footnote: 'vs $1k+ for a human narrator' },
   ],
   deepDive: [
@@ -493,9 +496,9 @@ const world: Modality = {
   },
   scenarios: [
     { icon: '🕹️', title: '2-min demo playthrough', blurb: 'Genie-ish, 360p',       cost: '~$0.30',  footnote: 'research quality' },
-    { icon: '🎮', title: '1hr gameplay session',    blurb: 'SOTA, 720p, 30fps',      cost: '~$25',     footnote: 'pricier than a AAA game' },
-    { icon: '🧪', title: '10k evaluation rollouts', blurb: '100-step research rollouts', cost: '~$150', footnote: 'cost of RL research' },
-    { icon: '🌍', title: '1M users × 20min',        blurb: 'SOTA, scaled',           cost: '~$8M',    footnote: 'why this isn\'t live yet' },
+    { icon: '🎮', title: '1hr gameplay session',    blurb: 'SOTA, 720p, 30fps',      cost: '~$130',    footnote: 'pricier than a AAA game' },
+    { icon: '🧪', title: '10k evaluation rollouts', blurb: '100-step research rollouts', cost: '~$80', footnote: 'cost of RL research' },
+    { icon: '🌍', title: '1M users × 20min',        blurb: 'SOTA, scaled',           cost: '~$40M',   footnote: 'why this isn\'t live yet' },
   ],
   deepDive: [
     {
