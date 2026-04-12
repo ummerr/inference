@@ -133,9 +133,9 @@ const images: Modality = {
   tagline: 'Diffusion: sculpt an image out of pure static.',
   primer: [
     'Image models start with random noise and, step by step, "de-noise" it into a picture. Each step is one full pass through a big neural network.',
-    'So cost scales with two things: how many steps you take, and how big the image (and model) is on each step.',
+    'On Google Vertex AI, the Imagen 4 family prices this three ways: Fast ($0.02/image), Standard ($0.04), and Ultra ($0.06). Same mechanic, more or less compute per call.',
   ],
-  whyExpensive: 'More steps = better image, linearly more compute. Guidance (CFG) runs the model twice per step. Resolution scales the per-step work by pixels².',
+  whyExpensive: 'More steps = better image, linearly more compute. Guidance (CFG) runs the model twice per step. Resolution scales the per-step work by pixels². Vertex hides the knobs behind a tier name — you pick Fast / Standard / Ultra, it picks the steps for you.',
   fields: [
     {
       id: 'steps', type: 'slider', label: 'Denoising steps',
@@ -156,11 +156,11 @@ const images: Modality = {
       ],
     },
     {
-      id: 'modelSize', type: 'select', label: 'Model size', default: 'medium',
+      id: 'modelSize', type: 'select', label: 'Vertex tier', default: 'medium',
       options: [
-        { value: 'small',  label: 'Small (SDXL-Turbo-ish, ~1B)' },
-        { value: 'medium', label: 'Medium (SDXL / Flux-schnell, ~3–4B)' },
-        { value: 'large',  label: 'Large (Flux-dev, DiT, ~12B+)' },
+        { value: 'small',  label: 'Imagen 4 Fast ($0.02/img)' },
+        { value: 'medium', label: 'Imagen 4 Standard ($0.04/img)' },
+        { value: 'large',  label: 'Imagen 4 Ultra ($0.06/img)' },
       ],
     },
   ],
@@ -172,12 +172,14 @@ const images: Modality = {
 
     // Per-step cost scales ~linearly with pixel count and ~linearly with params.
     const pixelMul = (res / 1024) ** 2     // 0.25 at 512, 1 at 1024, 4 at 2048
-    const sizeMul  = size === 'small' ? 0.3 : size === 'medium' ? 1 : 3.5
+    const sizeMul  = size === 'small' ? 0.5 : size === 'medium' ? 1 : 1.5
     const passes   = guided ? 2 : 1
 
-    // A "medium model at 1024, 1 step, 1 pass" ≈ 0.05 GPU-seconds.
+    // Calibrated so the default knobs (Standard tier, 25 steps, guided, 1024²)
+    // land on the real Vertex Imagen 4 Standard price of $0.04/image. Fast tier
+    // defaults likewise hit $0.02, Ultra hits $0.06.
     const gpuSeconds = steps * passes * sizeMul * pixelMul * 0.05
-    const dollars = gpuSeconds * GPU_SECOND * 1.4 // 40% provider margin
+    const dollars = gpuSeconds * GPU_SECOND * 27 // retail API markup
 
     return {
       headline: fmt(dollars),
@@ -193,10 +195,10 @@ const images: Modality = {
     }
   },
   scenarios: [
-    { icon: '🖼️', title: 'Product thumbnail',  blurb: 'Flux 2 Klein, 1024²',          cost: '~$0.015', footnote: '$0.015/image on bfl.ai' },
-    { icon: '🎨', title: 'Hero banner',        blurb: 'Flux 2 Pro, 1024²',            cost: '~$0.031', footnote: 'DiT, photorealistic tier' },
-    { icon: '🖨️', title: 'Typography / poster',blurb: 'Ideogram v3, 1024²',           cost: '~$0.09',  footnote: 'premium for text rendering' },
-    { icon: '📦', title: 'Catalogue of 10k',   blurb: 'Imagen 4 Fast, batched',       cost: '~$200',   footnote: '$0.02 × 10k; Fal.ai routing helps' },
+    { icon: '🖼️', title: 'Product thumbnail',  blurb: 'Imagen 4 Fast, 1024²',         cost: '$0.02',   footnote: 'Vertex list price per image' },
+    { icon: '🎨', title: 'Hero banner',        blurb: 'Imagen 4 Standard, 1024²',     cost: '$0.04',   footnote: 'Vertex list price per image' },
+    { icon: '🖨️', title: 'Photography / print',blurb: 'Imagen 4 Ultra, 1024²',        cost: '$0.06',   footnote: 'Vertex list price per image' },
+    { icon: '📦', title: 'Catalogue of 10k',   blurb: 'Imagen 4 Fast, batched',       cost: '~$200',   footnote: '10k × $0.02; committed-use discounts apply' },
   ],
   deepDive: [
     {
@@ -259,11 +261,11 @@ const video: Modality = {
         { value: '2160', label: '4K' },
       ],
     },
-    { id: 'tier', type: 'select', label: 'Model tier', default: 'good',
+    { id: 'tier', type: 'select', label: 'Vertex tier', default: 'good',
       options: [
-        { value: 'fast', label: 'Fast (Kling 2.6 Pro · ~$0.07/s)' },
-        { value: 'good', label: 'Good (Kling 3.0 Pro · ~$0.10/s)' },
-        { value: 'sota', label: 'SOTA (Veo 3.1 · ~$0.20/s)' },
+        { value: 'fast', label: 'Veo 3.1 Fast ($0.15/s)' },
+        { value: 'good', label: 'Veo 3.1 Standard ($0.40/s)' },
+        { value: 'sota', label: 'Veo 3.1 Premium ($0.75/s)' },
       ],
     },
   ],
@@ -275,11 +277,11 @@ const video: Modality = {
 
     const frames   = seconds * fps
     const pixelMul = (res / 720) ** 2
-    const tierMul  = tier === 'fast' ? 0.7 : tier === 'good' ? 1 : 2.0
+    const tierMul  = tier === 'fast' ? 0.375 : tier === 'good' ? 1 : 1.875
 
-    // Per-frame cost, tuned so a 6s/24fps/720p good-tier clip lands near real Kling
-    // 3.0 Pro pricing (6s × ~$0.10/s ≈ $0.60). Retail API markup ~2.5× over raw
-    // GPU-second cost accounts for aggregator margin and peak-load capacity.
+    // Per-frame cost, tuned so a 6s/24fps/720p Standard clip lands on Vertex
+    // Veo 3.1 Standard pricing (6s × $0.40/s = $2.40). Fast and Premium tiers
+    // likewise hit $0.15/s and $0.75/s at their defaults.
     const perFrameGpuS = 2.5 * pixelMul * tierMul
     // Residual quadratic term (smaller than pre-sparse-attention era). Kept small
     // so the teaching point — that long clips still cost more than linearly — is
@@ -287,7 +289,7 @@ const video: Modality = {
     const temporalGpuS = (frames * frames / 8000) * tierMul * pixelMul
 
     const gpuSeconds = frames * perFrameGpuS + temporalGpuS
-    const dollars = gpuSeconds * GPU_SECOND * 2.5
+    const dollars = gpuSeconds * GPU_SECOND * 11 // retail API markup
 
     const warn = res >= 2160 && seconds >= 20
       ? 'At 4K for 20s+, real models hit VRAM walls and have to chunk — real cost often balloons 2–4× over this estimate.'
@@ -308,10 +310,10 @@ const video: Modality = {
     }
   },
   scenarios: [
-    { icon: '📱', title: '6s TikTok clip',    blurb: 'Kling 3.0 Pro, 720p',       cost: '~$0.60',   footnote: '$0.10/sec, the volume leader' },
-    { icon: '📺', title: '30s ad spot',       blurb: 'Runway Gen-4, 1080p',       cost: '~$3.60',   footnote: '$0.12/sec · 60–90s to render' },
-    { icon: '🎬', title: '2min short scene',  blurb: 'Veo 3.1, 1080p',            cost: '~$24',     footnote: 'stitched from sub-20s clips' },
-    { icon: '🎞️', title: '1hr generated film',blurb: 'Kling 3.0 Pro, 1080p',      cost: '~$360',    footnote: 'linear at $0.10/s — before retries & edits' },
+    { icon: '📱', title: '6s social clip',    blurb: 'Veo 3.1 Fast, 720p',        cost: '~$0.90',   footnote: 'Vertex $0.15/sec' },
+    { icon: '📺', title: '30s ad spot',       blurb: 'Veo 3.1 Standard, 1080p',   cost: '~$12',     footnote: 'Vertex $0.40/sec · stitched from ≤8s clips' },
+    { icon: '🎬', title: '2min short scene',  blurb: 'Veo 3.1 Premium, 1080p',    cost: '~$90',     footnote: 'Vertex $0.75/sec · stitched clips' },
+    { icon: '🎞️', title: '1hr generated film',blurb: 'Veo 3.1 Standard, 1080p',   cost: '~$1,440',  footnote: 'linear at $0.40/sec — before retries & edits' },
   ],
   deepDive: [
     {
@@ -356,10 +358,10 @@ const audio: Modality = {
   },
   tagline: 'Cheap per second — but audio is often *long*.',
   primer: [
-    'Audio models come in two flavors: speech (TTS, voice cloning) and music (Suno, Udio, MusicGen).',
+    'Audio models come in two flavors: speech (TTS, voice cloning) and music. On Google Vertex AI, that\'s Chirp 3 HD for speech and Lyria 2 for music.',
     'Both typically generate audio tokens autoregressively — one small chunk at a time — then a vocoder turns tokens into waveform. Per second, audio is far cheaper than video. Per *hour* of output, it adds up.',
   ],
-  whyExpensive: 'Cost scales linearly with output duration. Music models cost ~5–10× speech models because they generate richer tokens (multiple instruments, wider frequency range).',
+  whyExpensive: 'Cost scales linearly with output duration. Music models cost roughly 30× speech models per second because they generate richer tokens (multiple instruments, wider frequency range).',
   fields: [
     { id: 'kind', type: 'select', label: 'Kind', default: 'speech',
       options: [
@@ -388,16 +390,13 @@ const audio: Modality = {
     const quality  = String(inputs.quality)
     const cloning  = Boolean(inputs.cloning)
 
-    const kindMul    = kind === 'music' ? 5 : 1
+    const kindMul    = kind === 'music' ? 28.5 : 1
     const qualityMul = quality === 'fast' ? 0.5 : quality === 'standard' ? 1 : 1.5
     const cloneAdd   = kind === 'speech' && cloning ? 0.0005 : 0
 
-    // Per-second base tuned against real ElevenLabs API pricing: ~$0.003/sec
-    // (Scale tier, $330/mo for 2M credits ≈ $0.18/min) for standard speech.
-    // Music is more expensive per second of output because it encodes more
-    // information (instruments, wider frequency range) — retail Suno/Udio
-    // subscriptions ($10–$30/mo) are subsidized growth pricing and don't
-    // reflect the true inference cost.
+    // Per-second base tuned against Vertex Chirp 3 HD (speech, ~$0.002/sec
+    // at list) and Lyria 2 (music, ~$0.06/sec). Music costs more per second
+    // because it encodes richer signal (instruments, wider frequency range).
     const gpuSeconds = seconds * 2.5 * kindMul * qualityMul
     const dollars = gpuSeconds * GPU_SECOND * 1.4 + cloneAdd
 
@@ -407,7 +406,7 @@ const audio: Modality = {
       dollars,
       unitLabel: kind === 'music' ? `per ${seconds}s track` : `per ${seconds}s`,
       breakdown: [
-        { label: 'Kind', value: kind === 'music' ? `music (${kindMul}×)` : 'speech (1×)' },
+        { label: 'Kind', value: kind === 'music' ? `Lyria 2 music (${kindMul}×)` : 'Chirp 3 HD speech (1×)' },
         { label: 'Quality multiplier', value: `${qualityMul}×` },
         { label: 'GPU-seconds', value: gpuSeconds.toFixed(3) },
         ...(cloneAdd > 0 ? [{ label: 'Voice-clone overhead', value: fmt(cloneAdd) }] : []),
@@ -415,19 +414,19 @@ const audio: Modality = {
     }
   },
   scenarios: [
-    { icon: '📢', title: '30s ad voiceover',    blurb: 'ElevenLabs Multilingual v2', cost: '~$0.08',  footnote: '$0.003/sec at Scale tier' },
-    { icon: '🎙️', title: '1hr podcast TTS',     blurb: 'ElevenLabs Scale · $330/mo', cost: '~$8',     footnote: '2M credits/mo → ~$0.003/sec' },
-    { icon: '🎵', title: '3min song (MiniMax)', blurb: 'MiniMax Music 2.5 · Fal.ai', cost: '~$0.035', footnote: 'true inference; Suno Premier is $30/mo flat' },
-    { icon: '📚', title: '10hr audiobook',      blurb: 'HQ cloned voice · 44.1kHz',  cost: '~$120',   footnote: 'vs $1k+ for a human narrator' },
+    { icon: '📢', title: '30s ad voiceover',    blurb: 'Chirp 3 HD · Vertex',       cost: '~$0.06',  footnote: '~$0.002/sec at list price' },
+    { icon: '🎙️', title: '1hr podcast TTS',     blurb: 'Chirp 3 HD · Vertex',       cost: '~$7',     footnote: '3600s × ~$0.002/sec' },
+    { icon: '🎵', title: '3min Lyria 2 track',  blurb: 'Lyria 2 · Vertex',          cost: '~$11',    footnote: '180s × ~$0.06/sec' },
+    { icon: '📚', title: '10hr audiobook',      blurb: 'Chirp 3 HD · cloned voice', cost: '~$70',    footnote: 'vs $1k+ for a human narrator' },
   ],
   deepDive: [
     {
       title: 'Autoregressive tokens + vocoders',
-      body: 'Most audio models (Bark, VALL-E, MusicGen, ElevenLabs Multilingual v2) generate discrete audio tokens one at a time via a transformer, then a neural vocoder (HiFi-GAN, EnCodec) converts tokens to waveform. The transformer dominates cost; the vocoder is comparatively cheap.',
+      body: 'Most audio models (Chirp 3 HD, Lyria 2, Bark, VALL-E, MusicGen) generate discrete audio tokens one at a time via a transformer, then a neural vocoder (HiFi-GAN, SoundStream) converts tokens to waveform. The transformer dominates cost; the vocoder is comparatively cheap.',
     },
     {
       title: 'Why music costs more than speech',
-      body: 'Music encodes multiple simultaneous instruments across a wider frequency range, usually at higher sample rates (44.1/48 kHz vs 16–24 kHz for speech). More tokens per second, bigger models, and typically more attempts per usable output. The retail prices you see for Suno v5 ($10–$30/mo, effectively ~$0.10 per generated song) are subsidized — the true inference cost is closer to $1–3 per song.',
+      body: 'Music encodes multiple simultaneous instruments across a wider frequency range, usually at higher sample rates (44.1/48 kHz vs 16–24 kHz for speech). More tokens per second, bigger models, and typically more attempts per usable output. Vertex lists Lyria 2 at ~$0.06/sec versus Chirp 3 HD speech at ~$0.002/sec — roughly 30× the per-second cost.',
     },
     {
       title: 'Licensing is now the business model',
@@ -530,10 +529,10 @@ const world: Modality = {
     }
   },
   scenarios: [
-    { icon: '🕹️', title: '2-min demo playthrough', blurb: '360p/24fps · 1× H100',   cost: '~$0.11',  footnote: 'research / solo session' },
-    { icon: '🎮', title: '1hr gameplay session',    blurb: 'Genie 3-tier · 720p · 4× H100', cost: '~$13',   footnote: '4 GPU-hrs × ~$3.24 retail' },
-    { icon: '🧪', title: '10k evaluation rollouts', blurb: '~30s each · RL sweep',   cost: '~$135',   footnote: '~50 GPU-hrs at lite tier' },
-    { icon: '🌍', title: '1M users × 20min',        blurb: 'Genie 3-tier · 4× H100', cost: '~$4M',    footnote: 'why this isn\'t yet free-to-play' },
+    { icon: '🕹️', title: '2-min demo playthrough', blurb: 'Genie 3 · 360p · 1× H100',    cost: '~$0.11',  footnote: 'research / solo session' },
+    { icon: '🎮', title: '1hr gameplay session',    blurb: 'Genie 3 · 720p · 4× H100',    cost: '~$13',    footnote: '4 GPU-hrs × ~$3.24 retail' },
+    { icon: '🧪', title: '10k evaluation rollouts', blurb: 'Genie 3 Lite · RL sweep',     cost: '~$135',   footnote: '~50 GPU-hrs at lite tier' },
+    { icon: '🌍', title: '1M users × 20min',        blurb: 'Genie 3 · 4× H100/session',   cost: '~$4M',    footnote: 'why this isn\'t yet free-to-play' },
   ],
   deepDive: [
     {
