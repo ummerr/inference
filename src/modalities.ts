@@ -295,10 +295,10 @@ const video: Modality = {
     }
   },
   scenarios: [
-    { icon: '📱', title: '6s TikTok clip',    blurb: 'Gen-3-ish, 720p',           cost: '~$0.50',   footnote: 'the "cheap" video' },
-    { icon: '📺', title: '30s ad spot',       blurb: 'Veo-ish, 1080p',            cost: '~$15',     footnote: 'still < a stock-footage license' },
-    { icon: '🎬', title: '2min short scene',  blurb: 'SOTA, 1080p',               cost: '~$100',    footnote: 'and this is just the inference' },
-    { icon: '🎞️', title: '1hr generated film',blurb: 'SOTA, 1080p',               cost: '~$5,000',  footnote: 'why nobody does this yet' },
+    { icon: '📱', title: '6s TikTok clip',    blurb: 'Kling 3.0, 720p',           cost: '~$0.45',   footnote: '~$0.075/sec, the cheapest tier' },
+    { icon: '📺', title: '30s ad spot',       blurb: 'Veo 3 Standard, 1080p',     cost: '~$12',     footnote: '$0.40/sec × 30s' },
+    { icon: '🎬', title: '2min short scene',  blurb: 'Veo 3 Standard, 1080p',     cost: '~$50',     footnote: 'stitched from shorter clips' },
+    { icon: '🎞️', title: '1hr generated film',blurb: 'Veo 3 Standard, 1080p',     cost: '~$1,500',  footnote: 'pure inference — before retries & editing' },
   ],
   deepDive: [
     {
