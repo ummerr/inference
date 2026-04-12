@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, type ComponentType, type ReactNode } from 
 import {
   Hammer, Brain, Cpu, Car, Sparkles, Zap, DollarSign,
   Image as ImageIcon, Compass, Scale, ChevronDown, Info,
-  Type, Coins, BarChart3, MessageSquareQuote,
+  Type, Coins, BarChart3, MessageSquareQuote, Film,
 } from 'lucide-react'
 import { computeImageCost, type ModelSize, type Hardware, type Hosting } from './pricing'
 import { SideNav, type NavItem } from './components/SideNav'
@@ -209,6 +209,7 @@ const NAV_ITEMS: NavItem[] = [
   { id: 'what',       label: 'What is inference?' },
   { id: 'image',      label: 'Image AI' },
   { id: 'text',       label: 'Text AI' },
+  { id: 'video',      label: 'Video AI' },
   { id: 'calculator', label: 'Image calculator' },
   { id: 'io',         label: 'Input vs output' },
   { id: 'cfg',        label: 'Guidance (CFG)' },
@@ -342,6 +343,76 @@ export default function App() {
                 </div>
                 <div className="mt-6">
                   <TokensWidget />
+                </div>
+              </Card>
+            </section>
+
+            {/* 3b — How video AI works */}
+            <section id="video" className="scroll-mt-8">
+              <Card>
+                <SectionHeader
+                  icon={Film}
+                  eyebrow="Modality · Video"
+                  title="How video AI actually works"
+                  subtitle="Images, but with the extra rule that nothing can pop, flicker, or slide."
+                  accent="bg-gradient-to-br from-rose-400 to-rose-600"
+                />
+                <div className="space-y-3 text-slate-600 leading-relaxed">
+                  <p>
+                    Video generators (Sora, Veo, Runway, Kling) are built on the same de-noising idea
+                    as image models — but instead of one picture, they denoise a whole <strong>stack
+                    of frames at once</strong>. A 5-second clip at 24 fps is 120 images the model has
+                    to cough up together.
+                  </p>
+                  <p>
+                    The hard part isn't the frames themselves — it's <strong>temporal consistency</strong>.
+                    If a character's shirt is blue in frame 1 and teal in frame 2, the video looks
+                    broken. So the model uses a mechanism called <em>temporal attention</em>: every
+                    frame peeks at every other frame while it's being denoised, keeping objects,
+                    lighting, and motion coherent.
+                  </p>
+                </div>
+
+                <div className="mt-6 grid md:grid-cols-3 gap-3">
+                  <div className="bg-slate-50 rounded-xl p-4 ring-1 ring-slate-200">
+                    <div className="text-xs font-bold text-slate-500 uppercase tracking-[0.15em]">Frames</div>
+                    <div className="font-display text-3xl text-slate-900 leading-tight">120+</div>
+                    <div className="text-xs text-slate-500 mt-1">5 seconds × 24 fps</div>
+                  </div>
+                  <div className="bg-rose-50 rounded-xl p-4 ring-1 ring-rose-100">
+                    <div className="text-xs font-bold text-rose-600 uppercase tracking-[0.15em]">Per-frame work</div>
+                    <div className="font-display text-3xl text-rose-900 leading-tight">~1 image</div>
+                    <div className="text-xs text-rose-600 mt-1">Each frame = one denoise pass</div>
+                  </div>
+                  <div className="bg-indigo-50 rounded-xl p-4 ring-1 ring-indigo-100">
+                    <div className="text-xs font-bold text-indigo-600 uppercase tracking-[0.15em]">Attention cost</div>
+                    <div className="font-display text-3xl text-indigo-900 leading-tight">O(n²)</div>
+                    <div className="text-xs text-indigo-600 mt-1">Every frame checks every other</div>
+                  </div>
+                </div>
+
+                <div className="mt-5 space-y-3 text-slate-600 leading-relaxed">
+                  <p>
+                    Here's why it's so expensive: doubling the clip length doesn't just double the
+                    cost — the temporal attention grows <strong>quadratically</strong>. 10 seconds
+                    doesn't cost 2× the 5-second clip; closer to 3–4×. That's why most tools still
+                    cap videos at 5–10 seconds.
+                  </p>
+                  <div className="bg-rose-50 ring-1 ring-rose-200 rounded-lg p-4 text-sm text-rose-900">
+                    <strong>Rough mental model:</strong> one second of AI video ≈ 24 images + the overhead
+                    of keeping all 24 agreeing with each other. A 5-second clip from a modern model can
+                    cost the same as generating a few hundred high-quality still images. This is why
+                    "one click, get a movie" is still very much the frontier.
+                  </div>
+                </div>
+
+                <div className="mt-5 flex items-center gap-3 text-sm text-slate-500 italic">
+                  <Film className="w-4 h-4 shrink-0" />
+                  <span>
+                    <strong>The flipbook analogy:</strong> imagine an artist flipping 120 pages in a
+                    flipbook, redrawing each one — but also having to glance at every other page to
+                    make sure the cat's tail moves smoothly. That's video inference.
+                  </span>
                 </div>
               </Card>
             </section>
