@@ -215,7 +215,7 @@ const images: Modality = {
     },
     {
       icon: '🖨️', title: '2048² print-ready', blurb: '4× the pixels of 1024²',
-      cost: '~$0.08 → $0.24', footnote: 'Vertex charges per image not per pixel, but users self-select Ultra for print',
+      cost: '$0.02 → $0.06', footnote: 'Vertex charges per image, not per pixel — users self-select Ultra for print',
       tiers: [
         { label: 'Fast',     cost: '$0.02' },
         { label: 'Standard', cost: '$0.04' },
@@ -621,14 +621,14 @@ const world: Modality = {
     { icon: '🕹️', title: '2-min demo playthrough', blurb: 'Genie 3 · 360p · 1× H100',    cost: '~$0.11',  footnote: 'research / solo session' },
     {
       icon: '🎮', title: '1hr gameplay session', blurb: '720p · varies by model tier',
-      cost: '$1.60 → $13', footnote: 'tier sets the required cluster size (1× → 2× → 4× H100)',
+      cost: '$6.50 → $26', footnote: 'tier drives cluster size — Lite 2×, Mid 4×, SOTA 8× H100 at 720p',
       tiers: [
-        { label: 'Lite (distilled)',   cost: '~$1.60' },
-        { label: 'Mid (research SOTA)', cost: '~$6.50' },
-        { label: 'SOTA (film-quality)', cost: '~$13' },
+        { label: 'Lite (distilled)',    cost: '~$6.50' },
+        { label: 'Mid (research SOTA)', cost: '~$13' },
+        { label: 'SOTA (film-quality)', cost: '~$26' },
       ],
     },
-    { icon: '🧪', title: '10k evaluation rollouts', blurb: 'Genie 3 Lite · RL sweep',     cost: '~$135',   footnote: '~50 GPU-hrs at lite tier' },
+    { icon: '🧪', title: '10k evaluation rollouts', blurb: 'Genie 3 Lite · 30s each · 360p',  cost: '~$270',   footnote: '10k × 30s on 1× H100 Lite ≈ 83 GPU-hrs × $3.24/hr retail' },
     { icon: '🌍', title: '1M users × 20min',        blurb: 'Genie 3 · 4× H100/session',   cost: '~$4M',    footnote: 'why this isn\'t yet free-to-play' },
   ],
   deepDive: [
