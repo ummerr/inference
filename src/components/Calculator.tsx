@@ -24,9 +24,11 @@ export function Calculator({
             <h3 className="text-sm font-semibold text-slate-600 uppercase tracking-wider">Play with the knobs</h3>
             <span className={`text-xs font-medium ${modality.accent.text}`}>{modality.label} calculator</span>
           </div>
-          {modality.fields.map(f => (
-            <FieldControl key={f.id} field={f} value={inputs[f.id]} onChange={v => set(f.id, v)} accent={modality.accent} />
-          ))}
+          {modality.fields
+            .filter(f => !f.visibleWhen || f.visibleWhen(inputs))
+            .map(f => (
+              <FieldControl key={f.id} field={f} value={inputs[f.id]} onChange={v => set(f.id, v)} accent={modality.accent} />
+            ))}
         </div>
 
         <div className={`p-5 sm:p-7 md:min-w-[280px] border-t md:border-t-0 md:border-l ${modality.accent.border} ${modality.accent.bgSoft}`}>

@@ -16,6 +16,7 @@ export interface SliderField {
   default: number
   unit?: string
   hint?: (v: number) => string
+  visibleWhen?: (inputs: Inputs) => boolean
 }
 export interface ToggleField {
   id: string
@@ -25,6 +26,7 @@ export interface ToggleField {
   onLabel: string
   offLabel: string
   hint?: string
+  visibleWhen?: (inputs: Inputs) => boolean
 }
 export interface SelectField {
   id: string
@@ -32,6 +34,7 @@ export interface SelectField {
   label: string
   default: string
   options: { value: string; label: string; hint?: string }[]
+  visibleWhen?: (inputs: Inputs) => boolean
 }
 export type Field = SliderField | ToggleField | SelectField
 
@@ -86,7 +89,7 @@ export interface DeepDiveBlock {
 }
 
 export interface Modality {
-  id: 'images' | 'video' | 'music' | 'voice' | 'world'
+  id: 'images' | 'video' | 'audio' | 'world'
   label: string
   short: string
   // Accent color tokens (Tailwind class fragments)
@@ -424,15 +427,14 @@ const video: Modality = {
 }
 
 // ---------------------------------------------------------------------------
-// Music
+// Audio (Music + Voice)
 // ---------------------------------------------------------------------------
-// Music and Voice are siblings — same emerald hue, different shades — because
-// they're both "audio" but they're different model families with genuinely
-// different cost shapes.
-const music: Modality = {
-  id: 'music',
-  label: 'Music',
-  short: 'Music',
+// One section, two cost shapes. The `kind` select at the top of the calculator
+// flips between Lyria-family music generation and Gemini Flash Live voice.
+const audio: Modality = {
+  id: 'audio',
+  label: 'Audio',
+  short: 'Audio',
   accent: {
     text: 'text-emerald-600',
     bg: 'bg-emerald-500',
@@ -443,138 +445,89 @@ const music: Modality = {
     to: 'to-teal-500',
     hex: '#10b981',
   },
-  tagline: 'Full-band, 48 kHz, generated from a prompt.',
+  tagline: 'Music from a prompt, or a voice that talks back.',
   primer: [
-    'Music generation on Vertex is the Lyria line. Lyria 2 is GA and bills at $0.06 per 30-second clip — a 48 kHz WAV, rendered from a text prompt.',
-    'Lyria 3 Pro launched in March 2026 and lifts the ceiling from 30-second clips to full 3-minute songs, with enterprise pricing quoted separately. Reported flat pricing lands near $0.08 per song; Google has not yet published an official Vertex list rate.',
+    'Audio on Vertex splits cleanly in two. Music is the Lyria line — Lyria 2 at $0.06 per 30-second clip, Lyria 3 Pro at a flat ~$0.08 per song (up to 3 minutes). Both return 48 kHz WAV from a text prompt.',
+    'Voice is Gemini 3.1 Flash Live — a bidirectional audio-to-audio endpoint that handles speech recognition, reasoning, and synthesis in one pass. Billing splits input and output: $0.005/min in, $0.018/min out.',
+    'Use the toggle in the calculator to flip between the two — they\'re the same section because they\'re both audio, but the cost shapes have almost nothing in common.',
   ],
-  whyExpensive: 'Music encodes multiple instruments across a wider frequency range at 48 kHz — several times more tokens per second than speech. Lyria 2 bills per 30-second clip, so a 31-second song rounds up to two clips. Lyria 3 Pro flips that to a flat per-song rate, which is cheaper for full tracks and more expensive for stingers.',
-  formula: 'clips       = ceil(seconds / 30)     # Lyria 2 per-clip billing\ndollars_L2  = clips × $0.06\ndollars_L3P = $0.08                   # flat per song, up to ~180s\n\n# Vertex Lyria 2: $0.06 / 30s clip, 48kHz WAV\n# Lyria 3 Pro:    flat ~$0.08 / song, launched Mar 2026',
+  whyExpensive: 'Music bills per clip (or flat per song) because Lyria is trained to emit a fixed unit of 48 kHz, multi-instrument audio. Voice bills per minute split in/out because Flash Live is autoregressive and output tokens are ~3.6× heavier than input. Two totally different cost shapes, one modality.',
+  formula: [
+    '# Music (Lyria)',
+    'clips       = ceil(seconds / 30)     # Lyria 2 per-clip billing',
+    'dollars_L2  = clips × $0.06',
+    'dollars_L3P = $0.08                   # flat per song, up to ~180s',
+    '',
+    '# Voice (Gemini 3.1 Flash Live)',
+    'dollars = input_min × $0.005 + output_min × $0.018',
+  ].join('\n'),
   fields: [
+    { id: 'kind', type: 'select', label: 'What are you generating?', default: 'music',
+      options: [
+        { value: 'music', label: '🎵 Music · Lyria' },
+        { value: 'voice', label: '🗣️ Voice · Flash Live' },
+      ],
+    },
+    // --- Music fields ---
     { id: 'tier', type: 'select', label: 'Vertex model', default: 'lyria2',
+      visibleWhen: i => i.kind === 'music',
       options: [
         { value: 'lyria2',    label: 'Lyria 2 · $0.06 / 30s clip' },
         { value: 'lyria3pro', label: 'Lyria 3 Pro · ~$0.08 flat per song (≤3 min)' },
       ],
     },
     { id: 'seconds', type: 'slider', label: 'Track length', min: 5, max: 300, step: 5, default: 30, unit: 's',
+      visibleWhen: i => i.kind === 'music',
       hint: v => v <= 15 ? 'stinger' : v <= 45 ? 'jingle' : v <= 120 ? 'single cue' : v <= 180 ? 'full song' : 'extended',
     },
-  ],
-  calc: (inputs) => {
-    const tier    = String(inputs.tier)
-    const seconds = Number(inputs.seconds)
-
-    let dollars: number
-    let clipInfo: string
-    if (tier === 'lyria2') {
-      const clips = Math.max(1, Math.ceil(seconds / 30))
-      dollars = clips * 0.06
-      clipInfo = `${clips} × 30s clip @ $0.06`
-    } else {
-      dollars = 0.08
-      clipInfo = 'flat per-song rate'
-    }
-
-    const warn = tier === 'lyria3pro' && seconds > 180
-      ? 'Lyria 3 Pro caps at roughly 3-minute tracks — longer runs have to be stitched from multiple calls.'
-      : undefined
-
-    return {
-      headline: fmt(dollars),
-      sub: `per ${seconds}s track`,
-      dollars,
-      unitLabel: `per ${seconds}s track`,
-      breakdown: [
-        { label: 'Model',        value: tier === 'lyria2' ? 'Lyria 2' : 'Lyria 3 Pro' },
-        { label: 'Billing unit', value: clipInfo },
-        { label: 'Sample rate',  value: '48 kHz WAV' },
-      ],
-      warn,
-    }
-  },
-  scenarios: [
-    {
-      icon: '🎺', title: '30s jingle', blurb: 'One Lyria 2 clip',
-      cost: '$0.06', footnote: 'exactly one billing unit on Lyria 2',
-      inputs: { tier: 'lyria2', seconds: 30 },
-    },
-    {
-      icon: '🎵', title: '3-min full song', blurb: 'Lyria 3 Pro flat vs Lyria 2 stitched',
-      cost: '$0.08 → $0.36', footnote: 'Lyria 3 Pro at ~$0.08 is ~4.5× cheaper than stitching six Lyria 2 clips',
-      inputs: { seconds: 180 },
-      tiers: [
-        { label: 'Lyria 3 Pro (flat)', cost: '~$0.08', inputs: { tier: 'lyria3pro' } },
-        { label: 'Lyria 2 (6 clips)',  cost: '$0.36',  inputs: { tier: 'lyria2' } },
-      ],
-    },
-    {
-      icon: '💿', title: '20-song album', blurb: 'Lyria 3 Pro batch',
-      cost: '~$1.60', footnote: '20 × ~$0.08/song — before iteration and rejected takes',
-      inputs: { tier: 'lyria3pro', seconds: 180 },
-    },
-    {
-      icon: '🛋️', title: '1hr background bed', blurb: 'Lyria 2 continuous',
-      cost: '$7.20', footnote: '120 × 30s clips at $0.06 — crossfaded to loop seamlessly',
-      inputs: { tier: 'lyria2', seconds: 3600 },
-    },
-  ],
-  deepDive: [
-    {
-      title: 'Why music bills per-clip (or per-song), not per-second',
-      body: 'A Lyria 2 call returns a fixed 30-second WAV — the model was trained and cost-tuned for that unit, so Google bills the unit directly at $0.06. Need 31 seconds? You pay for two clips. Lyria 3 Pro retrained for full-song coherence and Google reportedly priced it flat (near $0.08) because the marginal cost of seconds 31–180 inside one song is much lower than starting a second call. The per-clip vs per-song distinction is the most important pricing knob in music generation right now.',
-    },
-    {
-      title: 'Why music costs many times speech per second',
-      body: 'Speech is usually 16–24 kHz mono with one speaker at a time — a thin signal. Music at 48 kHz carries multiple instruments across the full audible band, often in stereo. The audio-token stream is several times denser, the model has to predict harmony and rhythm across instruments simultaneously, and the context has to stay coherent over minutes. All of that shows up in the per-second rate: Lyria 2 at $0.002/sec ($0.06 / 30s) vs Gemini 3.1 Flash Live voice output at ~$0.0003/sec.',
-    },
-    {
-      title: 'Licensing is the enterprise moat',
-      body: 'In 2026, technical quality between Lyria, Suno, Udio, and ElevenLabs Music has largely converged. The differentiator is training-data provenance. Lyria was trained in partnership with YouTube and music-industry licensors and ships under Vertex\'s standard generative-AI indemnification. Consumer services like Suno and Udio are cheaper but carry ongoing copyright exposure. For anything that has to clear Content ID at scale — ads, trailers, streamed backgrounds — the enterprise answer is usually Vertex so the provenance risk belongs to Google.',
-    },
-    {
-      title: 'Stems, style, and prompt-to-track',
-      body: 'The interesting Lyria 3 Pro features beyond length are stem outputs (drums / bass / melody / vocals separated, so you can re-mix), style conditioning from a reference clip, and continuation from a user-supplied intro. None of these change the flat per-song price — which is the point. Once per-song billing is the unit, workflow complexity stops compounding on the invoice and instead compounds on what you can do inside a single track.',
-    },
-  ],
-}
-
-// ---------------------------------------------------------------------------
-// Voice
-// ---------------------------------------------------------------------------
-// Sibling to Music — same emerald hue, darker shade. The latest Vertex voice
-// story is native audio-to-audio via Gemini 3.1 Flash Live; legacy TTS is
-// covered in the deep-dive for context.
-const voice: Modality = {
-  id: 'voice',
-  label: 'Voice',
-  short: 'Voice',
-  accent: {
-    text: 'text-emerald-800',
-    bg: 'bg-emerald-700',
-    bgSoft: 'bg-emerald-100',
-    border: 'border-emerald-300',
-    ring: 'ring-emerald-500',
-    from: 'from-emerald-600',
-    to: 'to-teal-700',
-    hex: '#047857',
-  },
-  tagline: 'Native audio-to-audio. The voice-wrapper era is over.',
-  primer: [
-    'Gemini 3.1 Flash Live is a bidirectional audio-to-audio endpoint — raw 16 kHz PCM goes in, 24 kHz PCM comes out, and the model handles speech recognition, reasoning, and synthesis in one pass instead of stitching together STT + LLM + TTS.',
-    'Billing is by minute of audio, split between input and output: $0.005/min in, $0.018/min out. A session where both sides speak about evenly runs roughly $0.023 per wall-clock minute of audio traffic.',
-  ],
-  whyExpensive: 'Output costs 3.6× input because generating natural-sounding audio tokens is heavier than encoding the user\'s voice. Total cost tracks how much the model *talks*, not how long the session lasts — so a voice agent that listens more than it speaks is materially cheaper.',
-  formula: 'dollars = input_min × $0.005 + output_min × $0.018\n\n# Gemini 3.1 Flash Live\n# input:  16 kHz PCM · $0.005 / min\n# output: 24 kHz PCM · $0.018 / min',
-  fields: [
+    // --- Voice fields ---
     { id: 'minutes', type: 'slider', label: 'Session length', min: 1, max: 600, step: 1, default: 10, unit: 'min',
+      visibleWhen: i => i.kind === 'voice',
       hint: v => v < 5 ? 'quick exchange' : v < 30 ? 'conversation' : v < 120 ? 'long call' : 'marathon session',
     },
     { id: 'outputShare', type: 'slider', label: 'Share spoken by the model', min: 10, max: 90, step: 5, default: 50, unit: '%',
+      visibleWhen: i => i.kind === 'voice',
       hint: v => v < 30 ? 'mostly listening' : v < 60 ? 'balanced' : 'mostly talking',
     },
   ],
   calc: (inputs) => {
+    const kind = String(inputs.kind)
+
+    if (kind === 'music') {
+      const tier    = String(inputs.tier)
+      const seconds = Number(inputs.seconds)
+
+      let dollars: number
+      let clipInfo: string
+      if (tier === 'lyria2') {
+        const clips = Math.max(1, Math.ceil(seconds / 30))
+        dollars = clips * 0.06
+        clipInfo = `${clips} × 30s clip @ $0.06`
+      } else {
+        dollars = 0.08
+        clipInfo = 'flat per-song rate'
+      }
+
+      const warn = tier === 'lyria3pro' && seconds > 180
+        ? 'Lyria 3 Pro caps at roughly 3-minute tracks — longer runs have to be stitched from multiple calls.'
+        : undefined
+
+      return {
+        headline: fmt(dollars),
+        sub: `per ${seconds}s track`,
+        dollars,
+        unitLabel: `per ${seconds}s track`,
+        breakdown: [
+          { label: 'Mode',         value: 'Music' },
+          { label: 'Model',        value: tier === 'lyria2' ? 'Lyria 2' : 'Lyria 3 Pro' },
+          { label: 'Billing unit', value: clipInfo },
+          { label: 'Sample rate',  value: '48 kHz WAV' },
+        ],
+        warn,
+      }
+    }
+
+    // Voice
     const minutes     = Number(inputs.minutes)
     const outputShare = Number(inputs.outputShare) / 100
 
@@ -589,6 +542,7 @@ const voice: Modality = {
       dollars,
       unitLabel: `per ${minutes}-min session`,
       breakdown: [
+        { label: 'Mode',         value: 'Voice' },
         { label: 'Input audio',  value: `${inputMin.toFixed(1)} min × $0.005` },
         { label: 'Output audio', value: `${outputMin.toFixed(1)} min × $0.018` },
         { label: 'Model',        value: 'Gemini 3.1 Flash Live' },
@@ -597,41 +551,73 @@ const voice: Modality = {
   },
   scenarios: [
     {
-      icon: '☎️', title: '10-min support call', blurb: 'Balanced user/agent turns',
+      icon: '🎺', title: '30s jingle', blurb: 'One Lyria 2 clip',
+      cost: '$0.06', footnote: 'exactly one billing unit on Lyria 2',
+      inputs: { kind: 'music', tier: 'lyria2', seconds: 30 },
+    },
+    {
+      icon: '🎵', title: '3-min full song', blurb: 'Lyria 3 Pro flat vs Lyria 2 stitched',
+      cost: '$0.08 → $0.36', footnote: 'Lyria 3 Pro at ~$0.08 is ~4.5× cheaper than stitching six Lyria 2 clips',
+      inputs: { kind: 'music', seconds: 180 },
+      tiers: [
+        { label: 'Lyria 3 Pro (flat)', cost: '~$0.08', inputs: { tier: 'lyria3pro' } },
+        { label: 'Lyria 2 (6 clips)',  cost: '$0.36',  inputs: { tier: 'lyria2' } },
+      ],
+    },
+    {
+      icon: '💿', title: '20-song album', blurb: 'Lyria 3 Pro batch',
+      cost: '~$1.60', footnote: '20 × ~$0.08/song — before iteration and rejected takes',
+      inputs: { kind: 'music', tier: 'lyria3pro', seconds: 180 },
+    },
+    {
+      icon: '☎️', title: '10-min support call', blurb: 'Flash Live · balanced turns',
       cost: '$0.12', footnote: '5 min in @ $0.005 + 5 min out @ $0.018',
-      inputs: { minutes: 10, outputShare: 50 },
+      inputs: { kind: 'voice', minutes: 10, outputShare: 50 },
     },
     {
       icon: '🌐', title: '1hr live translation', blurb: 'Model talks most of the time',
       cost: '~$0.85', footnote: '42 min out @ $0.018 + 18 min in @ $0.005 — model speaking ~70% of the session',
-      inputs: { minutes: 60, outputShare: 70 },
+      inputs: { kind: 'voice', minutes: 60, outputShare: 70 },
     },
     {
       icon: '🎧', title: '30-min listening agent', blurb: 'Mostly intake, short replies',
       cost: '~$0.21', footnote: '25.5 min in + 4.5 min out — cheap because the model listens',
-      inputs: { minutes: 30, outputShare: 15 },
+      inputs: { kind: 'voice', minutes: 30, outputShare: 15 },
     },
     {
       icon: '📞', title: '100k × 5-min calls', blurb: 'Call-center scale',
       cost: '~$5,750', footnote: '100k × $0.0575/call (50/50 split) — before grounding, tools, or STT fallbacks',
-      inputs: { minutes: 5, outputShare: 50 },
+      inputs: { kind: 'voice', minutes: 5, outputShare: 50 },
+    },
+    {
+      icon: '🛋️', title: '1hr background bed', blurb: 'Lyria 2 continuous',
+      cost: '$7.20', footnote: '120 × 30s clips at $0.06 — crossfaded to loop seamlessly',
+      inputs: { kind: 'music', tier: 'lyria2', seconds: 3600 },
     },
   ],
   deepDive: [
     {
-      title: 'Why "native audio-to-audio" is a bigger deal than it sounds',
+      title: 'Why music bills per-clip (or per-song), not per-second',
+      body: 'A Lyria 2 call returns a fixed 30-second WAV — the model was trained and cost-tuned for that unit, so Google bills the unit directly at $0.06. Need 31 seconds? You pay for two clips. Lyria 3 Pro retrained for full-song coherence and Google reportedly priced it flat (near $0.08) because the marginal cost of seconds 31–180 inside one song is much lower than starting a second call. The per-clip vs per-song distinction is the most important pricing knob in music generation right now.',
+    },
+    {
+      title: 'Why music costs many times speech per second',
+      body: 'Speech is usually 16–24 kHz mono with one speaker at a time — a thin signal. Music at 48 kHz carries multiple instruments across the full audible band, often in stereo. The audio-token stream is several times denser, the model has to predict harmony and rhythm across instruments simultaneously, and the context has to stay coherent over minutes. All of that shows up in the per-second rate: Lyria 2 at $0.002/sec ($0.06 / 30s) vs Gemini 3.1 Flash Live voice output at ~$0.0003/sec.',
+    },
+    {
+      title: 'Why "native audio-to-audio" voice is a bigger deal than it sounds',
       body: 'The legacy voice stack was three models in a trenchcoat — Speech-to-Text, an LLM, and Text-to-Speech. Each one added latency, dropped prosody, and flattened emotion. Gemini 3.1 Flash Live replaces the whole trio with a single model that hears audio and speaks audio natively, so tone, pacing, laughter, and interruption-handling survive. The pricing reflects a single integrated model: $0.005/min input, $0.018/min output, no separate STT or TTS invoices.',
     },
     {
-      title: 'Why output costs 3.6× input',
+      title: 'Why voice output costs 3.6× input',
       body: 'Encoding incoming audio into tokens is a forward pass through an audio encoder — small model, predictable cost. Generating natural-sounding audio tokens on the way out is autoregressive: the model emits one chunk at a time, each conditioned on everything it has already said. Output is where the interesting compute lives, which is why a voice agent that listens more than it talks is materially cheaper than one that monologues. Product decisions — when the model should speak, when to stay quiet — now have a direct line to the bill.',
     },
     {
-      title: 'Streaming changes latency, not cost',
-      body: 'Flash Live streams audio as it generates — the model does not have to see the whole future before producing a sound. That keeps perceived latency under a few hundred milliseconds, which is what makes real-time conversation feel natural. It does not change total billed minutes: you still pay for every second of audio the model produces, streamed or not. Latency is a UX lever; cost is a duration lever.',
+      title: 'Licensing is the enterprise moat for music',
+      body: 'In 2026, technical quality between Lyria, Suno, Udio, and ElevenLabs Music has largely converged. The differentiator is training-data provenance. Lyria was trained in partnership with YouTube and music-industry licensors and ships under Vertex\'s standard generative-AI indemnification. Consumer services like Suno and Udio are cheaper but carry ongoing copyright exposure. For anything that has to clear Content ID at scale — ads, trailers, streamed backgrounds — the enterprise answer is usually Vertex so the provenance risk belongs to Google.',
     },
     {
-      title: 'When to reach for Chirp 3 HD or Gemini TTS Pro instead',
+      title: 'When to reach for Chirp 3 HD or Gemini TTS Pro instead of Live',
       body: 'Flash Live is for live conversation. For batch narration — audiobooks, voiceovers, localized dubs — text-first pipelines are still cheaper. Chirp 3 HD charges $30 per 1M characters ($0.00003/char) and Gemini TTS Pro charges $20 per 1M output tokens. A 10-hour audiobook at ~180k characters per hour lands around $54 on Chirp 3 HD, versus several dollars per minute on a Live session that you do not actually need to be live. Rule of thumb: Live for dialogue, TTS for monologue.',
     },
   ],
@@ -661,57 +647,31 @@ const world: Modality = {
     'Consistency is the other ceiling: after ~120 seconds of exploration, worlds tend to drift — textures jitter, collision rules fail, previously visited rooms warp. That\'s why nothing serious replaces a game engine yet.',
   ],
   whyExpensive: 'A video model generates 100 frames in a batch. A world model generates 1 frame, immediately, 30 times a second — and pays for compute that would have been batched.',
-  formula: 'cluster_size = max(1, round( (res / 360)² × tier_mul ))  # H100s\ngpu_hours    = (minutes / 60) × cluster_size\ndollars      = gpu_hours × $2.16/hr × 1.5            # retail markup\n\n# tier_mul: Lite 0.5, Mid 1.0, SOTA 2.0\n# you rent the whole cluster for the session — fps doesn\'t enter the bill',
+  formula: 'cluster_size (H100s) = Lite 1 · Mid 4 · SOTA 8\ngpu_hours            = (minutes / 60) × cluster_size\ndollars              = gpu_hours × $2.16/hr × 1.5   # blended retail\n\n# no Vertex list price exists — these are teaching estimates.\n# you rent the whole cluster for the session; fps and resolution\n# are absorbed into the tier multiplier.',
   fields: [
-    { id: 'minutes',    type: 'slider', label: 'Session length', min: 1, max: 120, step: 1, default: 10, unit: 'min',
+    { id: 'minutes', type: 'slider', label: 'Session length', min: 1, max: 120, step: 1, default: 10, unit: 'min',
       hint: v => v < 5 ? 'demo' : v < 30 ? 'short session' : v < 90 ? 'gameplay session' : 'long session',
-    },
-    { id: 'fps', type: 'slider', label: 'Frame rate', min: 10, max: 60, step: 2, default: 24, unit: ' fps',
-      hint: v => v < 20 ? 'laggy' : v < 28 ? 'playable' : v < 45 ? 'smooth' : 'crisp',
-    },
-    { id: 'resolution', type: 'select', label: 'Resolution', default: '360',
-      options: [
-        { value: '256', label: '256² · research demo' },
-        { value: '360', label: '360p · playable' },
-        { value: '720', label: '720p · pretty' },
-      ],
     },
     { id: 'tier', type: 'select', label: 'Model tier', default: 'mid',
       options: [
-        { value: 'lite', label: 'Lite (distilled)' },
-        { value: 'mid',  label: 'Mid (research SOTA)' },
-        { value: 'sota', label: 'SOTA (playable-film quality)' },
+        { value: 'lite', label: 'Lite · distilled · 1× H100' },
+        { value: 'mid',  label: 'Mid · research SOTA · 4× H100' },
+        { value: 'sota', label: 'SOTA · film-quality · 8× H100' },
       ],
     },
   ],
   calc: (inputs) => {
     const minutes = Number(inputs.minutes)
-    const fps     = Number(inputs.fps)
-    const res     = Number(inputs.resolution)
     const tier    = String(inputs.tier)
 
     // World-model inference isn't per-frame work you can batch. You rent a
-    // whole GPU cluster for the session duration. Cluster size scales with
-    // resolution + tier — no Vertex list price exists, so these are teaching
-    // estimates anchored to blended H100 retail rates.
-    const pixelMul = (res / 360) ** 2            // 0.5 at 256, 1 at 360, 4 at 720
-    const tierMul  = tier === 'lite' ? 0.5 : tier === 'mid' ? 1 : 2
-    const rawCluster = pixelMul * tierMul
-    const clusterSize = Math.max(1, Math.round(rawCluster))
-
+    // whole GPU cluster for the session duration. No Vertex list price
+    // exists, so these are teaching estimates anchored to blended H100
+    // retail rates. Tier encodes the whole resolution/quality story.
+    const clusterSize = tier === 'lite' ? 1 : tier === 'mid' ? 4 : 8
     const gpuHours = (minutes / 60) * clusterSize
     const H100_HOURLY = GPU_SECOND * 3600        // $2.16/hr at our blended rate
     const dollars = gpuHours * H100_HOURLY * 1.5 // retail margin
-
-    // Latency budget check — fps is what the cluster has to hit, not what
-    // it pays for. If the tier × resolution exceeds what the chosen cluster
-    // can sustain at fps, the session will drop frames on real hardware.
-    const frames = minutes * 60 * fps
-    const msPerFrameBudget = 1000 / fps
-    const perFrameMsNeeded = (pixelMul * tierMul / clusterSize) * 80  // 80ms is a loose Genie-3 baseline
-    const warn = perFrameMsNeeded > msPerFrameBudget
-      ? `At this tier + resolution, the cluster needs ~${perFrameMsNeeded.toFixed(0)}ms per frame but the ${fps}fps budget is only ${msPerFrameBudget.toFixed(0)}ms — you'd need a larger cluster to stay interactive.`
-      : undefined
 
     return {
       headline: fmt(dollars),
@@ -720,23 +680,22 @@ const world: Modality = {
       unitLabel: `per ${minutes}-min session`,
       breakdown: [
         { label: 'Cluster size',             value: `${clusterSize}× H100` },
-        { label: 'Session length',           value: `${minutes} min · ${frames.toLocaleString()} frames` },
+        { label: 'Session length',           value: `${minutes} min` },
         { label: 'GPU-hours',                value: gpuHours.toFixed(3) },
         { label: 'Blended H100 retail rate', value: `$${(H100_HOURLY * 1.5).toFixed(2)}/GPU-hr` },
       ],
-      warn,
     }
   },
   scenarios: [
-    { icon: '🕹️', title: '2-min demo playthrough', blurb: 'Genie 3 · 360p · 1× H100',    cost: '~$0.11',  footnote: 'research / solo session',
-      inputs: { minutes: 2, fps: 24, resolution: '360', tier: 'lite' },
+    { icon: '🕹️', title: '2-min demo playthrough', blurb: 'Lite · 1× H100',    cost: '~$0.11',  footnote: 'research / solo session',
+      inputs: { minutes: 2, tier: 'lite' },
     },
     {
-      icon: '🎮', title: '1hr gameplay session', blurb: '720p · varies by model tier',
-      cost: '$6.50 → $26', footnote: 'tier drives cluster size — Lite 2×, Mid 4×, SOTA 8× H100 at 720p',
-      inputs: { minutes: 60, fps: 24, resolution: '720' },
+      icon: '🎮', title: '1hr gameplay session', blurb: 'varies by model tier',
+      cost: '$3.24 → $26', footnote: 'tier drives cluster size — Lite 1×, Mid 4×, SOTA 8× H100',
+      inputs: { minutes: 60 },
       tiers: [
-        { label: 'Lite (distilled)',    cost: '~$6.50', inputs: { tier: 'lite' } },
+        { label: 'Lite (distilled)',    cost: '~$3.24', inputs: { tier: 'lite' } },
         { label: 'Mid (research SOTA)', cost: '~$13',   inputs: { tier: 'mid'  } },
         { label: 'SOTA (film-quality)', cost: '~$26',   inputs: { tier: 'sota' } },
       ],
@@ -764,7 +723,7 @@ const world: Modality = {
   ],
 }
 
-export const MODALITIES: Modality[] = [images, video, music, voice, world]
+export const MODALITIES: Modality[] = [images, video, audio, world]
 
 // Given the default inputs for each modality, compute dollars — used by
 // the cross-modality "same $1" finale.

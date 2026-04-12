@@ -208,19 +208,34 @@ const GROUPS: Group[] = [
 
 const ALL_TERMS = GROUPS.flatMap((g) => g.terms)
 
-function Card({ t }: { t: Term }) {
+function Entry({ t }: { t: Term }) {
   return (
     <div
       id={slug(t.term)}
-      className="group scroll-mt-24 self-start rounded-2xl border border-slate-200 bg-white/70 p-5 target:border-amber-400 target:ring-2 target:ring-amber-300/50 target:shadow-lg hover:bg-white hover:border-slate-300 hover:shadow-md transition-all"
+      className="group scroll-mt-24 grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_minmax(0,1.6fr)] gap-x-8 gap-y-3 py-6 target:bg-amber-50/60 target:ring-1 target:ring-amber-300/50 rounded-xl target:px-4 transition-colors"
     >
-      <div className="flex items-center gap-2.5 font-semibold text-slate-900">
-        <span className="text-lg leading-none" aria-hidden>{t.emoji}</span>
-        <span>{t.term}</span>
+      <div className="md:pr-2">
+        <div className="flex items-center gap-2.5 font-semibold text-slate-900">
+          <span className="text-xl leading-none" aria-hidden>{t.emoji}</span>
+          <span className="text-base">{t.term}</span>
+        </div>
+        <p className="text-sm text-slate-700 mt-2 leading-relaxed">{t.short}</p>
+        {t.seeAlso && t.seeAlso.length > 0 && (
+          <div className="mt-3 flex flex-wrap gap-1.5">
+            {t.seeAlso.map((s) => (
+              <a
+                key={s}
+                href={`#${slug(s)}`}
+                className="text-[11px] px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 hover:bg-slate-200 hover:text-slate-900 transition-colors"
+              >
+                {s}
+              </a>
+            ))}
+          </div>
+        )}
       </div>
-      <p className="text-sm text-slate-700 mt-2 leading-relaxed">{t.short}</p>
       {(t.metaphor || t.example) && (
-        <div className="mt-3 pt-3 border-t border-slate-200/70 space-y-2">
+        <div className="space-y-2.5 md:border-l md:border-slate-200/70 md:pl-8">
           {t.metaphor && (
             <p className="text-sm text-slate-600 leading-relaxed">
               <span className="mr-1.5" aria-hidden>💡</span>
@@ -233,19 +248,6 @@ function Card({ t }: { t: Term }) {
               <span className="font-medium text-slate-700">In practice:</span> {t.example}
             </p>
           )}
-        </div>
-      )}
-      {t.seeAlso && t.seeAlso.length > 0 && (
-        <div className="mt-3 flex flex-wrap gap-1.5">
-          {t.seeAlso.map((s) => (
-            <a
-              key={s}
-              href={`#${slug(s)}`}
-              className="text-[11px] px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 hover:bg-slate-200 hover:text-slate-900 transition-colors"
-            >
-              {s}
-            </a>
-          ))}
         </div>
       )}
     </div>
@@ -265,16 +267,16 @@ export function Glossary() {
         pictures that make it stick. {ALL_TERMS.length} terms, grouped so you can skim.
       </p>
 
-      <div className="space-y-12">
+      <div className="space-y-14 max-w-4xl">
         {GROUPS.map((g) => (
           <div key={g.heading}>
-            <div className="mb-5">
+            <div className="mb-2 flex items-baseline gap-3 border-b border-slate-200 pb-3">
               <h3 className="font-display text-xl text-slate-900">{g.heading}</h3>
-              <p className="text-sm text-slate-500 mt-1">{g.blurb}</p>
+              <p className="text-sm text-slate-500">{g.blurb}</p>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 items-start">
+            <div className="divide-y divide-slate-200/70">
               {g.terms.map((t) => (
-                <Card key={t.term} t={t} />
+                <Entry key={t.term} t={t} />
               ))}
             </div>
           </div>

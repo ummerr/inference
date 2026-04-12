@@ -11,8 +11,7 @@ export function Hero() {
         <br />
         to generate a <span className="text-indigo-500">picture</span>,
         a <span className="text-rose-500">video</span>,
-        a <span className="text-emerald-500">song</span>,
-        a <span className="text-emerald-800">voice</span>,
+        a bit of <span className="text-emerald-600">audio</span>,
         a <span className="text-amber-500">world</span>?
       </h1>
       <p className="mt-6 text-lg sm:text-xl text-slate-600 max-w-2xl leading-relaxed fade-up">
