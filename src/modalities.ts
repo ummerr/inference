@@ -190,10 +190,10 @@ const images: Modality = {
     }
   },
   scenarios: [
-    { icon: '🖼️', title: 'Product thumbnail',  blurb: 'SDXL, 20 steps, 512²',        cost: '~$0.001', footnote: 'basically free at batch' },
-    { icon: '🎨', title: 'Hero banner',        blurb: 'Flux-dev, 30 steps, 1024²',    cost: '~$0.02',   footnote: 'a cent or two each' },
-    { icon: '🖨️', title: 'Print poster',       blurb: 'Flux-dev, 40 steps, 2048²',    cost: '~$0.15',   footnote: '4× pixels = 4× cost' },
-    { icon: '📦', title: 'Catalogue of 10k',   blurb: 'SDXL, 25 steps, 1024²',        cost: '~$50',     footnote: 'batching brings this way down' },
+    { icon: '🖼️', title: 'Product thumbnail',  blurb: 'Flux 2 Schnell, 1024²',        cost: '~$0.015', footnote: '$0.015/image, the Schnell rate' },
+    { icon: '🎨', title: 'Hero banner',        blurb: 'Flux 2 Dev, 1024²',            cost: '~$0.025', footnote: '$0.025/image on bfl.ai' },
+    { icon: '🖨️', title: 'Print poster',       blurb: 'GPT Image 1 High, 1024²',      cost: '~$0.17',  footnote: 'HQ tier — same $ at 2K via upscale' },
+    { icon: '📦', title: 'Catalogue of 10k',   blurb: 'Flux 2 Schnell, batched',      cost: '~$150',   footnote: '10k × $0.015, bulk discounts help' },
   ],
   deepDive: [
     {
@@ -368,12 +368,15 @@ const audio: Modality = {
     const cloning  = Boolean(inputs.cloning)
 
     const kindMul    = kind === 'music' ? 5 : 1
-    const qualityMul = quality === 'fast' ? 0.5 : quality === 'standard' ? 1 : 2
+    const qualityMul = quality === 'fast' ? 0.5 : quality === 'standard' ? 1 : 1.5
     const cloneAdd   = kind === 'speech' && cloning ? 0.0005 : 0
 
-    // Per-second base cost tuned against real TTS pricing (ElevenLabs-ish:
-    // ~$0.0002/sec standard speech, ~$0.001/sec studio).
-    const gpuSeconds = seconds * 0.15 * kindMul * qualityMul
+    // Per-second base tuned against real ElevenLabs API pricing: ~$0.003/sec
+    // (Scale tier, ~$0.18/min) for standard speech. Music is more expensive
+    // per second of output because it encodes more information (instruments,
+    // wider frequency range) — retail Suno/Udio subscriptions are subsidized
+    // growth pricing and don't reflect inference cost.
+    const gpuSeconds = seconds * 2 * kindMul * qualityMul
     const dollars = gpuSeconds * GPU_SECOND * 1.4 + cloneAdd
 
     return {
@@ -390,10 +393,10 @@ const audio: Modality = {
     }
   },
   scenarios: [
-    { icon: '📢', title: '30s ad voiceover',   blurb: 'ElevenLabs-ish, standard',  cost: '~$0.005', footnote: 'basically free' },
-    { icon: '🎙️', title: '1hr podcast TTS',    blurb: 'Standard TTS',              cost: '~$0.60',   footnote: 'audiobooks are feasible' },
-    { icon: '🎵', title: '3min generated song',blurb: 'Suno/Udio-ish',             cost: '~$0.15',   footnote: 'per retry, and you\'ll retry a lot' },
-    { icon: '📚', title: '10hr audiobook',     blurb: 'HQ TTS with cloned voice',  cost: '~$12',     footnote: 'vs $1k+ for a human narrator' },
+    { icon: '📢', title: '30s ad voiceover',   blurb: 'ElevenLabs Multilingual v2', cost: '~$0.07',   footnote: '~$0.003/sec at Scale tier' },
+    { icon: '🎙️', title: '1hr podcast TTS',    blurb: 'ElevenLabs Scale tier',     cost: '~$8',       footnote: '$0.18/min × 60' },
+    { icon: '🎵', title: '3min generated song',blurb: 'Pro music gen (true cost)', cost: '~$2',      footnote: 'Suno subs are subsidized to ~$0.10' },
+    { icon: '📚', title: '10hr audiobook',     blurb: 'HQ cloned voice',           cost: '~$120',    footnote: 'vs $1k+ for a human narrator' },
   ],
   deepDive: [
     {
