@@ -492,6 +492,10 @@ const video: Modality = {
         'Per-frame cost is actually low: ~$0.017 at Standard, ~$0.0021 at Lite — Veo amortizes well.',
         'Cost scales with volume, not per-frame difficulty: you pay for 144 generations at once.',
       ],
+      sources: [
+        { label: 'Vertex AI Veo 3.1 pricing', href: 'https://cloud.google.com/vertex-ai/generative-ai/pricing' },
+        { label: 'Ho et al. — Video Diffusion Models', href: 'https://arxiv.org/abs/2204.03458' },
+      ],
     },
     {
       title: 'Sparse attention broke the O(n²) curse',
@@ -516,6 +520,10 @@ const video: Modality = {
         'Beyond ~20s of continuous generation you see texture jitter and physics inconsistencies.',
         'That\'s why providers cap max clip length at 16–30s.',
       ],
+      sources: [
+        { label: 'Runway Gen-4 announcement', href: 'https://runwayml.com/research/introducing-runway-gen-4' },
+        { label: 'Kling AI — Kuaishou', href: 'https://kling.kuaishou.com/' },
+      ],
     },
     {
       title: 'The caching + compilation stack',
@@ -528,6 +536,11 @@ const video: Modality = {
         'Sustained utilization across millions of requests — the margin that hourly rentals can\'t match.',
       ],
       body: 'Google applies this stack on Trillium TPUs; Fal / Replicate / BFL rebuild it on H100s — the reason third-party Flux pricing lands close to Vertex\'s.',
+      sources: [
+        { label: 'Google Cloud — Trillium TPU', href: 'https://cloud.google.com/blog/products/compute/trillium-tpu-is-ga' },
+        { label: 'PyTorch — torch.compile', href: 'https://pytorch.org/docs/stable/torch.compiler.html' },
+        { label: 'OpenXLA', href: 'https://openxla.org/xla' },
+      ],
     },
   ],
 }
@@ -727,6 +740,10 @@ const audio: Modality = {
         'The model must predict harmony + rhythm across instruments and stay coherent over minutes.',
         'Concrete: Lyria 2 at $0.002/s ($0.06/30s) vs. Gemini 3.1 Flash Live voice output ~$0.0003/s.',
       ],
+      sources: [
+        { label: 'Vertex AI Lyria & Flash Live pricing', href: 'https://cloud.google.com/vertex-ai/generative-ai/pricing' },
+        { label: 'Google DeepMind — Lyria', href: 'https://deepmind.google/technologies/lyria/' },
+      ],
     },
     {
       title: '"Native audio-to-audio" is a bigger deal than it sounds',
@@ -751,6 +768,10 @@ const audio: Modality = {
         'A voice agent that listens more than it talks is materially cheaper than one that monologues.',
         'Product design (when to speak, when to stay quiet) now has a direct line to the bill.',
       ],
+      sources: [
+        { label: 'Vertex AI Gemini Live pricing', href: 'https://cloud.google.com/vertex-ai/generative-ai/pricing' },
+        { label: 'Google — Gemini Live API docs', href: 'https://ai.google.dev/gemini-api/docs/live' },
+      ],
     },
     {
       title: 'Licensing is the enterprise moat for music',
@@ -761,6 +782,11 @@ const audio: Modality = {
         'Suno, Udio are cheaper but carry ongoing copyright exposure.',
         'For anything that clears Content ID at scale — ads, trailers, streamed backgrounds — enterprise picks Vertex.',
       ],
+      sources: [
+        { label: 'DeepMind × YouTube — Lyria partnership', href: 'https://blog.youtube/news-and-events/dream-track-ai-experiment/' },
+        { label: 'Google Cloud generative AI indemnification', href: 'https://cloud.google.com/terms/service-terms' },
+        { label: 'RIAA v. Suno / Udio complaint (2024)', href: 'https://www.riaa.com/riaa-record-labels-sue-ai-music-generators-suno-and-udio/' },
+      ],
     },
     {
       title: 'When to use Chirp 3 HD or Gemini TTS Pro instead of Live',
@@ -770,6 +796,10 @@ const audio: Modality = {
         'Gemini TTS Pro — $20 per 1M output tokens.',
         'A 10-hour audiobook (~1.8M chars) ≈ $54 on Chirp 3 HD vs. several dollars per minute on Live.',
         'Rule of thumb: Live for dialogue, TTS for monologue.',
+      ],
+      sources: [
+        { label: 'Google Cloud — Chirp 3 HD pricing', href: 'https://cloud.google.com/text-to-speech/pricing' },
+        { label: 'Vertex AI Gemini TTS pricing', href: 'https://cloud.google.com/vertex-ai/generative-ai/pricing' },
       ],
     },
   ],
@@ -866,6 +896,10 @@ const world: Modality = {
         'Every frame pays the full per-frame cost serially.',
         'That\'s why the unit of cost is "cluster-hours," not "generations."',
       ],
+      sources: [
+        { label: 'Google DeepMind — Genie 3', href: 'https://deepmind.google/discover/blog/genie-3/' },
+        { label: 'Valevski et al. — GameNGen (Diffusion Models Are Real-Time Game Engines)', href: 'https://arxiv.org/abs/2408.14837' },
+      ],
     },
     {
       title: 'Memory bandwidth > raw TFLOPs',
@@ -903,6 +937,10 @@ const world: Modality = {
         'Root cause: cross-frame memory fades as the autoregressive context window fills.',
         'No one has yet replaced a game engine with a world model for more than short demos.',
         'Drift ceiling, not render quality, is the real barrier to shipping a game.',
+      ],
+      sources: [
+        { label: 'Google DeepMind — Genie 3', href: 'https://deepmind.google/discover/blog/genie-3/' },
+        { label: 'Decart/Etched — Oasis model card', href: 'https://oasis.decart.ai/' },
       ],
     },
   ],

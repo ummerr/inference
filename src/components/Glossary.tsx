@@ -1,3 +1,5 @@
+type Source = { label: string; href: string }
+
 type Term = {
   term: string
   emoji: string
@@ -5,6 +7,7 @@ type Term = {
   metaphor?: string
   example?: string
   seeAlso?: string[]
+  sources?: Source[]
 }
 
 type Group = { heading: string; blurb: string; terms: Term[] }
@@ -23,6 +26,9 @@ const GROUPS: Group[] = [
         metaphor: 'Like counting single keystrokes on a calculator. A modern image model does trillions of them per picture.',
         example: 'An H100 does ~1,000 TFLOP/s (FP8). A 30-step Flux image ≈ 15 TFLOPs → ~15 ms of pure math, if nothing else got in the way.',
         seeAlso: ['HBM', 'Quantization'],
+        sources: [
+          { label: 'NVIDIA H100 datasheet', href: 'https://www.nvidia.com/en-us/data-center/h100/' },
+        ],
       },
       {
         term: 'Attention',
@@ -31,6 +37,9 @@ const GROUPS: Group[] = [
         metaphor: 'Every word in a sentence shakes hands with every other word. Double the sentence → quadruple the handshakes.',
         example: 'A 1M-token context with dense attention would take ~1,000× longer than 32k. This is why long-context models cheat with sparse attention.',
         seeAlso: ['Sparse attention', 'KV cache', 'Context window'],
+        sources: [
+          { label: 'Vaswani et al. — Attention Is All You Need', href: 'https://arxiv.org/abs/1706.03762' },
+        ],
       },
       {
         term: 'Quantization',
@@ -39,6 +48,10 @@ const GROUPS: Group[] = [
         metaphor: 'Like JPEG for model weights. You lose a tiny bit of fidelity; you gain 2–4× throughput.',
         example: 'Llama-3 70B at FP16 needs 140 GB; at INT4 it fits in ~35 GB — runs on one consumer GPU instead of four.',
         seeAlso: ['HBM', 'FLOPs'],
+        sources: [
+          { label: 'Dettmers et al. — LLM.int8()', href: 'https://arxiv.org/abs/2208.07339' },
+          { label: 'NVIDIA — FP8 formats for deep learning', href: 'https://arxiv.org/abs/2209.05433' },
+        ],
       },
       {
         term: 'MoE',
@@ -47,6 +60,10 @@ const GROUPS: Group[] = [
         metaphor: 'A hospital with 64 specialists. Each patient sees 2, not all 64. Total staff is huge, cost-per-visit stays sane.',
         example: 'DeepSeek-V3: 671B total parameters, only ~37B active per token. You get the knowledge of a huge model at the cost of a small one.',
         seeAlso: ['FLOPs', 'Inference'],
+        sources: [
+          { label: 'DeepSeek-V3 technical report', href: 'https://arxiv.org/abs/2412.19437' },
+          { label: 'Shazeer et al. — Outrageously Large Neural Networks (MoE)', href: 'https://arxiv.org/abs/1701.06538' },
+        ],
       },
     ],
   },
@@ -85,6 +102,9 @@ const GROUPS: Group[] = [
         metaphor: 'The model\'s desk. Anything off the desk doesn\'t exist. A bigger desk costs more to keep tidy (see attention).',
         example: 'Gemini 2.5 Pro: 2M-token window. A full novel fits; a full codebase often does not.',
         seeAlso: ['Attention', 'KV cache'],
+        sources: [
+          { label: 'Google — Gemini 2.5 Pro long context', href: 'https://ai.google.dev/gemini-api/docs/long-context' },
+        ],
       },
       {
         term: 'KV cache',
@@ -93,6 +113,9 @@ const GROUPS: Group[] = [
         metaphor: 'Your working notes. Without them, every new word forces you to reread the whole essay from the start.',
         example: 'For a 70B model at 32k context, the KV cache is ~20 GB per request. It\'s why long contexts eat VRAM even when the prompt is cheap to compute.',
         seeAlso: ['Attention', 'HBM', 'Autoregressive'],
+        sources: [
+          { label: 'Kwon et al. — vLLM / PagedAttention', href: 'https://arxiv.org/abs/2309.06180' },
+        ],
       },
       {
         term: 'Diffusion',
@@ -101,6 +124,10 @@ const GROUPS: Group[] = [
         metaphor: 'Sculpting. You start with a block of noise and chip away until a picture emerges.',
         example: 'Flux.1: start with 128×128 of noise, denoise 30 times, decode to 1024×1024. Each denoise step is a full forward pass.',
         seeAlso: ['Denoising step', 'Latent space', 'CFG / guidance'],
+        sources: [
+          { label: 'Ho et al. — Denoising Diffusion Probabilistic Models', href: 'https://arxiv.org/abs/2006.11239' },
+          { label: 'Rombach et al. — Latent Diffusion (Stable Diffusion)', href: 'https://arxiv.org/abs/2112.10752' },
+        ],
       },
       {
         term: 'Denoising step',
@@ -109,6 +136,9 @@ const GROUPS: Group[] = [
         metaphor: 'One chisel strike. Modern models take 1–50 strikes per image; distilled "turbo" variants can do 1–4.',
         example: 'SDXL-Turbo hits usable quality in 1 step (~40 ms). SDXL-base wants 30+ steps (~1.2 s). Same model family, 30× the wall time.',
         seeAlso: ['Diffusion', 'CFG / guidance'],
+        sources: [
+          { label: 'Sauer et al. — SDXL-Turbo (Adversarial Diffusion Distillation)', href: 'https://arxiv.org/abs/2311.17042' },
+        ],
       },
       {
         term: 'CFG / guidance',
@@ -117,6 +147,9 @@ const GROUPS: Group[] = [
         metaphor: 'Steering by contrast. "Show me what this becomes with the prompt minus without" pulls the image harder toward your words.',
         example: 'Roughly doubles per-step cost. Every image model silently charges you for this unless it\'s been CFG-distilled.',
         seeAlso: ['Denoising step', 'Diffusion'],
+        sources: [
+          { label: 'Ho & Salimans — Classifier-Free Guidance', href: 'https://arxiv.org/abs/2207.12598' },
+        ],
       },
       {
         term: 'Latent space',
@@ -141,6 +174,11 @@ const GROUPS: Group[] = [
         metaphor: 'A dream engine. You press "left" and the model hallucinates what "left" should look like, 30 times per second.',
         example: 'Genie 3 and Oasis (2026 leaders) run at 30 fps on a single H100 for a 720p stream. Each frame is conditioned on your last input.',
         seeAlso: ['Autoregressive', 'HBM'],
+        sources: [
+          { label: 'Google DeepMind — Genie 3', href: 'https://deepmind.google/discover/blog/genie-3/' },
+          { label: 'Decart/Etched — Oasis', href: 'https://oasis.decart.ai/' },
+          { label: 'Valevski et al. — GameNGen', href: 'https://arxiv.org/abs/2408.14837' },
+        ],
       },
     ],
   },
@@ -155,6 +193,9 @@ const GROUPS: Group[] = [
         metaphor: 'A pizza oven. One pizza or twelve, the oven still has to heat up. Twelve is twelve times cheaper per slice.',
         example: 'Batch size 1 on an H100 might hit 50 tok/s. Batch 32 can hit 1,500 tok/s — 30× the throughput for ~1.5× the latency.',
         seeAlso: ['Inference', 'GPU-second'],
+        sources: [
+          { label: 'Yu et al. — Orca continuous batching (OSDI 2022)', href: 'https://www.usenix.org/conference/osdi22/presentation/yu' },
+        ],
       },
       {
         term: 'Sparse attention',
@@ -163,6 +204,10 @@ const GROUPS: Group[] = [
         metaphor: 'Instead of every word shaking every other word\'s hand, only shake hands that matter. Quadratic becomes near-linear.',
         example: '~10× faster long-context inference. The reason Kling and Runway Gen-4 beat Sora on wall time for the same clip length.',
         seeAlso: ['Attention', 'Context window'],
+        sources: [
+          { label: 'Dao et al. — FlashAttention-2', href: 'https://arxiv.org/abs/2307.08691' },
+          { label: 'DeepSeek — Native Sparse Attention (DSA)', href: 'https://arxiv.org/abs/2502.11089' },
+        ],
       },
       {
         term: 'FBCache',
@@ -179,6 +224,9 @@ const GROUPS: Group[] = [
         metaphor: 'The GPU\'s compute is a race car; HBM bandwidth is the fuel line. You can\'t burn gas faster than it flows.',
         example: 'H100: 3.35 TB/s HBM. A diffusion step moves ~15 GB; that\'s ~4.5 ms minimum, regardless of how fast the math is.',
         seeAlso: ['FLOPs', 'KV cache'],
+        sources: [
+          { label: 'NVIDIA H100 datasheet', href: 'https://www.nvidia.com/en-us/data-center/h100/' },
+        ],
       },
       {
         term: 'GPU-second',
@@ -201,6 +249,9 @@ const GROUPS: Group[] = [
         metaphor: 'The MoviePass problem. Great deal until the math catches up, and by then you\'ve trained users to expect it.',
         example: 'Sora\'s $20/mo plan, Suno\'s $10/mo. Sora\'s March 2026 shutdown made this the canonical cautionary tale.',
         seeAlso: ['Inference', 'GPU-second'],
+        sources: [
+          { label: 'Sam Altman — on GPT-4 compute costs', href: 'https://openai.com/index/how-much-does-chatgpt-cost/' },
+        ],
       },
     ],
   },
@@ -244,6 +295,24 @@ function Entry({ t }: { t: Term }) {
           {t.example && (
             <p className="text-sm text-slate-600 leading-relaxed">
               <span className="font-medium text-slate-700">In practice:</span> {t.example}
+            </p>
+          )}
+          {t.sources && t.sources.length > 0 && (
+            <p className="text-xs text-slate-500 leading-relaxed pt-1">
+              <span className="font-medium text-slate-600">Sources: </span>
+              {t.sources.map((s, i) => (
+                <span key={i}>
+                  {i > 0 && <span className="mx-1">·</span>}
+                  <a
+                    href={s.href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-slate-600 hover:text-slate-900 hover:underline"
+                  >
+                    {s.label}
+                  </a>
+                </span>
+              ))}
             </p>
           )}
         </div>

@@ -43,6 +43,25 @@ export function Hardware() {
         H100-class compute at close to market. Anything much higher is margin on a proprietary
         model; anything much lower means TPUs and scale are doing work for you.
       </p>
+
+      <div className="mt-6 max-w-3xl text-xs text-slate-500 leading-relaxed">
+        <span className="font-medium text-slate-600">Sources: </span>
+        <a href="https://www.runpod.io/pricing" target="_blank" rel="noopener noreferrer" className="text-slate-600 hover:underline">RunPod GPU pricing</a>
+        <span className="mx-1">·</span>
+        <a href="https://www.tensordock.com/pricing" target="_blank" rel="noopener noreferrer" className="text-slate-600 hover:underline">TensorDock</a>
+        <span className="mx-1">·</span>
+        <a href="https://lambda.ai/service/gpu-cloud" target="_blank" rel="noopener noreferrer" className="text-slate-600 hover:underline">Lambda Cloud</a>
+        <span className="mx-1">·</span>
+        <a href="https://aws.amazon.com/ec2/instance-types/p5/" target="_blank" rel="noopener noreferrer" className="text-slate-600 hover:underline">AWS P5</a>
+        <span className="mx-1">·</span>
+        <a href="https://www.nvidia.com/en-us/data-center/h100/" target="_blank" rel="noopener noreferrer" className="text-slate-600 hover:underline">NVIDIA H100 datasheet</a>
+        <span className="mx-1">·</span>
+        <a href="https://www.nvidia.com/en-us/data-center/b200/" target="_blank" rel="noopener noreferrer" className="text-slate-600 hover:underline">NVIDIA B200</a>
+        <span className="mx-1">·</span>
+        <a href="https://cloud.google.com/tpu/docs/v5p" target="_blank" rel="noopener noreferrer" className="text-slate-600 hover:underline">Google Cloud TPU v5p</a>
+        <span className="mx-1">·</span>
+        <a href="https://cloud.google.com/blog/products/compute/trillium-tpu-is-ga" target="_blank" rel="noopener noreferrer" className="text-slate-600 hover:underline">Trillium (TPU v6) GA</a>
+      </div>
     </section>
   )
 }

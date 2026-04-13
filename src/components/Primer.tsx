@@ -41,7 +41,14 @@ export function Primer() {
           <div className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
             Calibration
           </div>
-          <div className="text-[11px] text-slate-400">Google Vertex AI list prices, April 2026</div>
+          <a
+            href="https://cloud.google.com/vertex-ai/generative-ai/pricing"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-[11px] text-slate-400 hover:text-slate-600 hover:underline"
+          >
+            Google Vertex AI list prices, April 2026 ↗
+          </a>
         </div>
 
         <dl className="mt-4 grid grid-cols-1 sm:grid-cols-[auto_1fr] gap-x-6 gap-y-2.5 text-sm">
