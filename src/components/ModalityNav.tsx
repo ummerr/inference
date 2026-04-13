@@ -51,6 +51,12 @@ export function ModalityNav() {
             </a>
           )
         })}
+        <a
+          href="#lifecycle"
+          className="px-3 sm:px-4 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-all text-slate-700 bg-slate-100 hover:bg-slate-200"
+        >
+          Lifecycle
+        </a>
       </div>
     </div>
   )

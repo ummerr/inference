@@ -86,9 +86,19 @@ export interface Scenario {
   inputs?: Partial<Inputs>
 }
 
+export interface DeepDiveSource {
+  label: string
+  href?: string
+}
+
 export interface DeepDiveBlock {
   title: string
-  body: string
+  hook: string
+  body?: string
+  bullets?: string[]
+  stat?: { value: string; label: string }
+  metaphor?: string
+  sources?: DeepDiveSource[]
 }
 
 export interface Modality {
@@ -256,24 +266,77 @@ const images: Modality = {
   ],
   deepDive: [
     {
-      title: 'Why Google moved image gen into Gemini itself',
-      body: 'Imagen 1–3 were standalone image models with separate text encoders. Imagen 4 (May 2025) was a Latent Diffusion Transformer with a Gemini-derived text encoder bolted on, which is most of why prompt adherence jumped. The Nano Banana family goes one step further: the image head is part of Gemini itself, so the same model that reasons about your prompt also emits the picture. That is why Nano Banana Pro can take multi-turn edit instructions, maintain a character across calls, and render legible text — capabilities classical diffusion pipelines bolt on through ControlNets and IP-Adapters. The pricing reflects this: image output is just "more tokens" on a multimodal model, billed at $30/M (Nano Banana), $60/M (NB 2), or $120/M (NB Pro) output tokens.',
+      title: 'Image gen is now a Gemini feature, not a separate product',
+      hook: 'The image head lives inside Gemini itself, so the model that reads your prompt is the one that draws the picture.',
+      metaphor: 'One brain, two output modes — the same model that writes a reply can now emit a PNG.',
+      bullets: [
+        'Imagen 1–3 were standalone image models with a separate text encoder.',
+        'Imagen 4 (May 2025) bolted a Gemini-derived text encoder onto a Latent Diffusion Transformer — prompt adherence jumped.',
+        'Nano Banana goes further: the image decoder is a head on Gemini, so multi-turn edits, character consistency, and legible text fall out natively.',
+        'Billing follows: image output is just "more tokens" — $30/M (Nano Banana), $60/M (NB 2), $120/M (NB Pro).',
+      ],
+      sources: [
+        { label: 'Vertex AI Gemini image generation pricing', href: 'https://cloud.google.com/vertex-ai/generative-ai/pricing' },
+        { label: 'Google DeepMind — Imagen 4 announcement', href: 'https://deepmind.google/technologies/imagen/' },
+      ],
     },
     {
       title: 'Latent space is why any of this is affordable',
-      body: 'These models never denoise pixels. A VAE encoder compresses a 1024² image (~1M pixels × 3 channels) into a roughly 128×128×4 latent — ~64× fewer values to touch per step. The transformer runs ~20–30 denoising steps over that latent, then the VAE decoder reconstructs pixels in a single forward pass at the end. Without this trick, a single image call would cost dollars, not cents, and consumer-visible pricing like $0.039/image would not exist. Imagen 3/4, the Nano Banana line, Flux 2, and GPT Image 1.5 all rely on the same latent-space shortcut.',
+      hook: 'Diffusion models never touch pixels during denoising — they work on a tiny compressed version of the image.',
+      stat: { value: '~64×', label: 'fewer values per denoising step vs. raw pixels' },
+      metaphor: 'Paint the thumbnail, then scale up — nobody sketches at full resolution.',
+      bullets: [
+        'A VAE encoder compresses a 1024² image (~3M values) into a ~128×128×4 latent (~66k values).',
+        'The transformer runs 20–30 denoising steps in latent space, not pixel space.',
+        'A single VAE decoder pass at the end reconstructs pixels.',
+        'Without this trick, $0.039/image pricing would not exist — every call would cost dollars.',
+      ],
+      body: 'Every modern diffusion model — Imagen 3/4, the Nano Banana line, Flux 2, GPT Image 1.5 — uses some flavor of latent-space diffusion for the same economic reason.',
+      sources: [
+        { label: 'Rombach et al. — Latent Diffusion Models (CVPR 2022)', href: 'https://arxiv.org/abs/2112.10752' },
+      ],
     },
     {
-      title: 'Nano Banana / NB 2 / NB Pro is three inference budgets, one family',
-      body: 'Nano Banana (Gemini 2.5 Flash Image, $0.039) is a step-distilled, FP8-quantised variant on Trillium-class TPUs, fixed at 1024² and tuned for latency. Nano Banana 2 (Gemini 3.1 Flash Image, $0.045–$0.151 across 0.5K–4K) keeps the speed profile of a Flash model but unlocks native resolution scaling. Nano Banana Pro (Gemini 3 Pro Image, $0.134 at 1K/2K, $0.24 at 4K) runs the full Gemini 3 Pro weights with the image head active — that is where reasoning-heavy capabilities like multi-object composition and in-image text rendering actually come from. Same family, radically different compute envelopes.',
+      title: 'Nano Banana / NB 2 / NB Pro: one family, three compute budgets',
+      hook: 'Same architecture, same brand — but the Flash tier is step-distilled and quantized, while Pro runs the full Gemini 3 weights.',
+      bullets: [
+        'Nano Banana ($0.039) — Gemini 2.5 Flash Image, step-distilled + FP8, fixed 1024², tuned for latency.',
+        'Nano Banana 2 ($0.045–$0.151) — Gemini 3.1 Flash Image, Flash speed profile, native 0.5K–4K resolution.',
+        'Nano Banana Pro ($0.134–$0.24) — full Gemini 3 Pro weights with image head active; where multi-object composition and in-image text come from.',
+        'Think of them as three points on a compute/quality curve, not three different products.',
+      ],
+      sources: [
+        { label: 'Vertex AI pricing (Apr 2026)', href: 'https://cloud.google.com/vertex-ai/generative-ai/pricing' },
+      ],
     },
     {
-      title: 'Why guidance doubles your bill',
-      body: 'Classifier-free guidance, the trick that makes diffusion follow prompts, runs the model twice per denoising step — once conditioned on the prompt, once unconditioned — and extrapolates between them. It roughly doubles the FLOPs per step. Step-distilled Flash variants (Nano Banana, Flux Schnell, LCM distillations) collapse both CFG and the step count into a single-pass student network, which is why the cheapest tier is dramatically faster and cheaper without looking visibly worse at 1024². Once you move to NB Pro or need native 4K, you are back to the full sampler and the FLOPs show up on the invoice.',
+      title: 'Why guidance (CFG) roughly doubles your bill',
+      hook: 'Classifier-free guidance runs the model twice per step — once with the prompt, once without — then extrapolates.',
+      stat: { value: '2×', label: 'forward passes per denoising step' },
+      bullets: [
+        'CFG is the trick that makes diffusion actually follow prompts; turning it off produces mushy output.',
+        'Each step becomes two forward passes — conditioned and unconditioned — so FLOPs roughly double.',
+        'Step-distilled Flash variants (Nano Banana, Flux Schnell, LCM) train a student network to fuse both passes into one.',
+        'That\'s why the cheapest tier is dramatically faster and cheaper without looking visibly worse at 1024².',
+      ],
+      sources: [
+        { label: 'Ho & Salimans — Classifier-Free Diffusion Guidance', href: 'https://arxiv.org/abs/2207.12598' },
+      ],
     },
     {
       title: 'Why Vertex\'s $0.039 beats self-hosting Flux',
-      body: 'You can run Flux 2 on a rented RTX 5090 (~$0.89/hr spot, 1,792 GB/s GDDR7, only ~12% behind an H100\'s memory bandwidth) or an H100 PCIe (~$2/hr) and get competitive per-image compute cost on paper. What you cannot reproduce is Google\'s serving stack at that price point: sustained TPU utilization, step + CFG distillation baked into the Flash tier, graph-compiled kernels, FP8 weights, First-Block-Cache-style skip logic, and indemnification on the training data. Third-party "juiced endpoint" providers (Fal, Replicate, BFL) rebuild some of this on top of Flux and land around the same per-image cost — which is the honest comparison. A self-hosted 5090 wins only when you need control, custom LoRAs, or offline generation; for API traffic, the managed economics dominate.',
+      hook: 'On paper a rented GPU can match Vertex per-image; in practice Google\'s serving stack is what you cannot reproduce.',
+      metaphor: 'Anyone can buy the same flour. Google runs the bakery 24/7 at full oven utilization.',
+      bullets: [
+        'RTX 5090 spot (~$0.89/hr) or H100 PCIe (~$2/hr) gets close on raw compute.',
+        'Google layers: sustained TPU utilization, step + CFG distillation, graph-compiled kernels, FP8 weights, First-Block-Cache skip logic, training-data indemnification.',
+        'Third-party Flux endpoints (Fal, Replicate, BFL) rebuild most of this and land at similar per-image cost — the honest comparison.',
+        'Self-host wins when you need custom LoRAs, offline generation, or full control — not for API-scale traffic.',
+      ],
+      sources: [
+        { label: 'RunPod / TensorDock / Lambda GPU pricing (Apr 2026)' },
+        { label: 'Black Forest Labs — Flux 2 release notes', href: 'https://blackforestlabs.ai/' },
+      ],
     },
   ],
 }
@@ -408,23 +471,63 @@ const video: Modality = {
   deepDive: [
     {
       title: 'Why per-second billing won',
-      body: 'High-fidelity video inference is too expensive to hide inside a flat subscription — a single 10s clip can burn dollars of real compute, so any fixed-price tier has to underprice light users or overcharge heavy ones. Veo 3.1, Kling, and Runway Gen-4 all land on per-second billing for the same reason: it\'s the only unit that tracks what the GPUs actually do. The Veo 3.1 ladder — Lite $0.05/s, Fast $0.10/s, Standard $0.40/s (at 720p, post-April-7 cut) — lets you trade fidelity for cost explicitly instead of guessing.',
+      hook: 'Flat-rate subscriptions can\'t absorb video\'s real unit cost, so the whole industry converged on per-second.',
+      bullets: [
+        'A single 10s clip can burn dollars of real compute — no fixed-price tier survives heavy users.',
+        'Veo 3.1, Kling, and Runway Gen-4 all use per-second billing; it\'s the only unit that tracks what GPUs actually do.',
+        'Veo 3.1 ladder at 720p: Lite $0.05/s, Fast $0.10/s, Standard $0.40/s (post-April-7 cut).',
+        'The ladder lets you trade fidelity for cost explicitly instead of guessing at a tier name.',
+      ],
+      sources: [
+        { label: 'Vertex AI Veo pricing (Apr 2026)', href: 'https://cloud.google.com/vertex-ai/generative-ai/pricing' },
+      ],
     },
     {
       title: 'Why a video clip costs 40× an image',
-      body: 'A 6s/24fps clip is 144 frames. Each frame does roughly a 1024² image\'s worth of diffusion FLOPs plus enough cross-frame attention to stay consistent. Veo 3.1 Standard at $0.40/sec means a single 6s clip is $2.40 — about 36× a Nano Banana image ($0.067) or 60× a Nano Banana Flash ($0.039). The per-frame number is actually low (~$0.017 at Standard, ~$0.0021 at Lite) because Veo amortizes compute across the whole clip. The cost comes from volume: you are not paying for one generation, you are paying for 144 of them at once.',
+      hook: 'A 6-second clip is 144 images that all have to agree with each other.',
+      stat: { value: '~36×', label: 'the cost of one Nano Banana image' },
+      bullets: [
+        '6s × 24fps = 144 frames, each doing ~1024² image diffusion plus cross-frame attention.',
+        'Veo 3.1 Standard at $0.40/s → $2.40 per 6s clip.',
+        'Per-frame cost is actually low: ~$0.017 at Standard, ~$0.0021 at Lite — Veo amortizes well.',
+        'Cost scales with volume, not per-frame difficulty: you pay for 144 generations at once.',
+      ],
     },
     {
       title: 'Sparse attention broke the O(n²) curse',
-      body: 'Until late 2025, temporal attention scaled quadratically with the number of frames — every frame had to look at every other frame, and long clips blew up. Sparse-attention variants restrict each frame to a handful of relevant neighbors, turning the quadratic term into something close to linear. That is why Veo 3.1 and its peers can render a 10-second clip in roughly a minute while the first-generation video models spent many. The pricing ladder now tracks compute honestly instead of hiding a quadratic tail.',
+      hook: 'Temporal attention used to scale quadratically with frame count; now it\'s near-linear.',
+      metaphor: 'Old model: every frame reads every other frame\'s diary. Sparse model: frames only check their neighbors.',
+      bullets: [
+        'Pre-2025: every frame attended to every other frame — long clips blew up compute.',
+        'Sparse variants restrict each frame to a small set of relevant neighbors.',
+        'Result: Veo 3.1 renders a 10s clip in ~1 minute; first-gen video models took many.',
+        'Pricing ladders now track compute honestly rather than hiding a quadratic tail.',
+      ],
+      sources: [
+        { label: 'Google DeepMind — Veo 3.1 technical notes', href: 'https://deepmind.google/technologies/veo/' },
+      ],
     },
     {
       title: 'Why long clips still "drift"',
-      body: 'Generating more than a few seconds at once still exceeds VRAM at 1080p+, so models chunk + blend. Sparse attention helps the attention math, but the model still has to remember what happened in chunk 1 when rendering chunk 6. Beyond ~20 seconds of continuous generation, most systems show subtle texture jitter or physics inconsistencies — the reason providers cap max clip length at 16–30 seconds.',
+      hook: 'VRAM limits force chunking, and the model\'s memory of chunk 1 fades by chunk 6.',
+      bullets: [
+        'Generating >few seconds at 1080p+ exceeds VRAM, so models chunk + blend.',
+        'Sparse attention helps the attention math, but cross-chunk state is still hard.',
+        'Beyond ~20s of continuous generation you see texture jitter and physics inconsistencies.',
+        'That\'s why providers cap max clip length at 16–30s.',
+      ],
     },
     {
       title: 'The caching + compilation stack',
-      body: 'Serving infra — whether it\'s Google fronting Veo on Trillium-class TPU pods or Fal.ai / Replicate / BFL fronting Flux on H100s — layers the same ideas: First Block Cache (FBCache), graph compilation (XLA or torch_compile), and FP8/INT8 quantization on top of the base model. This can drop wall time by ~3.5× vs. a cold reference implementation. The reason Vertex list prices beat what a naive reproduction would cost on rented GPUs is almost entirely sustained-utilization plus this compilation stack.',
+      hook: 'Most of the gap between list price and a naive reproduction is serving infra, not the model.',
+      stat: { value: '~3.5×', label: 'wall-time drop vs. cold reference implementation' },
+      bullets: [
+        'First Block Cache (FBCache) — reuse stable early-layer activations across steps.',
+        'Graph compilation — XLA on TPU, torch_compile on GPU — fuses kernels and removes Python overhead.',
+        'FP8 / INT8 quantization on weights and activations where quality allows.',
+        'Sustained utilization across millions of requests — the margin that hourly rentals can\'t match.',
+      ],
+      body: 'Google applies this stack on Trillium TPUs; Fal / Replicate / BFL rebuild it on H100s — the reason third-party Flux pricing lands close to Vertex\'s.',
     },
   ],
 }
@@ -603,27 +706,71 @@ const audio: Modality = {
   deepDive: [
     {
       title: 'Why music bills per-clip (or per-song), not per-second',
-      body: 'A Lyria 2 call returns a fixed 30-second WAV — the model was trained and cost-tuned for that unit, so Google bills the unit directly at $0.06. Need 31 seconds? You pay for two clips. Lyria 3 Pro retrained for full-song coherence and Google reportedly priced it flat (near $0.08) because the marginal cost of seconds 31–180 inside one song is much lower than starting a second call. The per-clip vs per-song distinction is the most important pricing knob in music generation right now.',
+      hook: 'The pricing unit follows whatever the model was trained to produce in a single call.',
+      bullets: [
+        'Lyria 2 returns a fixed 30s WAV — billed as one unit at $0.06. Need 31s? Pay for two.',
+        'Lyria 3 Pro was retrained for full-song coherence and priced flat (~$0.08 per song).',
+        'The marginal cost of seconds 31–180 inside one Pro call is much lower than starting a new Lyria 2 call.',
+        'Per-clip vs per-song is the biggest pricing knob in music generation today.',
+      ],
+      sources: [
+        { label: 'Vertex AI Lyria pricing', href: 'https://cloud.google.com/vertex-ai/generative-ai/pricing' },
+      ],
     },
     {
       title: 'Why music costs many times speech per second',
-      body: 'Speech is usually 16–24 kHz mono with one speaker at a time — a thin signal. Music at 48 kHz carries multiple instruments across the full audible band, often in stereo. The audio-token stream is several times denser, the model has to predict harmony and rhythm across instruments simultaneously, and the context has to stay coherent over minutes. All of that shows up in the per-second rate: Lyria 2 at $0.002/sec ($0.06 / 30s) vs Gemini 3.1 Flash Live voice output at ~$0.0003/sec.',
+      hook: 'Music is a denser signal that the model must keep coherent across instruments and minutes.',
+      stat: { value: '~7×', label: 'Lyria 2 per-second rate vs. Flash Live voice output' },
+      bullets: [
+        'Speech: 16–24 kHz mono, one speaker at a time — thin signal.',
+        'Music: 48 kHz, multiple instruments, full audible band, often stereo — several-times-denser token stream.',
+        'The model must predict harmony + rhythm across instruments and stay coherent over minutes.',
+        'Concrete: Lyria 2 at $0.002/s ($0.06/30s) vs. Gemini 3.1 Flash Live voice output ~$0.0003/s.',
+      ],
     },
     {
-      title: 'Why "native audio-to-audio" voice is a bigger deal than it sounds',
-      body: 'The legacy voice stack was three models in a trenchcoat — Speech-to-Text, an LLM, and Text-to-Speech. Each one added latency, dropped prosody, and flattened emotion. Gemini 3.1 Flash Live replaces the whole trio with a single model that hears audio and speaks audio natively, so tone, pacing, laughter, and interruption-handling survive. The pricing reflects a single integrated model: $0.005/min input, $0.018/min output, no separate STT or TTS invoices.',
+      title: '"Native audio-to-audio" is a bigger deal than it sounds',
+      hook: 'One model that hears and speaks natively replaces a three-model STT→LLM→TTS pipeline.',
+      metaphor: 'The legacy stack was three models in a trenchcoat — now it\'s just one model.',
+      bullets: [
+        'Old pipeline dropped prosody, flattened emotion, and added latency at every hand-off.',
+        'Gemini 3.1 Flash Live keeps tone, pacing, laughter, and interruption-handling intact.',
+        'Billing simplifies too: $0.005/min input, $0.018/min output — no separate STT or TTS invoices.',
+      ],
+      sources: [
+        { label: 'Google DeepMind — Gemini Live', href: 'https://deepmind.google/technologies/gemini/' },
+      ],
     },
     {
       title: 'Why voice output costs 3.6× input',
-      body: 'Encoding incoming audio into tokens is a forward pass through an audio encoder — small model, predictable cost. Generating natural-sounding audio tokens on the way out is autoregressive: the model emits one chunk at a time, each conditioned on everything it has already said. Output is where the interesting compute lives, which is why a voice agent that listens more than it talks is materially cheaper than one that monologues. Product decisions — when the model should speak, when to stay quiet — now have a direct line to the bill.',
+      hook: 'Listening is one forward pass; speaking is autoregressive generation chunk by chunk.',
+      stat: { value: '3.6×', label: '$0.018/min output vs. $0.005/min input' },
+      bullets: [
+        'Input: audio encoder does a single forward pass — small, predictable cost.',
+        'Output: each audio chunk is conditioned on every chunk before it — real autoregressive compute.',
+        'A voice agent that listens more than it talks is materially cheaper than one that monologues.',
+        'Product design (when to speak, when to stay quiet) now has a direct line to the bill.',
+      ],
     },
     {
       title: 'Licensing is the enterprise moat for music',
-      body: 'In 2026, technical quality between Lyria, Suno, Udio, and ElevenLabs Music has largely converged. The differentiator is training-data provenance. Lyria was trained in partnership with YouTube and music-industry licensors and ships under Vertex\'s standard generative-AI indemnification. Consumer services like Suno and Udio are cheaper but carry ongoing copyright exposure. For anything that has to clear Content ID at scale — ads, trailers, streamed backgrounds — the enterprise answer is usually Vertex so the provenance risk belongs to Google.',
+      hook: 'Quality between Lyria, Suno, Udio, and ElevenLabs Music has largely converged — provenance is the differentiator.',
+      bullets: [
+        'Lyria trained in partnership with YouTube and music-industry licensors.',
+        'Ships under Vertex\'s standard generative-AI indemnification — Google absorbs the provenance risk.',
+        'Suno, Udio are cheaper but carry ongoing copyright exposure.',
+        'For anything that clears Content ID at scale — ads, trailers, streamed backgrounds — enterprise picks Vertex.',
+      ],
     },
     {
-      title: 'When to reach for Chirp 3 HD or Gemini TTS Pro instead of Live',
-      body: 'Flash Live is for live conversation. For batch narration — audiobooks, voiceovers, localized dubs — text-first pipelines are still cheaper. Chirp 3 HD charges $30 per 1M characters ($0.00003/char) and Gemini TTS Pro charges $20 per 1M output tokens. A 10-hour audiobook at ~180k characters per hour lands around $54 on Chirp 3 HD, versus several dollars per minute on a Live session that you do not actually need to be live. Rule of thumb: Live for dialogue, TTS for monologue.',
+      title: 'When to use Chirp 3 HD or Gemini TTS Pro instead of Live',
+      hook: 'Flash Live is priced for conversation. For monologue, text-first TTS is an order of magnitude cheaper.',
+      bullets: [
+        'Chirp 3 HD — $30 per 1M chars ($0.00003/char).',
+        'Gemini TTS Pro — $20 per 1M output tokens.',
+        'A 10-hour audiobook (~1.8M chars) ≈ $54 on Chirp 3 HD vs. several dollars per minute on Live.',
+        'Rule of thumb: Live for dialogue, TTS for monologue.',
+      ],
     },
   ],
 }
@@ -711,19 +858,52 @@ const world: Modality = {
   deepDive: [
     {
       title: 'Why real-time is the hard part',
-      body: 'Regular video models amortize compute across a whole clip — they generate many frames in parallel. World models can\'t: the next frame depends on the user input that just happened. You lose batching, lose pipelining, and pay for every frame serially. That\'s why the unit of cost is "cluster-hours," not "generations."',
+      hook: 'Video models batch; world models can\'t — each frame depends on the input the user just pressed.',
+      metaphor: 'A video model is a film crew. A world model is an improv partner — it has to respond before you finish the thought.',
+      bullets: [
+        'Regular video models generate many frames in parallel and amortize compute across a clip.',
+        'World models generate 1 frame conditioned on the last input — no batching, no pipelining.',
+        'Every frame pays the full per-frame cost serially.',
+        'That\'s why the unit of cost is "cluster-hours," not "generations."',
+      ],
     },
     {
       title: 'Memory bandwidth > raw TFLOPs',
-      body: 'A world model must keep a latent state for every object and location you\'ve visited this session, plus autoregressively predict the next frame under a sub-100ms budget. That\'s a memory-bandwidth problem, not a compute problem. H100 SXM cards (3.35 TB/s HBM3) are the current workhorse; Blackwell B200 (HBM3e, higher bandwidth) eases the ceiling but is still capacity-constrained on the supply side. This is why world-model access is gated to research subscribers rather than sold by the second.',
+      hook: 'World-model inference is gated by how fast you can move state through the GPU, not by how many FLOPs it has.',
+      stat: { value: '3.35 TB/s', label: 'H100 SXM HBM3 bandwidth — the current ceiling' },
+      bullets: [
+        'Session state: every object and location you\'ve visited is kept in latents.',
+        'Every next frame is autoregressive under a sub-100ms budget.',
+        'H100 SXM (HBM3, 3.35 TB/s) is the workhorse; Blackwell B200 (HBM3e) eases the ceiling but is supply-constrained.',
+        'This is why access is gated to research subscribers instead of sold by the second.',
+      ],
+      sources: [
+        { label: 'NVIDIA H100 datasheet', href: 'https://www.nvidia.com/en-us/data-center/h100/' },
+      ],
     },
     {
       title: 'Latent action models',
-      body: 'Genie 3\'s innovation is learning physics and interaction rules directly from video, not from hard-coded engines. Arrow keys translating to "move forward" now generalizes across most generated environments — a big leap from 2024, where controls had to be re-learned for every new seed scene.',
+      hook: 'Genie 3 learns physics and controls from video — no hand-coded engine under the hood.',
+      bullets: [
+        'Actions (arrow keys, mouse, controller) map to "move forward" / "look left" through learned latents.',
+        'Those mappings generalize across most generated environments — a leap from 2024.',
+        'No explicit collision mesh, no authored physics — it\'s all statistical.',
+        'Cost: the model pays for generality in every frame.',
+      ],
+      sources: [
+        { label: 'Google DeepMind — Genie 3 announcement', href: 'https://deepmind.google/discover/blog/genie-3/' },
+      ],
     },
     {
       title: 'The drift ceiling',
-      body: 'After ~120 seconds of continuous exploration, current world models drift: textures jitter, collision rules fail, previously visited rooms warp. This is the reason no one has yet replaced a game engine with a world model for anything more than short demos.',
+      hook: 'Around 120 seconds of continuous play, generated worlds start to forget themselves.',
+      stat: { value: '~120s', label: 'before visible texture / physics drift' },
+      bullets: [
+        'Textures jitter, collision rules fail, previously visited rooms warp when you return.',
+        'Root cause: cross-frame memory fades as the autoregressive context window fills.',
+        'No one has yet replaced a game engine with a world model for more than short demos.',
+        'Drift ceiling, not render quality, is the real barrier to shipping a game.',
+      ],
     },
   ],
 }
