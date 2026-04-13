@@ -10,8 +10,8 @@ export function Primer() {
       <div className="mt-6 max-w-2xl text-slate-700 leading-relaxed space-y-4">
         <p className="text-lg">
           Training a frontier image or video model costs tens to hundreds of millions of dollars — paid
-          once, by the lab that makes it. After that, every picture, clip, or song the model generates
-          is <strong>inference</strong>: renting a slice of a GPU for a few seconds and running the model forward.
+          once, by the lab that built it. After that, every picture, clip, or song the model generates
+          is <strong>inference</strong>: renting a slice of a GPU for a few seconds and asking the finished model to produce one output.
         </p>
         <p>
           Every Gen Media cost, across every modality, is governed by three levers:
@@ -22,17 +22,17 @@ export function Primer() {
         <Lever
           tag="Compute"
           title="How much math per output"
-          body="Bigger models do more math per token / frame / step. Higher resolution = more pixels to think about. More attention layers = more cross-talk to compute."
+          body="Bigger models do more math per piece of output. Higher resolution means more pixels to think about. And the more the model has to cross-reference (frame to frame, word to word), the more work each step takes."
         />
         <Lever
           tag="Time"
           title="How many steps or frames"
-          body="Diffusion models take ~25 steps per image. Video adds hundreds of frames. World models generate every frame at runtime. The output determines the count."
+          body="An image takes about 25 passes through the model. A video clip adds hundreds of frames on top. A playable world generates a new frame every time you press a key. The output decides how many passes you pay for."
         />
         <Lever
           tag="Quality"
           title="How polished the result"
-          body="Guidance, higher step counts, bigger models, and higher resolution all raise quality — and all multiply cost. Every knob below is one of these three in disguise."
+          body="More steps, bigger models, higher resolution, stronger prompt-following — each dial you turn up makes the picture better and the bill bigger. Every knob below is really one of these three."
         />
       </div>
 

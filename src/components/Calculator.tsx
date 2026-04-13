@@ -5,10 +5,12 @@ export function Calculator({
   modality,
   inputs,
   onChange,
+  onReset,
 }: {
   modality: Modality
   inputs: Inputs
   onChange: (next: Inputs) => void
+  onReset?: () => void
 }) {
   const [showMath, setShowMath] = useState(false)
   const result = modality.calc(inputs)
@@ -47,15 +49,26 @@ export function Calculator({
         })}
       <div className="grid md:grid-cols-[1fr_auto]">
         <div className="p-5 sm:p-7 space-y-5">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between gap-3">
             <h3 className="text-sm font-semibold text-slate-600 uppercase tracking-wider">Play with the knobs</h3>
-            <span className={`text-xs font-medium ${modality.accent.text}`}>{modality.label} calculator</span>
+            <div className="flex items-center gap-3">
+              {onReset && (
+                <button
+                  type="button"
+                  onClick={onReset}
+                  className="text-xs text-slate-500 hover:text-slate-800 underline underline-offset-4 decoration-slate-300 hover:decoration-slate-600 transition-colors"
+                >
+                  reset
+                </button>
+              )}
+              <span className={`text-xs font-medium ${modality.accent.text}`}>{modality.label} calculator</span>
+            </div>
           </div>
           {modality.fields
             .filter(f => !(f.type === 'select' && (f as { prominent?: boolean }).prominent))
             .filter(f => !f.visibleWhen || f.visibleWhen(inputs))
             .map(f => (
-              <FieldControl key={f.id} field={f} value={inputs[f.id]} onChange={v => set(f.id, v)} accent={modality.accent} />
+              <FieldControl key={f.id} field={f} value={inputs[f.id]} inputs={inputs} onChange={v => set(f.id, v)} accent={modality.accent} />
             ))}
         </div>
 
@@ -161,10 +174,11 @@ function MathBlock({ formula, accent }: { formula: string; accent: Modality['acc
 }
 
 function FieldControl({
-  field, value, onChange, accent,
+  field, value, inputs, onChange, accent,
 }: {
   field: Field
   value: Inputs[string]
+  inputs: Inputs
   onChange: (v: Inputs[string]) => void
   accent: Modality['accent']
 }) {
@@ -188,7 +202,7 @@ function FieldControl({
           className={`w-full accent-current ${accent.text}`}
         />
         {field.hint && (
-          <div className="text-xs text-slate-500 mt-1">{field.hint(v)}</div>
+          <div className="text-xs text-slate-500 mt-1">{field.hint(v, inputs)}</div>
         )}
       </div>
     )

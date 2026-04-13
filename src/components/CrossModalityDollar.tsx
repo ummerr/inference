@@ -123,11 +123,11 @@ export function CrossModalityDollar() {
       </div>
 
       <div className="mt-10 text-sm text-slate-600 max-w-2xl leading-relaxed">
-        Cost tracks how much compute gets packed into a second of output. Text and voice stream
-        cheaply because each token is small; an image is a few thousand tokens; a video second is
-        an image every frame; a world-model second is a video generated interactively, per user.
-        That's four orders of magnitude from the same dollar — which is why world models are still
-        research-access and why "AI video" hasn't collapsed to "AI image" pricing yet.
+        Cost tracks how much work gets packed into a second of output. Text and voice are cheap
+        because each word or syllable is tiny. An image is a few thousand of those pieces. A second
+        of video is a fresh image every frame. A second of world-model gameplay is a video, generated
+        live, per player. That's four orders of magnitude from the same dollar — which is why world
+        models are still research-only and why "AI video" hasn't collapsed to "AI image" pricing yet.
       </div>
     </section>
   )

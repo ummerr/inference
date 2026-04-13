@@ -134,18 +134,17 @@ export interface Modality {
 // ---------------------------------------------------------------------------
 const fmt = (n: number) => {
   if (n >= 1000) return `$${n.toLocaleString(undefined, { maximumFractionDigits: 0 })}`
-  if (n >= 10) return `$${n.toFixed(2)}`
-  if (n >= 1) return `$${n.toFixed(3)}`
-  if (n >= 0.01) return `$${n.toFixed(4)}`
+  if (n >= 1) return `$${n.toFixed(2)}`
+  if (n >= 0.01) return `$${n.toFixed(3)}`
   if (n >= 0.0001) return `$${n.toFixed(5)}`
   return `$${n.toExponential(2)}`
 }
 
 // A single "GPU-second" unit cost for a modern accelerator (H100-class, cloud-rented).
-// As of April 2026 the H100 on-demand market has settled around $1.38–$3.93/hr
-// (RunPod $1.99, TensorDock $2.25, Lambda $2.99, AWS $3.93; Azure/Oracle are
-// outliers). Blackwell B200 is $5.49–$6.69/hr. We use $2.16/hr ≈ $0.0006/GPU-s
-// as the representative H100 figure.
+// As of April 2026, on-demand H100 pricing across neocloud providers sits around
+// $1.99–$2.99/hr (RunPod, TensorDock, Lambda). Hyperscalers price substantially
+// higher. Blackwell B200 is $5.49–$6.69/hr. We use ~$2.16/hr ≈ $0.0006/GPU-s as
+// the representative figure — the blended-rate anchor every calculator builds on.
 const GPU_SECOND = 0.0006
 
 // ---------------------------------------------------------------------------
@@ -167,10 +166,10 @@ const images: Modality = {
   },
   tagline: 'Diffusion: sculpt an image out of pure static.',
   primer: [
-    'Image models start with random noise and, step by step, "de-noise" it into a picture. Each step is one full pass through a big neural network.',
-    'Google\'s current image family on Vertex AI is the Gemini-native "Nano Banana" line: Nano Banana (Gemini 2.5 Flash Image, $0.039/image), Nano Banana 2 (Gemini 3.1 Flash Image, $0.067/image at 1K), and Nano Banana Pro (Gemini 3 Pro Image, $0.134/image at 1K/2K). Same diffusion mechanic, more compute per call at the top.',
+    'Image models start with random noise — a screen of static — and gradually clean it up into a picture. Each round of cleanup ("denoising") is one full pass through the network, and a typical image takes about 25 passes.',
+    'Google\'s current image lineup on Vertex AI is the Gemini Flash Image family — nicknamed "Nano Banana" in the developer community: Nano Banana / Gemini 2.5 Flash Image ($0.039/image), Nano Banana 2 / Gemini 3.1 Flash Image ($0.067), and Nano Banana Pro / Gemini 3 Pro Image ($0.134). Same underlying technique — the top tier just spends more compute per call.',
   ],
-  whyExpensive: 'More steps = better image, linearly more compute. Guidance (CFG) runs the model twice per step. Resolution scales the per-step work by pixels². Vertex hides the knobs behind a tier name — you pick Nano Banana / NB 2 / NB Pro, it picks the steps for you.',
+  whyExpensive: 'More denoising steps = a cleaner image and a linearly bigger bill. "Guidance" — the trick that makes the image match your prompt — runs the model twice per step, so turning it on roughly doubles the cost. Doubling the resolution quadruples the work (twice as wide × twice as tall). Vertex hides these knobs behind a tier name: you pick Nano Banana / NB 2 / NB Pro, it picks the rest for you.',
   formula: 'gpu_seconds = steps × passes × size_mul × (res / 1024)² × 0.083\ndollars    = gpu_seconds × $0.0006/s × 27   # retail API markup\n\n# size_mul: Nano Banana 0.58, NB 2 1.0, NB Pro 2.0\n# passes:   guided = 2, unguided = 1',
   fields: [
     {
@@ -211,9 +210,11 @@ const images: Modality = {
     const sizeMul  = size === 'small' ? 0.58 : size === 'medium' ? 1 : 2
     const passes   = guided ? 2 : 1
 
-    // Calibrated so the default knobs (Nano Banana 2, 25 steps, guided, 1024²)
-    // land on the real Vertex list price of $0.067/image. Nano Banana hits
-    // $0.039 and Nano Banana Pro hits $0.134 at the same defaults.
+    // Scaling is physical: linear in denoising steps × guidance passes,
+    // quadratic in resolution (pixel count), linear in model size. The
+    // 0.083 GPU-s/step constant is anchored so Nano Banana 2 at default
+    // knobs (25 steps, guided, 1024²) matches Vertex's list price of
+    // $0.067/image — the whole family falls out from one anchor.
     const gpuSeconds = steps * passes * sizeMul * pixelMul * 0.083
     const dollars = gpuSeconds * GPU_SECOND * 27 // retail API markup
 
@@ -260,20 +261,20 @@ const images: Modality = {
       ],
     },
     {
-      icon: '✂️', title: 'Edit pass', blurb: 'Image-in → image-out with a Nano Banana call',
-      cost: '$0.039 – $0.134', footnote: 'Edits and generations bill the same on Gemini image models — one call, one image out',
+      icon: '✂️', title: 'Edit pass', blurb: 'Send an image in, get an edited image back',
+      cost: '$0.039 – $0.134', footnote: 'Editing costs the same as generating from scratch — price is per output image, regardless of whether you supplied one as input',
     },
   ],
   deepDive: [
     {
-      title: 'Image gen is now a Gemini feature, not a separate product',
-      hook: 'The image head lives inside Gemini itself, so the model that reads your prompt is the one that draws the picture.',
-      metaphor: 'One brain, two output modes — the same model that writes a reply can now emit a PNG.',
+      title: 'Image generation is now a Gemini feature, not a separate product',
+      hook: 'The same model that reads your prompt is the one that draws the picture — image output is built into Gemini itself.',
+      metaphor: 'One brain, two output modes — the model that writes you a reply can now hand back a PNG.',
       bullets: [
-        'Imagen 1–3 were standalone image models with a separate text encoder.',
-        'Imagen 4 (May 2025) bolted a Gemini-derived text encoder onto a Latent Diffusion Transformer — prompt adherence jumped.',
-        'Nano Banana goes further: the image decoder is a head on Gemini, so multi-turn edits, character consistency, and legible text fall out natively.',
-        'Billing follows: image output is just "more tokens" — $30/M (Nano Banana), $60/M (NB 2), $120/M (NB Pro).',
+        'Earlier Imagen models (1–3) were standalone, with a separate component for understanding prompts.',
+        'Imagen 4 (May 2025) plugged a Gemini-style prompt-reader into the image model, and prompt-following jumped noticeably.',
+        'Nano Banana goes further: image generation is built directly into Gemini. That\'s why it\'s good at multi-turn edits ("now make it sunset"), keeping the same character across images, and rendering legible text inside pictures.',
+        'Billing treats image output as just another kind of token: roughly $30, $60, or $120 per million image tokens for the three tiers.',
       ],
       sources: [
         { label: 'Vertex AI Gemini image generation pricing', href: 'https://cloud.google.com/vertex-ai/generative-ai/pricing' },
@@ -281,43 +282,43 @@ const images: Modality = {
       ],
     },
     {
-      title: 'Latent space is why any of this is affordable',
-      hook: 'Diffusion models never touch pixels during denoising — they work on a tiny compressed version of the image.',
-      stat: { value: '~64×', label: 'fewer values per denoising step vs. raw pixels' },
-      metaphor: 'Paint the thumbnail, then scale up — nobody sketches at full resolution.',
+      title: 'Working on a thumbnail is why this is affordable',
+      hook: 'Image models never actually touch full-resolution pixels during the cleanup loop — they work on a tiny compressed version and blow it up at the end.',
+      stat: { value: '~64×', label: 'less data per step vs. working on raw pixels' },
+      metaphor: 'Sketch the thumbnail, then scale up — nobody paints at poster size.',
       bullets: [
-        'A VAE encoder compresses a 1024² image (~3M values) into a ~128×128×4 latent (~66k values).',
-        'The transformer runs 20–30 denoising steps in latent space, not pixel space.',
-        'A single VAE decoder pass at the end reconstructs pixels.',
-        'Without this trick, $0.039/image pricing would not exist — every call would cost dollars.',
+        'A small helper network squashes a 1024×1024 image (~3 million numbers) down to a 128×128 representation (~66k numbers).',
+        'The main model does its 20–30 cleanup passes on that compressed version.',
+        'One final pass expands the result back into full-resolution pixels.',
+        'Without this shortcut, $0.039/image pricing wouldn\'t exist — every call would cost dollars instead of cents.',
       ],
-      body: 'Every modern diffusion model — Imagen 3/4, the Nano Banana line, Flux 2, GPT Image 1.5 — uses some flavor of latent-space diffusion for the same economic reason.',
+      body: 'Every serious modern image model — Imagen 3/4, the Nano Banana line, Flux 2, GPT Image 1.5 — uses some version of this trick for the same reason: it\'s the only way the math pencils out.',
       sources: [
         { label: 'Rombach et al. — Latent Diffusion Models (CVPR 2022)', href: 'https://arxiv.org/abs/2112.10752' },
       ],
     },
     {
       title: 'Nano Banana / NB 2 / NB Pro: one family, three compute budgets',
-      hook: 'Same architecture, same brand — but the Flash tier is step-distilled and quantized, while Pro runs the full Gemini 3 weights.',
+      hook: 'Same underlying model, same brand — the cheaper tiers are squeezed and shortcut for speed, while Pro runs the full Gemini 3 weights.',
       bullets: [
-        'Nano Banana ($0.039) — Gemini 2.5 Flash Image, step-distilled + FP8, fixed 1024², tuned for latency.',
-        'Nano Banana 2 ($0.067 at 1024², $0.101 at 2K) — Gemini 3.1 Flash Image, Flash speed profile, scales with resolution.',
-        'Nano Banana Pro ($0.134–$0.24) — full Gemini 3 Pro weights with image head active; where multi-object composition and in-image text come from.',
-        'Think of them as three points on a compute/quality curve, not three different products.',
+        'Nano Banana ($0.039) — the fastest tier: trained to skip most of the cleanup steps and stored in a lower-precision format to save memory. Fixed 1024×1024.',
+        'Nano Banana 2 ($0.067 at 1024², $0.101 at 2K) — same speed profile, but scales up to higher resolutions.',
+        'Nano Banana Pro ($0.134–$0.24) — the full-quality model. This is the tier that handles multiple objects in one scene and legible text inside the image.',
+        'Think of them as three points on a cost/quality curve, not three different products.',
       ],
       sources: [
         { label: 'Vertex AI pricing (Apr 2026)', href: 'https://cloud.google.com/vertex-ai/generative-ai/pricing' },
       ],
     },
     {
-      title: 'Why guidance (CFG) roughly doubles your bill',
-      hook: 'Classifier-free guidance runs the model twice per step — once with the prompt, once without — then extrapolates.',
-      stat: { value: '2×', label: 'forward passes per denoising step' },
+      title: 'Why "guidance" roughly doubles your bill',
+      hook: 'To actually follow your prompt, diffusion models run each cleanup step twice — once imagining what the image should look like given your prompt, once without it — and steer toward the difference.',
+      stat: { value: '2×', label: 'passes through the model per cleanup step' },
       bullets: [
-        'CFG is the trick that makes diffusion actually follow prompts; turning it off produces mushy output.',
-        'Each step becomes two forward passes — conditioned and unconditioned — so FLOPs roughly double.',
-        'Step-distilled Flash variants (Nano Banana, Flux Schnell, LCM) train a student network to fuse both passes into one.',
-        'That\'s why the cheapest tier is dramatically faster and cheaper without looking visibly worse at 1024².',
+        'This is the trick that makes image models listen to prompts at all — turn it off and you get mushy, generic output.',
+        'But it means every step costs double: one pass with the prompt, one without.',
+        'Faster tiers ("step-distilled" variants like Nano Banana, Flux Schnell) train a smaller model to do both passes in one, which is mostly why they\'re so much cheaper.',
+        'And at 1024×1024 the quality gap is rarely visible, so you\'re paying for speed without giving up much.',
       ],
       sources: [
         { label: 'Ho & Salimans — Classifier-Free Diffusion Guidance', href: 'https://arxiv.org/abs/2207.12598' },
@@ -325,13 +326,13 @@ const images: Modality = {
     },
     {
       title: 'Why Vertex\'s $0.039 beats self-hosting Flux',
-      hook: 'On paper a rented GPU can match Vertex per-image; in practice Google\'s serving stack is what you cannot reproduce.',
-      metaphor: 'Anyone can buy the same flour. Google runs the bakery 24/7 at full oven utilization.',
+      hook: 'On paper, renting your own GPU can match Vertex per image. In practice, Google\'s serving infrastructure is what you can\'t easily replicate.',
+      metaphor: 'Anyone can buy the same flour. Google runs the bakery 24/7 with the ovens always full.',
       bullets: [
-        'RTX 5090 spot (~$0.89/hr) or H100 PCIe (~$2/hr) gets close on raw compute.',
-        'Google layers: sustained TPU utilization, step + CFG distillation, graph-compiled kernels, FP8 weights, First-Block-Cache skip logic, training-data indemnification.',
-        'Third-party Flux endpoints (Fal, Replicate, BFL) rebuild most of this and land at similar per-image cost — the honest comparison.',
-        'Self-host wins when you need custom LoRAs, offline generation, or full control — not for API-scale traffic.',
+        'Raw GPU rental gets close: an RTX 5090 on spot (~$0.89/hr) or H100 (~$2/hr) is in the ballpark.',
+        'What Google adds: custom chips running at near-100% utilization, faster-shortcut model variants, compiled graphs that cut software overhead, smaller numeric formats, caching tricks that reuse intermediate results, plus legal cover on training-data copyright.',
+        'Third-party Flux endpoints (Fal, Replicate, BFL) rebuild most of this and land at similar per-image cost — that\'s the honest comparison.',
+        'Self-hosting wins when you need custom fine-tunes, offline generation, or total control — not for API-scale traffic.',
       ],
       sources: [
         { label: 'RunPod / TensorDock / Lambda GPU pricing (Apr 2026)' },
@@ -360,15 +361,15 @@ const video: Modality = {
   },
   tagline: 'An image is one frame. Video is hundreds — and each frame has to agree with the others.',
   primer: [
-    'A video model has to generate every frame *and* keep them consistent — a cup on a table in frame 1 must be the same cup in frame 120.',
-    'Classic temporal attention made every frame look at every other frame — O(n²) and brutal. In 2026, sparse-attention methods made long-context video practical, which is why Veo 3.1, Kling, and Runway Gen-4 render a 10-second clip in roughly a minute rather than many.',
-    'The market has settled on per-second billing because flat-rate video inference doesn\'t work — the unit cost is too high and too variable to hide inside a subscription.',
+    'A video model has to generate every frame *and* keep them consistent with each other — a cup on a table in frame 1 has to be the same cup in frame 120.',
+    'Early video models compared every frame to every other frame, which got painful fast: a clip twice as long cost four times as much to generate. Newer models (Veo 3.1, Kling, Runway Gen-4) only compare each frame to its neighbors, which is why an 8-second clip now renders in about a minute instead of several.',
+    'Providers bill per second of output because flat-rate subscriptions can\'t hide the true cost — one heavy user can burn more compute in a day than they pay in a month.',
   ],
-  whyExpensive: 'Cost ≈ (per-frame work) × frames. The old O(n²) temporal attention has been flattened to near-linear by sparse attention, but each frame still does image-worthy compute at higher resolutions. Every extra second or pixel is still real money.',
+  whyExpensive: 'Cost ≈ (work per frame) × (number of frames). Older video models got drastically more expensive as clips got longer, because every frame had to "look at" every other frame. Newer models only check nearby frames, which keeps cost roughly linear with length. Each frame still does almost as much work as a full image, though, so seconds and pixels add up quickly.',
   formula: 'frames      = seconds × fps\nper_frame   = 2.5 × (res / 720)² × tier_mul     # linear\ntemporal    = frames² / 8000 × tier_mul × pixel_mul  # quadratic residue\ngpu_seconds = frames × per_frame + temporal\ndollars     = gpu_seconds × $0.0006/s × 11       # retail markup\n\n# tier_mul: Lite 0.125, Fast 0.25, Standard 1.0',
   fields: [
-    { id: 'seconds',    type: 'slider', label: 'Length',     min: 1, max: 120, step: 1,  default: 6, unit: 's',
-      hint: v => v <= 8 ? 'social clip' : v <= 20 ? 'short ad' : v <= 60 ? 'scene' : 'short film',
+    { id: 'seconds',    type: 'slider', label: 'Length',     min: 4, max: 8, step: 2,  default: 6, unit: 's',
+      hint: v => v === 4 ? 'short take' : v === 6 ? 'default clip' : 'max single generation',
     },
     { id: 'fps',        type: 'slider', label: 'Frame rate', min: 8, max: 30, step: 2, default: 24, unit: ' fps' },
     { id: 'resolution', type: 'select', label: 'Resolution', default: '720',
@@ -397,9 +398,11 @@ const video: Modality = {
     const pixelMul = (res / 720) ** 2
     const tierMul  = tier === 'lite' ? 0.125 : tier === 'fast' ? 0.25 : 1
 
-    // Per-frame cost, tuned so a 6s/24fps/720p Standard clip lands on Vertex
-    // Veo 3.1 Standard pricing (6s × $0.40/s = $2.40). Lite and Fast tiers
-    // likewise hit $0.05/s and $0.10/s at their defaults.
+    // Scaling is physical: linear in frames × per-frame work, quadratic in
+    // resolution, plus a small quadratic residual for temporal attention.
+    // The 2.5 GPU-s/frame constant is anchored so a 6s/24fps/720p Standard
+    // clip matches Vertex Veo 3.1 Standard pricing (6s × $0.40/s = $2.40);
+    // Lite and Fast fall out from the same anchor via their tier multipliers.
     const perFrameGpuS = 2.5 * pixelMul * tierMul
     // Residual quadratic term (smaller than pre-sparse-attention era). Kept small
     // so the teaching point — that long clips still cost more than linearly — is
@@ -440,22 +443,22 @@ const video: Modality = {
     },
     {
       icon: '📺', title: '30s ad spot', blurb: 'Stitched from ≤8s clips',
-      cost: '$2.40 → $12', footnote: '30 × per-second rate; retries and edits add 1.5–3× in practice',
-      inputs: { seconds: 30, fps: 24, resolution: '1080' },
+      cost: '$1.50 → $12', footnote: 'Vertex list price: 30s × per-second rate. Retries and edits are extra in practice.',
+      inputs: { fps: 24, resolution: '720' },
       tiers: [
-        { label: 'Lite',     cost: '$2.40', inputs: { tier: 'lite' } },
-        { label: 'Fast',     cost: '$3.60', inputs: { tier: 'fast' } },
+        { label: 'Lite',     cost: '$1.50', inputs: { tier: 'lite' } },
+        { label: 'Fast',     cost: '$3',    inputs: { tier: 'fast' } },
         { label: 'Standard', cost: '$12',   inputs: { tier: 'good' } },
       ],
     },
     {
       icon: '🎬', title: '2min short scene', blurb: '~15 clips stitched',
-      cost: '$6 → $48', footnote: 'before the VFX/color pass that a real short needs',
-      inputs: { seconds: 120, fps: 24, resolution: '1080' },
+      cost: '$6 → $48', footnote: 'Vertex list price: 120s × per-second rate, before the VFX/color pass a real short needs.',
+      inputs: { fps: 24, resolution: '720' },
       tiers: [
-        { label: 'Lite',     cost: '$6',      inputs: { tier: 'lite' } },
-        { label: 'Fast',     cost: '$14.40',  inputs: { tier: 'fast' } },
-        { label: 'Standard', cost: '$48',     inputs: { tier: 'good' } },
+        { label: 'Lite',     cost: '$6',  inputs: { tier: 'lite' } },
+        { label: 'Fast',     cost: '$12', inputs: { tier: 'fast' } },
+        { label: 'Standard', cost: '$48', inputs: { tier: 'good' } },
       ],
     },
     {
@@ -473,13 +476,14 @@ const video: Modality = {
       title: 'Why per-second billing won',
       hook: 'Flat-rate subscriptions can\'t absorb video\'s real unit cost, so the whole industry converged on per-second.',
       bullets: [
-        'A single 10s clip can burn dollars of real compute — no fixed-price tier survives heavy users.',
+        'A single 8s clip can burn dollars of real compute — no fixed-price tier survives heavy users.',
         'Veo 3.1, Kling, and Runway Gen-4 all use per-second billing; it\'s the only unit that tracks what GPUs actually do.',
         'Veo 3.1 ladder at 720p: Lite $0.05/s, Fast $0.10/s, Standard $0.40/s (post-April-7 cut).',
         'The ladder lets you trade fidelity for cost explicitly instead of guessing at a tier name.',
       ],
       sources: [
         { label: 'Vertex AI Veo pricing (Apr 2026)', href: 'https://cloud.google.com/vertex-ai/generative-ai/pricing' },
+        { label: 'Veo 3.1 on Vertex — supported durations (4/6/8s)', href: 'https://docs.cloud.google.com/vertex-ai/generative-ai/docs/models/veo/3-1-generate' },
       ],
     },
     {
@@ -498,14 +502,14 @@ const video: Modality = {
       ],
     },
     {
-      title: 'Sparse attention broke the O(n²) curse',
-      hook: 'Temporal attention used to scale quadratically with frame count; now it\'s near-linear.',
-      metaphor: 'Old model: every frame reads every other frame\'s diary. Sparse model: frames only check their neighbors.',
+      title: 'Only-check-your-neighbors broke the long-clip curse',
+      hook: 'Old video models got exponentially more expensive as clips got longer. A trick from 2025 flattened that curve to near-linear.',
+      metaphor: 'Old way: every frame reads every other frame\'s diary. New way: frames only check in with their neighbors.',
       bullets: [
-        'Pre-2025: every frame attended to every other frame — long clips blew up compute.',
-        'Sparse variants restrict each frame to a small set of relevant neighbors.',
-        'Result: Veo 3.1 renders a 10s clip in ~1 minute; first-gen video models took many.',
-        'Pricing ladders now track compute honestly rather than hiding a quadratic tail.',
+        'Before 2025: every frame had to compare itself to every other frame. Doubling the length quadrupled the cost.',
+        'Newer models limit each frame to a small set of nearby or relevant frames instead.',
+        'Result: Veo 3.1 renders an 8-second clip in about a minute. First-gen video models took many.',
+        'Pricing now scales honestly with length instead of hiding an exponential tail.',
       ],
       sources: [
         { label: 'Google DeepMind — Veo 3.1 technical notes', href: 'https://deepmind.google/technologies/veo/' },
@@ -513,12 +517,12 @@ const video: Modality = {
     },
     {
       title: 'Why long clips still "drift"',
-      hook: 'VRAM limits force chunking, and the model\'s memory of chunk 1 fades by chunk 6.',
+      hook: 'A long clip doesn\'t fit in GPU memory all at once, so it has to be generated in chunks — and by chunk six, the model\'s memory of chunk one is fading.',
       bullets: [
-        'Generating >few seconds at 1080p+ exceeds VRAM, so models chunk + blend.',
-        'Sparse attention helps the attention math, but cross-chunk state is still hard.',
-        'Beyond ~20s of continuous generation you see texture jitter and physics inconsistencies.',
-        'That\'s why providers cap max clip length at 16–30s.',
+        'Generating more than a few seconds at 1080p+ overflows what fits in GPU memory, so models generate in overlapping chunks and blend them.',
+        'The "only check your neighbors" trick helps within a chunk, but keeping state consistent across chunks is still unsolved.',
+        'Past ~20 seconds of continuous generation you start to see textures shimmer and physics go weird.',
+        'That\'s why providers cap single-clip length at 16–30 seconds.',
       ],
       sources: [
         { label: 'Runway Gen-4 announcement', href: 'https://runwayml.com/research/introducing-runway-gen-4' },
@@ -527,15 +531,15 @@ const video: Modality = {
     },
     {
       title: 'The caching + compilation stack',
-      hook: 'Most of the gap between list price and a naive reproduction is serving infra, not the model.',
-      stat: { value: '~3.5×', label: 'wall-time drop vs. cold reference implementation' },
+      hook: 'Most of the gap between list price and what you\'d pay running this yourself comes from serving infrastructure, not the model.',
+      stat: { value: '~3.5×', label: 'faster vs. a plain reference implementation' },
       bullets: [
-        'First Block Cache (FBCache) — reuse stable early-layer activations across steps.',
-        'Graph compilation — XLA on TPU, torch_compile on GPU — fuses kernels and removes Python overhead.',
-        'FP8 / INT8 quantization on weights and activations where quality allows.',
-        'Sustained utilization across millions of requests — the margin that hourly rentals can\'t match.',
+        'Reuse work: early layers of the model often produce similar output across steps, so cache them instead of recomputing.',
+        'Compile the math graph ahead of time so the GPU isn\'t waiting on Python between operations.',
+        'Store model weights in a smaller numeric format (8-bit instead of 16-bit) where quality allows — twice the throughput for almost no visible difference.',
+        'Keep the hardware busy across millions of requests — the efficiency margin hourly-rental shops can\'t match.',
       ],
-      body: 'Google applies this stack on Trillium TPUs; Fal / Replicate / BFL rebuild it on H100s — the reason third-party Flux pricing lands close to Vertex\'s.',
+      body: 'Google applies this stack on its own TPU hardware; Fal, Replicate, and BFL rebuild it on H100s, which is why third-party Flux pricing lands close to Vertex\'s.',
       sources: [
         { label: 'Google Cloud — Trillium TPU', href: 'https://cloud.google.com/blog/products/compute/trillium-tpu-is-ga' },
         { label: 'PyTorch — torch.compile', href: 'https://pytorch.org/docs/stable/torch.compiler.html' },
@@ -566,10 +570,10 @@ const audio: Modality = {
   },
   tagline: 'Two cost shapes under one roof: songs that bill per clip, conversations that bill per minute.',
   primer: [
-    'Audio on Vertex splits cleanly in two. Music is the Lyria line — Lyria 2 at $0.06 per 30-second clip, Lyria 3 Pro at a flat ~$0.08 per song up to three minutes. Both return 48 kHz WAV from a text prompt.',
-    'Voice is Gemini 3.1 Flash Live — a bidirectional audio-to-audio endpoint that handles speech recognition, reasoning, and synthesis in one pass. Billing splits input and output: $0.005/min in, $0.018/min out.',
+    'Audio on Vertex splits cleanly in two. Music is the Lyria line — Lyria 2 at $0.06 per 30-second clip (Vertex list price). Lyria 3 Pro is access-gated and we use ~$0.08/song (≤3 min) as a working estimate based on published tier structure; treat it as indicative, not invoiceable.',
+    'Voice is Gemini 3.1 Flash Live — one model that both listens and speaks, replacing the old three-step pipeline (speech-to-text → language model → text-to-speech). Billing is split: $0.005 per minute of audio you send in, $0.018 per minute of audio it speaks back.',
   ],
-  whyExpensive: 'Music bills per clip (or flat per song) because Lyria is trained to emit a fixed unit of 48 kHz, multi-instrument audio. Voice bills per minute split in/out because Flash Live is autoregressive and output tokens are ~3.6× heavier than input. Two totally different cost shapes, one modality.',
+  whyExpensive: 'Music bills per clip (or flat per song) because the Lyria models are trained to emit one fixed-size chunk of high-quality audio per call. Voice splits input and output because listening is cheap (one pass through the model) but speaking is expensive (the model has to generate each chunk of audio one after another, each one building on the last). That\'s why output costs ~3.6× input. Two different billing shapes, one category.',
   formula: [
     '# Music (Lyria)',
     'clips       = ceil(seconds / 30)     # Lyria 2 per-clip billing',
@@ -677,7 +681,7 @@ const audio: Modality = {
     },
     {
       icon: '🎵', title: '3-min full song', blurb: 'Lyria 3 Pro flat vs Lyria 2 stitched',
-      cost: '$0.08 → $0.36', footnote: 'Lyria 3 Pro at ~$0.08 is ~4.5× cheaper than stitching six Lyria 2 clips',
+      cost: '$0.08 → $0.36', footnote: 'Lyria 2: 6 × $0.06 = $0.36 (Vertex list). Lyria 3 Pro ~$0.08 is our working estimate for access-gated pricing.',
       inputs: { kind: 'music', seconds: 180 },
       tiers: [
         { label: 'Lyria 3 Pro (flat)', cost: '~$0.08', inputs: { tier: 'lyria3pro' } },
@@ -692,7 +696,7 @@ const audio: Modality = {
     {
       icon: '🛋️', title: '1hr background bed', blurb: 'Lyria 2 continuous',
       cost: '$7.20', footnote: '120 × 30s clips at $0.06 — crossfaded to loop seamlessly',
-      inputs: { kind: 'music', tier: 'lyria2', seconds: 3600 },
+      inputs: { kind: 'music', tier: 'lyria2' },
     },
     // --- Voice ---
     {
@@ -746,13 +750,13 @@ const audio: Modality = {
       ],
     },
     {
-      title: '"Native audio-to-audio" is a bigger deal than it sounds',
-      hook: 'One model that hears and speaks natively replaces a three-model STT→LLM→TTS pipeline.',
-      metaphor: 'The legacy stack was three models in a trenchcoat — now it\'s just one model.',
+      title: '"Audio-to-audio in one model" is a bigger deal than it sounds',
+      hook: 'One model that both hears and speaks replaces a three-step pipeline: speech-to-text → language model → text-to-speech.',
+      metaphor: 'The old way was three models in a trenchcoat pretending to be one. Now it\'s actually one.',
       bullets: [
-        'Old pipeline dropped prosody, flattened emotion, and added latency at every hand-off.',
-        'Gemini 3.1 Flash Live keeps tone, pacing, laughter, and interruption-handling intact.',
-        'Billing simplifies too: $0.005/min input, $0.018/min output — no separate STT or TTS invoices.',
+        'Old pipeline: every hand-off dropped tone, flattened emotion, and added a beat of latency.',
+        'Gemini 3.1 Flash Live keeps tone, pacing, laughter, and interruptions intact because it never converts to text in the middle.',
+        'Billing simplifies too: one invoice ($0.005/min in, $0.018/min out) instead of separate speech-recognition and text-to-speech bills.',
       ],
       sources: [
         { label: 'Google DeepMind — Gemini Live', href: 'https://deepmind.google/technologies/gemini/' },
@@ -760,13 +764,13 @@ const audio: Modality = {
     },
     {
       title: 'Why voice output costs 3.6× input',
-      hook: 'Listening is one forward pass; speaking is autoregressive generation chunk by chunk.',
+      hook: 'Listening happens in one sweep through the model. Speaking has to be generated chunk by chunk, each chunk building on the one before.',
       stat: { value: '3.6×', label: '$0.018/min output vs. $0.005/min input' },
       bullets: [
-        'Input: audio encoder does a single forward pass — small, predictable cost.',
-        'Output: each audio chunk is conditioned on every chunk before it — real autoregressive compute.',
+        'Input: the model processes incoming audio in one pass — small, predictable cost.',
+        'Output: each chunk of spoken audio depends on everything spoken so far, so the model runs over and over, one chunk at a time.',
         'A voice agent that listens more than it talks is materially cheaper than one that monologues.',
-        'Product design (when to speak, when to stay quiet) now has a direct line to the bill.',
+        'Product decisions — when to speak, when to stay quiet — now have a direct line to the bill.',
       ],
       sources: [
         { label: 'Vertex AI Gemini Live pricing', href: 'https://cloud.google.com/vertex-ai/generative-ai/pricing' },
@@ -823,11 +827,11 @@ const world: Modality = {
   },
   tagline: 'Video you can *play*. Every input generates the next frame in real time.',
   primer: [
-    'World models (Genie 3, Oasis, GameNGen) are video models with a twist: you give them an action each frame — arrow key, mouse move, controller input — and they render the consequence.',
-    'These systems are research-access only — there is no public list price, and vendors have not disclosed inference cluster size or frame rate in detail. What is clear is the cost *shape*: you rent a whole GPU cluster for as long as someone is playing, not per frame.',
-    'Consistency is the other ceiling: after ~120 seconds of exploration, worlds tend to drift — textures jitter, collision rules fail, previously visited rooms warp. That\'s why nothing serious replaces a game engine yet.',
+    'World models (Genie 3, Oasis, GameNGen) are video models with a twist: every frame, you give them an action — an arrow key, a mouse move, a controller input — and they draw what happens next.',
+    'These are research-only systems right now — there\'s no public price list, and vendors haven\'t said exactly how big the serving clusters are or how fast they run. What\'s clear is the cost *shape*: you rent the whole cluster for the duration of a session, not per frame.',
+    'Consistency is the other wall: after about two minutes of play, generated worlds start to drift — textures jitter, collision rules break, rooms you\'ve already visited look different when you come back. That\'s why none of this has replaced a real game engine yet.',
   ],
-  whyExpensive: 'A video model generates many frames in a batch. A world model generates 1 frame, immediately, conditioned on the user\'s last input — and pays for compute that would have been batched.',
+  whyExpensive: 'A regular video model can pre-plan a whole clip and generate many frames together, sharing the work. A world model can\'t — it only knows what to draw next after you\'ve pressed a key. Every frame is generated one at a time, under a deadline, which throws away the usual savings. So you rent the whole GPU cluster for as long as someone is playing.',
   formula: 'cluster_size (H100s) = Lite 1 · Mid 4 · SOTA 8\ngpu_hours            = (minutes / 60) × cluster_size\ndollars              = gpu_hours × $2.16/hr × 1.5   # blended retail\n\n# no Vertex list price exists — these are teaching estimates.\n# you rent the whole cluster for the session; fps and resolution\n# are absorbed into the tier multiplier.',
   fields: [
     { id: 'minutes', type: 'slider', label: 'Session length', min: 1, max: 120, step: 1, default: 10, unit: 'min',
@@ -901,38 +905,38 @@ const world: Modality = {
       ],
     },
     {
-      title: 'Memory bandwidth > raw TFLOPs',
-      hook: 'World-model inference is gated by how fast you can move state through the GPU, not by how many FLOPs it has.',
-      stat: { value: '3.35 TB/s', label: 'H100 SXM HBM3 bandwidth — the current ceiling' },
+      title: 'The bottleneck is memory speed, not raw math',
+      hook: 'World models aren\'t limited by how many calculations the GPU can do. They\'re limited by how fast the GPU can shuffle the model\'s memory of the world in and out.',
+      stat: { value: '3.35 TB/s', label: 'H100 memory bandwidth — the current ceiling' },
       bullets: [
-        'Session state: every object and location you\'ve visited is kept in latents.',
-        'Every next frame is autoregressive under a sub-100ms budget.',
-        'H100 SXM (HBM3, 3.35 TB/s) is the workhorse; Blackwell B200 (HBM3e) eases the ceiling but is supply-constrained.',
-        'This is why access is gated to research subscribers instead of sold by the second.',
+        'The model has to keep track of everything you\'ve seen — objects, rooms, where you\'ve been — and pull that memory into the chip for every new frame.',
+        'It has to do that within ~100 ms per frame or the game feels laggy.',
+        'The H100 is the workhorse; the newer B200 raises the ceiling a bit but is still in short supply.',
+        'This is why world models are gated to research access instead of sold by the second — the hardware can barely keep up.',
       ],
       sources: [
         { label: 'NVIDIA H100 datasheet', href: 'https://www.nvidia.com/en-us/data-center/h100/' },
       ],
     },
     {
-      title: 'Latent action models',
-      hook: 'World models learn physics and controls from video — no hand-coded engine under the hood.',
+      title: 'The controls are learned, not programmed',
+      hook: 'World models learn physics and controls by watching video — there\'s no hand-coded game engine inside.',
       bullets: [
-        'Actions (arrow keys, mouse, controller) map to "move forward" / "look left" through learned latents.',
-        'Those mappings generalize across most generated environments — a leap from 2024.',
-        'No explicit collision mesh, no authored physics — it\'s all statistical.',
-        'Cost: the model pays for generality in every frame.',
+        'The model figures out on its own that "arrow key up" means "move forward" and "mouse right" means "look right."',
+        'Those mappings generalize across most generated environments — a big leap over 2024 models.',
+        'There\'s no explicit collision box, no authored gravity — the physics is all statistical, inferred from millions of videos.',
+        'The tradeoff: the model pays for that generality on every single frame.',
       ],
     },
     {
-      title: 'The drift ceiling',
+      title: 'The two-minute wall',
       hook: 'Around 120 seconds of continuous play, generated worlds start to forget themselves.',
-      stat: { value: '~120s', label: 'before visible texture / physics drift' },
+      stat: { value: '~120s', label: 'before visible texture and physics drift' },
       bullets: [
-        'Textures jitter, collision rules fail, previously visited rooms warp when you return.',
-        'Root cause: cross-frame memory fades as the autoregressive context window fills.',
-        'No one has yet replaced a game engine with a world model for more than short demos.',
-        'Drift ceiling, not render quality, is the real barrier to shipping a game.',
+        'Textures shimmer, collision rules break, rooms you visited earlier look different when you come back.',
+        'The cause: the model\'s memory of what just happened fades as new frames push old ones out.',
+        'Nobody has yet replaced a real game engine with a world model for more than short demos.',
+        'This memory wall — not picture quality — is the real blocker for shipping a real game.',
       ],
       sources: [
         { label: 'Google DeepMind — Genie 3', href: 'https://deepmind.google/discover/blog/genie-3/' },

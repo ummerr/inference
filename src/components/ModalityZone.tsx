@@ -1,17 +1,55 @@
-import { useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import type { Modality, Inputs } from '../modalities'
 import { Calculator } from './Calculator'
 import { ScenarioCard } from './ScenarioCard'
 import { DeepDive } from './DeepDive'
 
 export function ModalityZone({ modality }: { modality: Modality }) {
-  const initial: Inputs = useMemo(() => {
+  const defaults: Inputs = useMemo(() => {
     const o: Inputs = {}
     for (const f of modality.fields) o[f.id] = f.default
     return o
   }, [modality])
 
+  const initial: Inputs = useMemo(() => {
+    const o: Inputs = { ...defaults }
+    if (typeof window === 'undefined') return o
+    const params = new URLSearchParams(window.location.search)
+    for (const f of modality.fields) {
+      const raw = params.get(`${modality.id}.${f.id}`)
+      if (raw == null) continue
+      if (f.type === 'slider') {
+        const n = Number(raw)
+        if (Number.isFinite(n)) o[f.id] = Math.max(f.min, Math.min(f.max, n))
+      } else if (f.type === 'toggle') {
+        o[f.id] = raw === '1' || raw === 'true'
+      } else if (f.options.some(opt => opt.value === raw)) {
+        o[f.id] = raw
+      }
+    }
+    return o
+  }, [modality, defaults])
+
   const [inputs, setInputs] = useState<Inputs>(initial)
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const params = new URLSearchParams(window.location.search)
+    for (const f of modality.fields) {
+      const key = `${modality.id}.${f.id}`
+      const v = inputs[f.id]
+      if (v === f.default) {
+        params.delete(key)
+      } else {
+        params.set(key, f.type === 'toggle' ? (v ? '1' : '0') : String(v))
+      }
+    }
+    const qs = params.toString()
+    const next = `${window.location.pathname}${qs ? '?' + qs : ''}${window.location.hash}`
+    if (next !== window.location.pathname + window.location.search + window.location.hash) {
+      window.history.replaceState(null, '', next)
+    }
+  }, [inputs, modality])
   const calcRef = useRef<HTMLDivElement>(null)
   const [pulse, setPulse] = useState(false)
 
@@ -19,7 +57,13 @@ export function ModalityZone({ modality }: { modality: Modality }) {
     setInputs(prev => {
       const next: Inputs = { ...prev }
       for (const [k, v] of Object.entries(partial)) {
-        if (v !== undefined) next[k] = v
+        if (v === undefined) continue
+        const field = modality.fields.find(f => f.id === k)
+        if (field?.type === 'slider' && typeof v === 'number') {
+          next[k] = Math.max(field.min, Math.min(field.max, v))
+        } else {
+          next[k] = v
+        }
       }
       return next
     })
@@ -27,6 +71,9 @@ export function ModalityZone({ modality }: { modality: Modality }) {
     setPulse(true)
     window.setTimeout(() => setPulse(false), 900)
   }
+
+  const resetInputs = () => setInputs(defaults)
+  const isModified = modality.fields.some(f => inputs[f.id] !== f.default)
 
   return (
     <section id={`zone-${modality.id}`} className="scroll-mt-20 py-16 sm:py-24">
@@ -57,7 +104,12 @@ export function ModalityZone({ modality }: { modality: Modality }) {
         ref={calcRef}
         className={`mt-10 transition-shadow duration-500 rounded-3xl ${pulse ? `ring-4 ${modality.accent.ring}` : ''}`}
       >
-        <Calculator modality={modality} inputs={inputs} onChange={setInputs} />
+        <Calculator
+          modality={modality}
+          inputs={inputs}
+          onChange={setInputs}
+          onReset={isModified ? resetInputs : undefined}
+        />
       </div>
 
       <div className="mt-12">

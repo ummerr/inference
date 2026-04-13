@@ -233,7 +233,7 @@ const GROUPS: Group[] = [
         emoji: '⏱️',
         short: 'One second of one GPU\'s time — the universal unit of inference cost.',
         metaphor: 'Like cloud kWh. Everything you do eventually converts into this, whether the API bills you that way or not.',
-        example: '~$0.0006 on an H100 at 2026 market rates (~$2.16/hr blended across RunPod, TensorDock, Lambda, AWS).',
+        example: '~$0.0006 on an H100 at 2026 neocloud rates (~$2.16/hr blended across RunPod, TensorDock, Lambda).',
         seeAlso: ['Inference', 'Batching'],
       },
     ],
@@ -247,7 +247,7 @@ const GROUPS: Group[] = [
         emoji: '💸',
         short: 'Selling output below its true inference cost to buy growth, then being unable to raise prices without losing users.',
         metaphor: 'The MoviePass problem. Great deal until the math catches up, and by then you\'ve trained users to expect it.',
-        example: 'Sora\'s $20/mo plan, Suno\'s $10/mo. Sora\'s March 2026 shutdown made this the canonical cautionary tale.',
+        example: 'Flat-rate plans for video (Sora\'s $20/mo, etc.) and music (Suno\'s $10/mo) repeatedly run into the same wall: heavy users cost more in GPU time than they pay in subscription.',
         seeAlso: ['Inference', 'GPU-second'],
         sources: [
           { label: 'Sam Altman — on GPT-4 compute costs', href: 'https://openai.com/index/how-much-does-chatgpt-cost/' },

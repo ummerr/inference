@@ -20,14 +20,14 @@ export function Hardware() {
         <Chip
           tag="Workhorse"
           name="NVIDIA H100"
-          price="$2.16/hr"
-          body="The blended on-demand rate across RunPod ($1.99), TensorDock ($2.25), Lambda ($2.99), and AWS ($3.93). 80 GB HBM3, ~1,000 TFLOP/s FP8. This is the anchor every number on this page ties back to."
+          price="~$2.16/hr"
+          body="A blended on-demand rate across neocloud providers (RunPod ~$1.99, TensorDock ~$2.25, Lambda ~$2.99). Hyperscalers price significantly higher for comparable on-demand capacity. 80 GB HBM3, ~3.35 TB/s; ~1,979 TFLOP/s dense FP8 per NVIDIA's datasheet. This is the anchor every number on this page ties back to."
         />
         <Chip
           tag="Successor"
           name="NVIDIA B200"
           price="$5.49–6.69/hr"
-          body="Blackwell. ~2.5× the throughput of an H100 for ~3× the price — so cost-per-token is similar, but you rent it in larger chunks. Still rare on spot markets in April 2026; most workloads here still price on H100."
+          body="Blackwell. For typical Transformer inference, roughly 2–3× H100 throughput at ~3× the price, so cost-per-token is similar but you rent it in larger chunks. NVIDIA quotes higher peak uplifts for training and low-precision formats. Still rare on spot markets in April 2026; most workloads here still price on H100."
         />
         <Chip
           tag="Google's path"
@@ -51,8 +51,6 @@ export function Hardware() {
         <a href="https://www.tensordock.com/pricing" target="_blank" rel="noopener noreferrer" className="text-slate-600 hover:underline">TensorDock</a>
         <span className="mx-1">·</span>
         <a href="https://lambda.ai/service/gpu-cloud" target="_blank" rel="noopener noreferrer" className="text-slate-600 hover:underline">Lambda Cloud</a>
-        <span className="mx-1">·</span>
-        <a href="https://aws.amazon.com/ec2/instance-types/p5/" target="_blank" rel="noopener noreferrer" className="text-slate-600 hover:underline">AWS P5</a>
         <span className="mx-1">·</span>
         <a href="https://www.nvidia.com/en-us/data-center/h100/" target="_blank" rel="noopener noreferrer" className="text-slate-600 hover:underline">NVIDIA H100 datasheet</a>
         <span className="mx-1">·</span>
