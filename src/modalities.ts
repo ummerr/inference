@@ -35,6 +35,9 @@ export interface SelectField {
   default: string
   options: { value: string; label: string; hint?: string }[]
   visibleWhen?: (inputs: Inputs) => boolean
+  // When true, render as a full-width tab header above the rest of the
+  // fields instead of as an inline pill row. Used for mode switches.
+  prominent?: boolean
 }
 export type Field = SliderField | ToggleField | SelectField
 
@@ -445,11 +448,10 @@ const audio: Modality = {
     to: 'to-teal-500',
     hex: '#10b981',
   },
-  tagline: 'Music from a prompt, or a voice that talks back.',
+  tagline: 'Two cost shapes under one roof: songs that bill per clip, conversations that bill per minute.',
   primer: [
-    'Audio on Vertex splits cleanly in two. Music is the Lyria line — Lyria 2 at $0.06 per 30-second clip, Lyria 3 Pro at a flat ~$0.08 per song (up to 3 minutes). Both return 48 kHz WAV from a text prompt.',
+    'Audio on Vertex splits cleanly in two. Music is the Lyria line — Lyria 2 at $0.06 per 30-second clip, Lyria 3 Pro at a flat ~$0.08 per song up to three minutes. Both return 48 kHz WAV from a text prompt.',
     'Voice is Gemini 3.1 Flash Live — a bidirectional audio-to-audio endpoint that handles speech recognition, reasoning, and synthesis in one pass. Billing splits input and output: $0.005/min in, $0.018/min out.',
-    'Use the toggle in the calculator to flip between the two — they\'re the same section because they\'re both audio, but the cost shapes have almost nothing in common.',
   ],
   whyExpensive: 'Music bills per clip (or flat per song) because Lyria is trained to emit a fixed unit of 48 kHz, multi-instrument audio. Voice bills per minute split in/out because Flash Live is autoregressive and output tokens are ~3.6× heavier than input. Two totally different cost shapes, one modality.',
   formula: [
@@ -462,7 +464,8 @@ const audio: Modality = {
     'dollars = input_min × $0.005 + output_min × $0.018',
   ].join('\n'),
   fields: [
-    { id: 'kind', type: 'select', label: 'What are you generating?', default: 'music',
+    { id: 'kind', type: 'select', label: 'Mode', default: 'music',
+      prominent: true,
       options: [
         { value: 'music', label: '🎵 Music · Lyria' },
         { value: 'voice', label: '🗣️ Voice · Flash Live' },
@@ -550,6 +553,7 @@ const audio: Modality = {
     }
   },
   scenarios: [
+    // --- Music ---
     {
       icon: '🎺', title: '30s jingle', blurb: 'One Lyria 2 clip',
       cost: '$0.06', footnote: 'exactly one billing unit on Lyria 2',
@@ -570,6 +574,12 @@ const audio: Modality = {
       inputs: { kind: 'music', tier: 'lyria3pro', seconds: 180 },
     },
     {
+      icon: '🛋️', title: '1hr background bed', blurb: 'Lyria 2 continuous',
+      cost: '$7.20', footnote: '120 × 30s clips at $0.06 — crossfaded to loop seamlessly',
+      inputs: { kind: 'music', tier: 'lyria2', seconds: 3600 },
+    },
+    // --- Voice ---
+    {
       icon: '☎️', title: '10-min support call', blurb: 'Flash Live · balanced turns',
       cost: '$0.12', footnote: '5 min in @ $0.005 + 5 min out @ $0.018',
       inputs: { kind: 'voice', minutes: 10, outputShare: 50 },
@@ -588,11 +598,6 @@ const audio: Modality = {
       icon: '📞', title: '100k × 5-min calls', blurb: 'Call-center scale',
       cost: '~$5,750', footnote: '100k × $0.0575/call (50/50 split) — before grounding, tools, or STT fallbacks',
       inputs: { kind: 'voice', minutes: 5, outputShare: 50 },
-    },
-    {
-      icon: '🛋️', title: '1hr background bed', blurb: 'Lyria 2 continuous',
-      cost: '$7.20', footnote: '120 × 30s clips at $0.06 — crossfaded to loop seamlessly',
-      inputs: { kind: 'music', tier: 'lyria2', seconds: 3600 },
     },
   ],
   deepDive: [

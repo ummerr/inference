@@ -18,6 +18,33 @@ export function Calculator({
 
   return (
     <div className={`rounded-3xl border ${modality.accent.border} bg-white/80 backdrop-blur shadow-sm overflow-hidden`}>
+      {modality.fields
+        .filter((f): f is typeof f & { type: 'select' } => f.type === 'select' && (f as { prominent?: boolean }).prominent === true)
+        .map(f => {
+          const current = String(inputs[f.id])
+          return (
+            <div key={f.id} className={`flex border-b ${modality.accent.border} ${modality.accent.bgSoft}`}>
+              {f.options.map(opt => {
+                const isActive = current === opt.value
+                return (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => set(f.id, opt.value)}
+                    className={[
+                      'flex-1 px-4 py-3 text-sm font-semibold transition-colors',
+                      isActive
+                        ? `${modality.accent.bg} text-white`
+                        : `${modality.accent.text} hover:bg-white/60`,
+                    ].join(' ')}
+                  >
+                    {opt.label}
+                  </button>
+                )
+              })}
+            </div>
+          )
+        })}
       <div className="grid md:grid-cols-[1fr_auto]">
         <div className="p-5 sm:p-7 space-y-5">
           <div className="flex items-center justify-between">
@@ -25,6 +52,7 @@ export function Calculator({
             <span className={`text-xs font-medium ${modality.accent.text}`}>{modality.label} calculator</span>
           </div>
           {modality.fields
+            .filter(f => !(f.type === 'select' && (f as { prominent?: boolean }).prominent))
             .filter(f => !f.visibleWhen || f.visibleWhen(inputs))
             .map(f => (
               <FieldControl key={f.id} field={f} value={inputs[f.id]} onChange={v => set(f.id, v)} accent={modality.accent} />
