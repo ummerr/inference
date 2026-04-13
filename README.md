@@ -2,7 +2,7 @@
 
 An interactive explainer for how generative AI compute costs scale — with accessible analogies instead of ML jargon.
 
-Live: https://ummerr.github.io/inference/
+Live: https://inference.ummerr.com/
 
 ## Develop
 
