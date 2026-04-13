@@ -238,13 +238,11 @@ function Entry({ t }: { t: Term }) {
         <div className="space-y-2.5 md:border-l md:border-slate-200/70 md:pl-8">
           {t.metaphor && (
             <p className="text-sm text-slate-600 leading-relaxed">
-              <span className="mr-1.5" aria-hidden>💡</span>
               <span className="font-medium text-slate-700">Like:</span> {t.metaphor}
             </p>
           )}
           {t.example && (
             <p className="text-sm text-slate-600 leading-relaxed">
-              <span className="mr-1.5" aria-hidden>📐</span>
               <span className="font-medium text-slate-700">In practice:</span> {t.example}
             </p>
           )}

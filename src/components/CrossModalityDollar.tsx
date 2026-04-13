@@ -5,6 +5,7 @@
 
 interface Row {
   modality: string
+  anchor: string          // in-page section id to jump to
   accent: string          // text color class
   amount: string          // the headline number
   unit: string            // what the number is of
@@ -16,6 +17,7 @@ interface Row {
 const ROWS: Row[] = [
   {
     modality: 'Images',
+    anchor: 'zone-images',
     accent: 'text-indigo-600',
     amount: '15',
     unit: 'Nano Banana 2 images',
@@ -25,24 +27,27 @@ const ROWS: Row[] = [
   },
   {
     modality: 'Video',
+    anchor: 'zone-video',
     accent: 'text-rose-600',
-    amount: '2.5 seconds',
-    unit: 'of Veo 3.1 Standard (1080p, with audio)',
+    amount: '10 seconds',
+    unit: 'of Veo 3.1 Fast (720p, with audio)',
     priced: true,
     source: { label: 'Vertex AI pricing', href: 'https://cloud.google.com/vertex-ai/generative-ai/pricing' },
-    note: '$0.40 / second',
+    note: '$0.10 / second at 720p (post-4/7 cut from $0.15)',
   },
   {
     modality: 'Music',
+    anchor: 'zone-audio',
     accent: 'text-emerald-600',
-    amount: '8.3 minutes',
-    unit: 'of Lyria 2 music (48 kHz WAV)',
+    amount: '~37 minutes',
+    unit: 'of Lyria 3 Pro music (48 kHz WAV)',
     priced: true,
     source: { label: 'Vertex AI pricing', href: 'https://cloud.google.com/vertex-ai/generative-ai/pricing' },
-    note: '$0.06 / 30s clip · ~$0.002 / second',
+    note: '~$0.08 flat per song (≤3 min) · 12 songs/$'
   },
   {
     modality: 'Voice',
+    anchor: 'zone-audio',
     accent: 'text-emerald-800',
     amount: '55 minutes',
     unit: 'of Gemini 3.1 Flash Live spoken output',
@@ -52,6 +57,7 @@ const ROWS: Row[] = [
   },
   {
     modality: 'World models',
+    anchor: 'zone-world',
     accent: 'text-amber-600',
     amount: '~4.6 minutes',
     unit: 'of Genie 3 gameplay (720p / 24fps, est.)',
@@ -77,12 +83,15 @@ export function CrossModalityDollar() {
 
       <div className="mt-10 max-w-3xl divide-y divide-slate-200/70 border-y border-slate-200/70">
         {ROWS.map(row => (
-          <div key={row.modality} className="py-5 sm:py-6 grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-2 sm:gap-8 items-baseline">
+          <div key={row.modality} className="py-5 sm:py-6 grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-2 sm:gap-8 items-baseline group -mx-3 px-3 rounded hover:bg-slate-50/60 transition-colors">
             <div>
               <div className="flex items-center gap-2">
-                <span className={`text-sm font-semibold uppercase tracking-wider ${row.accent}`}>
-                  {row.modality}
-                </span>
+                <a
+                  href={`#${row.anchor}`}
+                  className={`text-sm font-semibold uppercase tracking-wider ${row.accent} hover:underline underline-offset-4`}
+                >
+                  {row.modality} ↓
+                </a>
                 {!row.priced && (
                   <span className="text-[10px] font-medium uppercase tracking-wider text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded">
                     estimate

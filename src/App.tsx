@@ -41,12 +41,12 @@ export default function App() {
       <main className="max-w-6xl mx-auto px-5 sm:px-8">
         <Hero />
         <Primer />
+        <CrossModalityDollar />
         {MODALITIES.map((m, i) => (
           <div key={m.id} className={i > 0 ? 'border-t border-slate-200/60' : ''}>
             <ModalityZone modality={m} />
           </div>
         ))}
-        <CrossModalityDollar />
         <Glossary />
         <Footer />
       </main>

@@ -302,7 +302,7 @@ const video: Modality = {
     'The market has settled on per-second billing because flat-rate video inference doesn\'t work — the unit cost is too high and too variable to hide inside a subscription.',
   ],
   whyExpensive: 'Cost ≈ (per-frame work) × frames. The old O(n²) temporal attention has been flattened to near-linear by sparse attention, but each frame still does image-worthy compute at higher resolutions. Every extra second or pixel is still real money.',
-  formula: 'frames      = seconds × fps\nper_frame   = 2.5 × (res / 720)² × tier_mul     # linear\ntemporal    = frames² / 8000 × tier_mul × pixel_mul  # quadratic residue\ngpu_seconds = frames × per_frame + temporal\ndollars     = gpu_seconds × $0.0006/s × 11       # retail markup\n\n# tier_mul: Lite 0.125, Fast 0.375, Standard 1.0',
+  formula: 'frames      = seconds × fps\nper_frame   = 2.5 × (res / 720)² × tier_mul     # linear\ntemporal    = frames² / 8000 × tier_mul × pixel_mul  # quadratic residue\ngpu_seconds = frames × per_frame + temporal\ndollars     = gpu_seconds × $0.0006/s × 11       # retail markup\n\n# tier_mul: Lite 0.125, Fast 0.25, Standard 1.0',
   fields: [
     { id: 'seconds',    type: 'slider', label: 'Length',     min: 1, max: 120, step: 1,  default: 6, unit: 's',
       hint: v => v <= 8 ? 'social clip' : v <= 20 ? 'short ad' : v <= 60 ? 'scene' : 'short film',
@@ -319,7 +319,7 @@ const video: Modality = {
     { id: 'tier', type: 'select', label: 'Vertex tier', default: 'good',
       options: [
         { value: 'lite', label: 'Veo 3.1 Lite ($0.05/s, no audio)' },
-        { value: 'fast', label: 'Veo 3.1 Fast ($0.15/s, w/ audio)' },
+        { value: 'fast', label: 'Veo 3.1 Fast ($0.10/s, w/ audio)' },
         { value: 'good', label: 'Veo 3.1 Standard ($0.40/s, w/ audio)' },
       ],
     },
@@ -332,11 +332,11 @@ const video: Modality = {
 
     const frames   = seconds * fps
     const pixelMul = (res / 720) ** 2
-    const tierMul  = tier === 'lite' ? 0.125 : tier === 'fast' ? 0.375 : 1
+    const tierMul  = tier === 'lite' ? 0.125 : tier === 'fast' ? 0.25 : 1
 
     // Per-frame cost, tuned so a 6s/24fps/720p Standard clip lands on Vertex
     // Veo 3.1 Standard pricing (6s × $0.40/s = $2.40). Lite and Fast tiers
-    // likewise hit $0.05/s and $0.15/s at their defaults.
+    // likewise hit $0.05/s and $0.10/s at their defaults.
     const perFrameGpuS = 2.5 * pixelMul * tierMul
     // Residual quadratic term (smaller than pre-sparse-attention era). Kept small
     // so the teaching point — that long clips still cost more than linearly — is
@@ -371,17 +371,17 @@ const video: Modality = {
       inputs: { seconds: 6, fps: 24, resolution: '720' },
       tiers: [
         { label: 'Lite',     cost: '$0.30', inputs: { tier: 'lite' } },
-        { label: 'Fast',     cost: '$0.90', inputs: { tier: 'fast' } },
+        { label: 'Fast',     cost: '$0.60', inputs: { tier: 'fast' } },
         { label: 'Standard', cost: '$2.40', inputs: { tier: 'good' } },
       ],
     },
     {
       icon: '📺', title: '30s ad spot', blurb: 'Stitched from ≤8s clips',
-      cost: '$1.50 → $12', footnote: '30 × per-second rate; retries and edits add 1.5–3× in practice',
+      cost: '$2.40 → $12', footnote: '30 × per-second rate; retries and edits add 1.5–3× in practice',
       inputs: { seconds: 30, fps: 24, resolution: '1080' },
       tiers: [
-        { label: 'Lite',     cost: '$1.50', inputs: { tier: 'lite' } },
-        { label: 'Fast',     cost: '$4.50', inputs: { tier: 'fast' } },
+        { label: 'Lite',     cost: '$2.40', inputs: { tier: 'lite' } },
+        { label: 'Fast',     cost: '$3.60', inputs: { tier: 'fast' } },
         { label: 'Standard', cost: '$12',   inputs: { tier: 'good' } },
       ],
     },
@@ -390,9 +390,9 @@ const video: Modality = {
       cost: '$6 → $48', footnote: 'before the VFX/color pass that a real short needs',
       inputs: { seconds: 120, fps: 24, resolution: '1080' },
       tiers: [
-        { label: 'Lite',     cost: '$6',     inputs: { tier: 'lite' } },
-        { label: 'Fast',     cost: '$18',    inputs: { tier: 'fast' } },
-        { label: 'Standard', cost: '$48',    inputs: { tier: 'good' } },
+        { label: 'Lite',     cost: '$6',      inputs: { tier: 'lite' } },
+        { label: 'Fast',     cost: '$14.40',  inputs: { tier: 'fast' } },
+        { label: 'Standard', cost: '$48',     inputs: { tier: 'good' } },
       ],
     },
     {
@@ -400,7 +400,7 @@ const video: Modality = {
       cost: '$180 → $1,440', footnote: 'just inference — before retries, rejects, and post',
       tiers: [
         { label: 'Lite',     cost: '$180' },
-        { label: 'Fast',     cost: '$540' },
+        { label: 'Fast',     cost: '$360' },
         { label: 'Standard', cost: '$1,440' },
       ],
     },
@@ -408,7 +408,7 @@ const video: Modality = {
   deepDive: [
     {
       title: 'Why per-second billing won',
-      body: 'High-fidelity video inference is too expensive to hide inside a flat subscription — a single 10s clip can burn dollars of real compute, so any fixed-price tier has to underprice light users or overcharge heavy ones. Veo 3.1, Kling, and Runway Gen-4 all land on per-second billing for the same reason: it\'s the only unit that tracks what the GPUs actually do. The Veo 3.1 ladder — Lite $0.05/s, Fast $0.15/s, Standard $0.40/s — lets you trade fidelity for cost explicitly instead of guessing.',
+      body: 'High-fidelity video inference is too expensive to hide inside a flat subscription — a single 10s clip can burn dollars of real compute, so any fixed-price tier has to underprice light users or overcharge heavy ones. Veo 3.1, Kling, and Runway Gen-4 all land on per-second billing for the same reason: it\'s the only unit that tracks what the GPUs actually do. The Veo 3.1 ladder — Lite $0.05/s, Fast $0.10/s, Standard $0.40/s (at 720p, post-April-7 cut) — lets you trade fidelity for cost explicitly instead of guessing.',
     },
     {
       title: 'Why a video clip costs 40× an image',

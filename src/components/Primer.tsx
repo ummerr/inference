@@ -36,17 +36,66 @@ export function Primer() {
         />
       </div>
 
-      <div className="mt-8 text-xs text-slate-500 max-w-2xl leading-relaxed">
-        Numbers are calibrated against April 2026 Google Vertex AI list prices —
-        the Nano Banana family at $0.039/$0.067/$0.134 per image (Gemini 2.5 Flash
-        Image / Gemini 3.1 Flash Image / Gemini 3 Pro Image), Veo 3.1
-        at $0.05/$0.15/$0.40 per second (Lite / Fast / Standard), Lyria 2 at
-        $0.06 / 30s clip, and Gemini 3.1 Flash Live at $0.005/$0.018 per minute
-        of audio (input/output). H100 references use a ~$2.16/hr blended rate.
-        They won't forecast your exact bill, but the <em>shape</em> should match
-        real invoices.
+      <div className="mt-10 max-w-3xl rounded-2xl border border-slate-200 bg-white/60 p-5 sm:p-6">
+        <div className="flex items-baseline justify-between gap-4 flex-wrap">
+          <div className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
+            Calibration
+          </div>
+          <div className="text-[11px] text-slate-400">Google Vertex AI list prices, April 2026</div>
+        </div>
+
+        <dl className="mt-4 grid grid-cols-1 sm:grid-cols-[auto_1fr] gap-x-6 gap-y-2.5 text-sm">
+          <PriceRow
+            label="Images · Nano Banana"
+            prices={['$0.039', '$0.067', '$0.134']}
+            note="per image · Gemini 2.5 / 3.1 Flash Image / 3 Pro Image"
+          />
+          <PriceRow
+            label="Video · Veo 3.1"
+            prices={['$0.05', '$0.10', '$0.40']}
+            note="per second · Lite / Fast / Standard"
+          />
+          <PriceRow
+            label="Music · Lyria 2"
+            prices={['$0.06']}
+            note="per 30s clip"
+          />
+          <PriceRow
+            label="Voice · Gemini 3.1 Flash Live"
+            prices={['$0.005', '$0.018']}
+            note="per minute · input / output"
+          />
+          <PriceRow
+            label="GPU reference · H100"
+            prices={['$2.16']}
+            note="per hour, blended on-demand"
+          />
+        </dl>
+
+        <p className="mt-5 text-xs text-slate-500 leading-relaxed">
+          These won't forecast your exact bill, but the <em>shape</em> should match real invoices.
+        </p>
       </div>
     </section>
+  )
+}
+
+function PriceRow({ label, prices, note }: { label: string; prices: string[]; note: string }) {
+  return (
+    <>
+      <dt className="text-slate-700 font-medium">{label}</dt>
+      <dd className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+        <span className="font-mono text-slate-900 tabular-nums">
+          {prices.map((p, i) => (
+            <span key={i}>
+              {i > 0 && <span className="text-slate-300 mx-1">/</span>}
+              {p}
+            </span>
+          ))}
+        </span>
+        <span className="text-xs text-slate-500">{note}</span>
+      </dd>
+    </>
   )
 }
 

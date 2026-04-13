@@ -87,17 +87,75 @@ export function Calculator({
         <button
           type="button"
           onClick={() => setShowMath(v => !v)}
+          aria-expanded={showMath}
           className="w-full flex items-center justify-between px-5 sm:px-7 py-3 text-xs font-semibold uppercase tracking-wider text-slate-500 hover:text-slate-700 transition-colors"
         >
           <span>{showMath ? 'Hide' : 'Show'} the math</span>
-          <span className={`font-mono ${modality.accent.text}`}>{showMath ? '−' : '+'}</span>
+          <svg
+            viewBox="0 0 12 12"
+            className={`w-3 h-3 ${modality.accent.text} transition-transform duration-200 ${showMath ? 'rotate-180' : ''}`}
+            aria-hidden="true"
+          >
+            <path d="M2 4l4 4 4-4" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
         </button>
-        {showMath && (
-          <pre className="px-5 sm:px-7 pb-5 text-[11px] sm:text-xs text-slate-700 font-mono leading-relaxed whitespace-pre-wrap">
-{modality.formula}
-          </pre>
-        )}
+        <div
+          className={`grid transition-[grid-template-rows] duration-300 ease-out ${showMath ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'}`}
+        >
+          <div className="overflow-hidden">
+            <MathBlock formula={modality.formula} accent={modality.accent} />
+          </div>
+        </div>
       </div>
+    </div>
+  )
+}
+
+function MathBlock({ formula, accent }: { formula: string; accent: Modality['accent'] }) {
+  const lines = formula.split('\n')
+  return (
+    <div className="px-5 sm:px-7 pb-5 pt-1 font-mono text-[11px] sm:text-xs leading-relaxed">
+      {lines.map((line, i) => {
+        if (line.trim() === '') return <div key={i} className="h-3" aria-hidden="true" />
+
+        // Whole-line comment (section header)
+        if (line.trimStart().startsWith('#')) {
+          return (
+            <div key={i} className="text-slate-400 italic">
+              {line}
+            </div>
+          )
+        }
+
+        // Split assignment from trailing inline comment
+        const hashIdx = line.indexOf('#')
+        const codePart = hashIdx >= 0 ? line.slice(0, hashIdx).trimEnd() : line
+        const commentPart = hashIdx >= 0 ? line.slice(hashIdx) : ''
+
+        // Split LHS and RHS on first '='
+        const eqIdx = codePart.indexOf('=')
+        const lhs = eqIdx >= 0 ? codePart.slice(0, eqIdx).trimEnd() : codePart
+        const rhs = eqIdx >= 0 ? codePart.slice(eqIdx + 1).trimStart() : ''
+
+        return (
+          <div key={i} className="flex flex-wrap items-baseline gap-x-2 text-slate-700">
+            <span className="flex-1 min-w-0">
+              {eqIdx >= 0 ? (
+                <>
+                  <span className={`${accent.text} font-semibold`}>{lhs}</span>
+                  <span className="text-slate-400 mx-1.5">=</span>
+                  <span>{rhs}</span>
+                </>
+              ) : (
+                <span>{codePart}</span>
+              )}
+            </span>
+            {commentPart && (
+              <span className="text-slate-400 italic text-[10px] sm:text-[11px]">{commentPart}</span>
+            )}
+          </div>
+        )
+      })}
     </div>
   )
 }
