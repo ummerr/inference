@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react'
 import { MODALITIES } from './modalities'
 import { Hero } from './components/Hero'
 import { Primer } from './components/Primer'
+import { Hardware } from './components/Hardware'
 import { ModalityNav } from './components/ModalityNav'
 import { ModalityZone } from './components/ModalityZone'
 import { CrossModalityDollar } from './components/CrossModalityDollar'
@@ -41,6 +42,7 @@ export default function App() {
       <main className="max-w-6xl mx-auto px-5 sm:px-8">
         <Hero />
         <Primer />
+        <Hardware />
         <CrossModalityDollar />
         {MODALITIES.map((m, i) => (
           <div key={m.id} className={i > 0 ? 'border-t border-slate-200/60' : ''}>

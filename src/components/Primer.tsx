@@ -65,11 +65,6 @@ export function Primer() {
             prices={['$0.005', '$0.018']}
             note="per minute · input / output"
           />
-          <PriceRow
-            label="GPU reference · H100"
-            prices={['$2.16']}
-            note="per hour, blended on-demand"
-          />
         </dl>
 
         <p className="mt-5 text-xs text-slate-500 leading-relaxed">
