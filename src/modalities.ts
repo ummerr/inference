@@ -301,7 +301,7 @@ const images: Modality = {
       hook: 'Same architecture, same brand — but the Flash tier is step-distilled and quantized, while Pro runs the full Gemini 3 weights.',
       bullets: [
         'Nano Banana ($0.039) — Gemini 2.5 Flash Image, step-distilled + FP8, fixed 1024², tuned for latency.',
-        'Nano Banana 2 ($0.045–$0.151) — Gemini 3.1 Flash Image, Flash speed profile, native 0.5K–4K resolution.',
+        'Nano Banana 2 ($0.067 at 1024², $0.101 at 2K) — Gemini 3.1 Flash Image, Flash speed profile, scales with resolution.',
         'Nano Banana Pro ($0.134–$0.24) — full Gemini 3 Pro weights with image head active; where multi-object composition and in-image text come from.',
         'Think of them as three points on a compute/quality curve, not three different products.',
       ],
@@ -379,7 +379,7 @@ const video: Modality = {
         { value: '2160', label: '4K' },
       ],
     },
-    { id: 'tier', type: 'select', label: 'Vertex tier', default: 'good',
+    { id: 'tier', type: 'select', label: 'Vertex tier', default: 'fast',
       options: [
         { value: 'lite', label: 'Veo 3.1 Lite ($0.05/s, no audio)' },
         { value: 'fast', label: 'Veo 3.1 Fast ($0.10/s, w/ audio)' },
@@ -780,7 +780,6 @@ const audio: Modality = {
         'Lyria trained in partnership with YouTube and music-industry licensors.',
         'Ships under Vertex\'s standard generative-AI indemnification — Google absorbs the provenance risk.',
         'Suno, Udio are cheaper but carry ongoing copyright exposure.',
-        'For anything that clears Content ID at scale — ads, trailers, streamed backgrounds — enterprise picks Vertex.',
       ],
       sources: [
         { label: 'DeepMind × YouTube — Lyria partnership', href: 'https://blog.youtube/news-and-events/dream-track-ai-experiment/' },
@@ -825,10 +824,10 @@ const world: Modality = {
   tagline: 'Video you can *play*. Every input generates the next frame in real time.',
   primer: [
     'World models (Genie 3, Oasis, GameNGen) are video models with a twist: you give them an action each frame — arrow key, mouse move, controller input — and they render the consequence.',
-    'Google DeepMind\'s Genie 3 generates real-time navigable worlds at around 720p/24fps. DeepMind has not published the exact inference cluster size, and there is no Vertex list price — this modality is research-access only. The cost shape is clear even without official numbers: you rent a whole GPU cluster for as long as someone is playing, not per frame.',
+    'These systems are research-access only — there is no public list price, and vendors have not disclosed inference cluster size or frame rate in detail. What is clear is the cost *shape*: you rent a whole GPU cluster for as long as someone is playing, not per frame.',
     'Consistency is the other ceiling: after ~120 seconds of exploration, worlds tend to drift — textures jitter, collision rules fail, previously visited rooms warp. That\'s why nothing serious replaces a game engine yet.',
   ],
-  whyExpensive: 'A video model generates 100 frames in a batch. A world model generates 1 frame, immediately, 30 times a second — and pays for compute that would have been batched.',
+  whyExpensive: 'A video model generates many frames in a batch. A world model generates 1 frame, immediately, conditioned on the user\'s last input — and pays for compute that would have been batched.',
   formula: 'cluster_size (H100s) = Lite 1 · Mid 4 · SOTA 8\ngpu_hours            = (minutes / 60) × cluster_size\ndollars              = gpu_hours × $2.16/hr × 1.5   # blended retail\n\n# no Vertex list price exists — these are teaching estimates.\n# you rent the whole cluster for the session; fps and resolution\n# are absorbed into the tier multiplier.',
   fields: [
     { id: 'minutes', type: 'slider', label: 'Session length', min: 1, max: 120, step: 1, default: 10, unit: 'min',
@@ -882,8 +881,8 @@ const world: Modality = {
         { label: 'SOTA (film-quality)', cost: '~$26',   inputs: { tier: 'sota' } },
       ],
     },
-    { icon: '🧪', title: '10k evaluation rollouts', blurb: 'Genie 3 Lite · 30s each · 360p',  cost: '~$270',   footnote: '10k × 30s on 1× H100 Lite ≈ 83 GPU-hrs × $3.24/hr retail' },
-    { icon: '🌍', title: '1M users × 20min',        blurb: 'Genie 3-scale · multi-GPU/session',   cost: '~$4M',    footnote: 'why this isn\'t yet free-to-play — the unit economics still assume a rented cluster per player' },
+    { icon: '🧪', title: '10k evaluation rollouts', blurb: 'Lite tier · 30s each',  cost: '~$270',   footnote: '10k × 30s on 1× H100 ≈ 83 GPU-hrs × $3.24/hr retail' },
+    { icon: '🌍', title: '1M users × 20min',        blurb: 'SOTA tier · multi-GPU/session',   cost: '~$4M',    footnote: 'why this isn\'t yet free-to-play — the unit economics still assume a rented cluster per player' },
   ],
   deepDive: [
     {
@@ -917,15 +916,12 @@ const world: Modality = {
     },
     {
       title: 'Latent action models',
-      hook: 'Genie 3 learns physics and controls from video — no hand-coded engine under the hood.',
+      hook: 'World models learn physics and controls from video — no hand-coded engine under the hood.',
       bullets: [
         'Actions (arrow keys, mouse, controller) map to "move forward" / "look left" through learned latents.',
         'Those mappings generalize across most generated environments — a leap from 2024.',
         'No explicit collision mesh, no authored physics — it\'s all statistical.',
         'Cost: the model pays for generality in every frame.',
-      ],
-      sources: [
-        { label: 'Google DeepMind — Genie 3 announcement', href: 'https://deepmind.google/discover/blog/genie-3/' },
       ],
     },
     {

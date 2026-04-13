@@ -60,10 +60,10 @@ const ROWS: Row[] = [
     anchor: 'zone-world',
     accent: 'text-amber-600',
     amount: '~4.6 minutes',
-    unit: 'of Genie 3 gameplay (720p / 24fps, est.)',
+    unit: 'of real-time world-model gameplay (est.)',
     priced: false,
     source: { label: 'Genie 3 — Google DeepMind', href: 'https://deepmind.google/models/genie/' },
-    note: 'Not sold on Vertex. Gated to AI Ultra subscribers in the U.S. Cost is an estimate: ~4× H100 per session at blended retail ($2.16/GPU-hr × 1.5); cluster size is a community estimate, not DeepMind-published.',
+    note: 'Not sold on any public API. Cost is a teaching estimate: ~4× H100 per session at blended retail ($2.16/GPU-hr × 1.5). Cluster size is not vendor-published.',
   },
 ]
 
@@ -123,11 +123,11 @@ export function CrossModalityDollar() {
       </div>
 
       <div className="mt-10 text-sm text-slate-600 max-w-2xl leading-relaxed">
-        The takeaway isn't that one modality is "better" than another — it's that they live on totally
-        different scales. A thousand AI images cost about as much as a single AI short film. Music is
-        a few cents a clip; voice output is measured in minutes per dollar. World models barely exist
-        as a product yet — Genie 3 is research-access only, and the unit economics aren't ready for
-        a public API.
+        Cost tracks how much compute gets packed into a second of output. Text and voice stream
+        cheaply because each token is small; an image is a few thousand tokens; a video second is
+        an image every frame; a world-model second is a video generated interactively, per user.
+        That's four orders of magnitude from the same dollar — which is why world models are still
+        research-access and why "AI video" hasn't collapsed to "AI image" pricing yet.
       </div>
     </section>
   )

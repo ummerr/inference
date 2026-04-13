@@ -172,7 +172,7 @@ const GROUPS: Group[] = [
         emoji: '🌍',
         short: 'A model that predicts the next frame of an interactive environment given a user action — video you can play.',
         metaphor: 'A dream engine. You press "left" and the model hallucinates what "left" should look like, 30 times per second.',
-        example: 'Genie 3 and Oasis (2026 leaders) run at 30 fps on a single H100 for a 720p stream. Each frame is conditioned on your last input.',
+        example: 'Google DeepMind\'s Genie 3 and Decart\'s Oasis are the current research examples. Each frame is conditioned on your last input, so compute scales with session length × concurrent players.',
         seeAlso: ['Autoregressive', 'HBM'],
         sources: [
           { label: 'Google DeepMind — Genie 3', href: 'https://deepmind.google/discover/blog/genie-3/' },
