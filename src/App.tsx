@@ -7,7 +7,6 @@ import { ModalityNav } from './components/ModalityNav'
 import { ModalityZone } from './components/ModalityZone'
 import { CrossModalityDollar } from './components/CrossModalityDollar'
 import { Glossary } from './components/Glossary'
-import { RequestLifecycle } from './components/RequestLifecycle'
 
 export default function App() {
   const bgRef = useRef<HTMLDivElement>(null)
@@ -51,7 +50,6 @@ export default function App() {
           </div>
         ))}
         <Glossary />
-        <RequestLifecycle />
         <Footer />
       </main>
     </div>
