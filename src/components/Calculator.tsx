@@ -68,7 +68,7 @@ export function Calculator({
             .filter(f => !(f.type === 'select' && (f as { prominent?: boolean }).prominent))
             .filter(f => !f.visibleWhen || f.visibleWhen(inputs))
             .map(f => (
-              <FieldControl key={f.id} field={f} value={inputs[f.id]} inputs={inputs} onChange={v => set(f.id, v)} accent={modality.accent} />
+              <FieldControl key={f.id} field={f} value={inputs[f.id]} onChange={v => set(f.id, v)} accent={modality.accent} />
             ))}
         </div>
 
@@ -174,11 +174,10 @@ function MathBlock({ formula, accent }: { formula: string; accent: Modality['acc
 }
 
 function FieldControl({
-  field, value, inputs, onChange, accent,
+  field, value, onChange, accent,
 }: {
   field: Field
   value: Inputs[string]
-  inputs: Inputs
   onChange: (v: Inputs[string]) => void
   accent: Modality['accent']
 }) {
@@ -202,7 +201,7 @@ function FieldControl({
           className={`w-full accent-current ${accent.text}`}
         />
         {field.hint && (
-          <div className="text-xs text-slate-500 mt-1">{field.hint(v, inputs)}</div>
+          <div className="text-xs text-slate-500 mt-1">{field.hint(v)}</div>
         )}
       </div>
     )
