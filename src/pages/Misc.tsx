@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from 'react'
+import { useEffect, useMemo, type ReactNode } from 'react'
 import { useRoute, useQueryState } from '../router'
 import { Claim } from '../components/Claim'
 import { NapkinMath } from '../components/NapkinMath'
@@ -163,15 +163,15 @@ export function MiscPage() {
     <div className="min-h-screen text-slate-900">
       <ModalityNav />
       <div className="max-w-5xl mx-auto px-5 sm:px-8 py-3 flex items-center gap-3 text-xs text-slate-500 border-b border-slate-200/40">
-        <a href="#unit-swap" className="hover:text-slate-900">Unit swap</a>
+        <SectionLink id="unit-swap">Unit swap</SectionLink>
         <span className="text-slate-300">·</span>
-        <a href="#cost-drops" className="hover:text-slate-900">Drops</a>
+        <SectionLink id="cost-drops">Drops</SectionLink>
         <span className="text-slate-300">·</span>
-        <a href="#video-price-watch" className="hover:text-slate-900">Prices</a>
+        <SectionLink id="video-price-watch">Prices</SectionLink>
         <span className="text-slate-300">·</span>
-        <a href="#frontier-frictions" className="hover:text-slate-900">Frictions</a>
+        <SectionLink id="frontier-frictions">Frictions</SectionLink>
         <span className="text-slate-300">·</span>
-        <a href="#playground" className="hover:text-slate-900">Napkin</a>
+        <SectionLink id="playground">Napkin</SectionLink>
       </div>
       <main className="max-w-5xl mx-auto px-5 sm:px-8">
         <Header />
@@ -183,6 +183,22 @@ export function MiscPage() {
         <BridgeFooter />
       </main>
     </div>
+  )
+}
+
+function SectionLink({ id, children }: { id: string; children: ReactNode }) {
+  return (
+    <a
+      href={`#/misc?c=${id}`}
+      onClick={(e) => {
+        e.preventDefault()
+        const el = document.getElementById(id)
+        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      }}
+      className="hover:text-slate-900"
+    >
+      {children}
+    </a>
   )
 }
 
