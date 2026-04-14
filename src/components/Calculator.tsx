@@ -182,29 +182,7 @@ function FieldControl({
   accent: Modality['accent']
 }) {
   if (field.type === 'slider') {
-    const v = Number(value)
-    return (
-      <div>
-        <div className="flex items-baseline justify-between mb-2">
-          <label className="text-sm font-medium text-slate-700">{field.label}</label>
-          <span className={`font-mono text-sm ${accent.text}`}>
-            {v}{field.unit ?? ''}
-          </span>
-        </div>
-        <input
-          type="range"
-          min={field.min}
-          max={field.max}
-          step={field.step}
-          value={v}
-          onChange={e => onChange(Number(e.target.value))}
-          className={`w-full accent-current ${accent.text}`}
-        />
-        {field.hint && (
-          <div className="text-xs text-slate-500 mt-1">{field.hint(v)}</div>
-        )}
-      </div>
-    )
+    return <SliderField field={field} value={Number(value)} onChange={onChange} accent={accent} />
   }
   if (field.type === 'toggle') {
     const v = Boolean(value)
@@ -250,6 +228,102 @@ function FieldControl({
           )
         })}
       </div>
+    </div>
+  )
+}
+
+type SliderFieldDef = Extract<Field, { type: 'slider' }>
+
+function formatSliderValue(v: number, step?: number) {
+  const decimals = step && step < 1 ? Math.min(3, Math.ceil(-Math.log10(step))) : 0
+  if (decimals === 0) return v.toLocaleString()
+  return v.toFixed(decimals)
+}
+
+function SliderField({
+  field, value, onChange, accent,
+}: {
+  field: SliderFieldDef
+  value: number
+  onChange: (v: number) => void
+  accent: Modality['accent']
+}) {
+  const [active, setActive] = useState(false)
+  const pct = ((value - field.min) / (field.max - field.min)) * 100
+  const step = field.step ?? 1
+  const range = field.max - field.min
+  const stepCount = Math.round(range / step)
+  const tickCount = stepCount > 0 && stepCount <= 12 ? stepCount + 1 : 0
+  const formatted = formatSliderValue(value, field.step)
+
+  const bump = (dir: number) => {
+    const next = Math.min(field.max, Math.max(field.min, value + dir * step))
+    onChange(Number(next.toFixed(6)))
+  }
+
+  return (
+    <div>
+      <div className="flex items-baseline justify-between mb-2">
+        <label className="text-sm font-medium text-slate-700">{field.label}</label>
+        <div className="flex items-center gap-1">
+          <button
+            type="button"
+            aria-label="decrease"
+            onClick={() => bump(-1)}
+            className="w-6 h-6 grid place-items-center rounded-md text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
+          >
+            <svg viewBox="0 0 10 10" className="w-2.5 h-2.5" aria-hidden="true">
+              <path d="M1.5 5h7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+            </svg>
+          </button>
+          <span className={`font-mono text-sm tabular-nums ${accent.text} min-w-[3ch] text-right`}>
+            {formatted}{field.unit ?? ''}
+          </span>
+          <button
+            type="button"
+            aria-label="increase"
+            onClick={() => bump(1)}
+            className="w-6 h-6 grid place-items-center rounded-md text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
+          >
+            <svg viewBox="0 0 10 10" className="w-2.5 h-2.5" aria-hidden="true">
+              <path d="M5 1.5v7M1.5 5h7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+            </svg>
+          </button>
+        </div>
+      </div>
+      <div
+        className="fancy-slider"
+        data-active={active || undefined}
+        style={{ ['--accent' as string]: accent.hex, ['--pct' as string]: `${pct}%` }}
+      >
+        <div className="fs-track">
+          <div className="fs-fill" />
+        </div>
+        {tickCount > 0 && (
+          <div className="fs-ticks" aria-hidden="true">
+            {Array.from({ length: tickCount }).map((_, i) => (
+              <span key={i} className="fs-tick" />
+            ))}
+          </div>
+        )}
+        <input
+          type="range"
+          min={field.min}
+          max={field.max}
+          step={field.step}
+          value={value}
+          onChange={e => onChange(Number(e.target.value))}
+          onPointerDown={() => setActive(true)}
+          onPointerUp={() => setActive(false)}
+          onPointerCancel={() => setActive(false)}
+          onBlur={() => setActive(false)}
+          aria-label={field.label}
+        />
+        <div className="fs-bubble">{formatted}{field.unit ?? ''}</div>
+      </div>
+      {field.hint && (
+        <div className="text-xs text-slate-500 mt-2 min-h-[1.25rem]">{field.hint(value)}</div>
+      )}
     </div>
   )
 }
