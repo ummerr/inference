@@ -224,6 +224,17 @@ function FieldControl({
               title={opt.hint}
             >
               {opt.label}
+              {opt.estimated && (
+                <span
+                  className={[
+                    'ml-1.5 text-[9px] font-bold uppercase tracking-wider px-1 py-0.5 rounded',
+                    isActive ? 'bg-white/25 text-white' : 'bg-amber-100 text-amber-800',
+                  ].join(' ')}
+                  title="Our estimate — not a published vendor price"
+                >
+                  est
+                </span>
+              )}
             </button>
           )
         })}

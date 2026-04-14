@@ -33,7 +33,7 @@ export interface SelectField {
   type: 'select'
   label: string
   default: string
-  options: { value: string; label: string; hint?: string }[]
+  options: { value: string; label: string; hint?: string; estimated?: boolean }[]
   visibleWhen?: (inputs: Inputs) => boolean
   // When true, render as a full-width tab header above the rest of the
   // fields instead of as an inline pill row. Used for mode switches.
@@ -118,6 +118,10 @@ export interface Modality {
     hex: string         // raw hex for SVG / canvas use
   }
   tagline: string
+  // Optional banner rendered between the primer and the cost-shape box.
+  // Used for modalities where calculator numbers are illustrative rather
+  // than anchored to any vendor list price (e.g. world models).
+  disclaimer?: string
   primer: string[]       // short paragraphs
   whyExpensive: string   // one-liner explaining the cost shape
   // Plain-English rendering of what the calc is doing. Shown behind a
@@ -140,12 +144,26 @@ const fmt = (n: number) => {
   return `$${n.toExponential(2)}`
 }
 
-// A single "GPU-second" unit cost for a modern accelerator (H100-class, cloud-rented).
+// A single "GPU-second" anchor for a modern accelerator (H100-class, cloud-rented).
 // As of April 2026, on-demand H100 pricing across neocloud providers sits around
 // $1.99–$2.99/hr (RunPod, TensorDock, Lambda). Hyperscalers price substantially
-// higher. Blackwell B200 is $5.49–$6.69/hr. We use ~$2.16/hr ≈ $0.0006/GPU-s as
-// the representative figure — the blended-rate anchor every calculator builds on.
+// higher. Blackwell B200 is $5.49–$6.69/hr. We use ~$2.16/hr ≈ $0.0006/GPU-s.
+//
+// Important framing: this is a top-down *anchor*, not a bottom-up measurement.
+// We are not claiming Vertex's per-image cost equals steps × GPU-seconds ×
+// this rate. We pick this anchor and then back-solve calibration constants
+// (see VERTEX_CALIBRATION_* below) so that default-knob outputs match Vertex
+// list prices. It's a teaching parameterisation, not a cost model.
 const GPU_SECOND = 0.0006
+
+// Calibration constants, back-solved so that GPU-seconds × GPU_SECOND ×
+// CALIBRATION matches Vertex list price at the default-knob settings. These
+// are *not* "retail API markup" in any meaningful margin sense — they are
+// the fudge factor that absorbs everything we haven't modelled bottom-up
+// (custom chips, compiled graphs, lower-precision weights, caching, batch
+// economics, and yes, margin). Call them calibration, not markup.
+const VERTEX_CALIBRATION_IMAGE = 27  // anchors Nano Banana 2 default = $0.067/img
+const VERTEX_CALIBRATION_VIDEO = 11  // anchors Veo 3.1 Standard 6s/720p = $2.40
 
 // ---------------------------------------------------------------------------
 // Images
@@ -170,7 +188,7 @@ const images: Modality = {
     'Google\'s current image lineup on Vertex AI is the Gemini Flash Image family — nicknamed "Nano Banana" in the developer community: Nano Banana / Gemini 2.5 Flash Image ($0.039/image), Nano Banana 2 / Gemini 3.1 Flash Image ($0.067), and Nano Banana Pro / Gemini 3 Pro Image ($0.134). Same underlying technique — the top tier just spends more compute per call.',
   ],
   whyExpensive: 'More denoising steps = a cleaner image and a linearly bigger bill. "Guidance" — the trick that makes the image match your prompt — runs the model twice per step, so turning it on roughly doubles the cost. Doubling the resolution quadruples the work (twice as wide × twice as tall). Vertex hides these knobs behind a tier name: you pick Nano Banana / NB 2 / NB Pro, it picks the rest for you.',
-  formula: 'gpu_seconds = steps × passes × size_mul × (res / 1024)² × 0.083\ndollars    = gpu_seconds × $0.0006/s × 27   # retail API markup\n\n# size_mul: Nano Banana 0.58, NB 2 1.0, NB Pro 2.0\n# passes:   guided = 2, unguided = 1',
+  formula: 'gpu_seconds = steps × passes × size_mul × (res / 1024)² × 0.083\ndollars    = gpu_seconds × $0.0006/s × 27   # calibration, not margin\n\n# size_mul: Nano Banana 0.58, NB 2 1.0, NB Pro 2.0\n# passes:   guided = 2, unguided = 1\n# the 27× is back-solved from Vertex list price, not a measured markup.',
   fields: [
     {
       id: 'steps', type: 'slider', label: 'Denoising steps',
@@ -193,9 +211,9 @@ const images: Modality = {
     {
       id: 'modelSize', type: 'select', label: 'Vertex tier', default: 'medium',
       options: [
-        { value: 'small',  label: 'Nano Banana · Gemini 2.5 Flash Image ($0.039/img)' },
-        { value: 'medium', label: 'Nano Banana 2 · Gemini 3.1 Flash Image ($0.067/img)' },
-        { value: 'large',  label: 'Nano Banana Pro · Gemini 3 Pro Image ($0.134/img)' },
+        { value: 'small',  label: 'Gemini 2.5 Flash Image · "Nano Banana" ($0.039/img)' },
+        { value: 'medium', label: 'Gemini 3.1 Flash Image · "Nano Banana 2" ($0.067/img)' },
+        { value: 'large',  label: 'Gemini 3 Pro Image · "Nano Banana Pro" ($0.134/img)' },
       ],
     },
   ],
@@ -216,7 +234,7 @@ const images: Modality = {
     // knobs (25 steps, guided, 1024²) matches Vertex's list price of
     // $0.067/image — the whole family falls out from one anchor.
     const gpuSeconds = steps * passes * sizeMul * pixelMul * 0.083
-    const dollars = gpuSeconds * GPU_SECOND * 27 // retail API markup
+    const dollars = gpuSeconds * GPU_SECOND * VERTEX_CALIBRATION_IMAGE
 
     return {
       headline: fmt(dollars),
@@ -237,27 +255,27 @@ const images: Modality = {
       cost: '$0.039 → $0.134', footnote: 'Vertex list price per image — tier = Nano Banana (2.5 Flash Image) / NB 2 (3.1 Flash Image) / NB Pro (3 Pro Image)',
       inputs: { steps: 25, guided: true, resolution: '1024' },
       tiers: [
-        { label: 'Nano Banana',     cost: '$0.039', inputs: { modelSize: 'small' } },
-        { label: 'Nano Banana 2',   cost: '$0.067', inputs: { modelSize: 'medium' } },
-        { label: 'Nano Banana Pro', cost: '$0.134', inputs: { modelSize: 'large' } },
+        { label: 'Gemini 2.5 Flash Image', cost: '$0.039', inputs: { modelSize: 'small' } },
+        { label: 'Gemini 3.1 Flash Image', cost: '$0.067', inputs: { modelSize: 'medium' } },
+        { label: 'Gemini 3 Pro Image',     cost: '$0.134', inputs: { modelSize: 'large' } },
       ],
     },
     {
       icon: '🖨️', title: '2K print-ready', blurb: 'Native 2048² output',
-      cost: '$0.101 → $0.134', footnote: 'NB 2 scales with resolution ($0.101 at 2K); NB Pro is flat $0.134 through 2K (then $0.24 at 4K). Nano Banana is fixed at 1024².',
+      cost: '$0.101 → $0.134', footnote: '3.1 Flash Image scales with resolution ($0.101 at 2K); 3 Pro Image is flat $0.134 through 2K (then $0.24 at 4K). 2.5 Flash Image is fixed at 1024².',
       inputs: { steps: 25, guided: true, resolution: '2048' },
       tiers: [
-        { label: 'Nano Banana 2',   cost: '$0.101', inputs: { modelSize: 'medium' } },
-        { label: 'Nano Banana Pro', cost: '$0.134', inputs: { modelSize: 'large' } },
+        { label: 'Gemini 3.1 Flash Image', cost: '$0.101', inputs: { modelSize: 'medium' } },
+        { label: 'Gemini 3 Pro Image',     cost: '$0.134', inputs: { modelSize: 'large' } },
       ],
     },
     {
       icon: '📦', title: 'Catalogue of 10k', blurb: 'Batched via Vertex batch API',
       cost: '$195 → $670', footnote: 'Batch API is ~50% cheaper than online; committed-use discounts stack on top',
       tiers: [
-        { label: 'Nano Banana',     cost: '$195' },
-        { label: 'Nano Banana 2',   cost: '$335' },
-        { label: 'Nano Banana Pro', cost: '$670' },
+        { label: 'Gemini 2.5 Flash Image', cost: '$195' },
+        { label: 'Gemini 3.1 Flash Image', cost: '$335' },
+        { label: 'Gemini 3 Pro Image',     cost: '$670' },
       ],
     },
     {
@@ -366,7 +384,7 @@ const video: Modality = {
     'Providers bill per second of output because flat-rate subscriptions can\'t hide the true cost — one heavy user can burn more compute in a day than they pay in a month.',
   ],
   whyExpensive: 'Cost ≈ (work per frame) × (number of frames). Older video models got drastically more expensive as clips got longer, because every frame had to "look at" every other frame. Newer models only check nearby frames, which keeps cost roughly linear with length. Each frame still does almost as much work as a full image, though, so seconds and pixels add up quickly.',
-  formula: 'frames      = seconds × fps\nper_frame   = 2.5 × (res / 720)² × tier_mul     # linear\ntemporal    = frames² / 8000 × tier_mul × pixel_mul  # quadratic residue\ngpu_seconds = frames × per_frame + temporal\ndollars     = gpu_seconds × $0.0006/s × 11       # retail markup\n\n# tier_mul: Lite 0.125, Fast 0.25, Standard 1.0',
+  formula: 'frames      = seconds × fps\nper_frame   = 2.5 × (res / 720)² × tier_mul     # linear\ntemporal    = frames² / 8000 × tier_mul × pixel_mul  # quadratic residue\ngpu_seconds = frames × per_frame + temporal\ndollars     = gpu_seconds × $0.0006/s × 11       # calibration, not margin\n\n# tier_mul: Lite 0.125, Fast 0.25, Standard 1.0\n# 8000 is a shape constant (not a measurement) tuned so the quadratic tail\n# is ~5% at 8s/24fps/720p; the 11× back-solves to Vertex list price.',
   fields: [
     { id: 'seconds',    type: 'slider', label: 'Length',     min: 4, max: 8, step: 2,  default: 6, unit: 's',
       hint: v => v === 4 ? 'short take' : v === 6 ? 'default clip' : 'max single generation',
@@ -404,13 +422,17 @@ const video: Modality = {
     // clip matches Vertex Veo 3.1 Standard pricing (6s × $0.40/s = $2.40);
     // Lite and Fast fall out from the same anchor via their tier multipliers.
     const perFrameGpuS = 2.5 * pixelMul * tierMul
-    // Residual quadratic term (smaller than pre-sparse-attention era). Kept small
-    // so the teaching point — that long clips still cost more than linearly — is
-    // visible without overpowering the per-frame term.
-    const temporalGpuS = (frames * frames / 8000) * tierMul * pixelMul
+    // Residual quadratic term (smaller than pre-sparse-attention era). The
+    // divisor below is a *shape constant*, chosen so the quadratic tail is
+    // ~5% of the linear term at 8s/24fps/720p. It is not derived from
+    // attention head counts or sequence length — it's the curve that
+    // teaches the right intuition (long clips still cost more than
+    // linearly) without overpowering the per-frame term at default knobs.
+    const QUADRATIC_SHAPE_DIVISOR = 8000
+    const temporalGpuS = (frames * frames / QUADRATIC_SHAPE_DIVISOR) * tierMul * pixelMul
 
     const gpuSeconds = frames * perFrameGpuS + temporalGpuS
-    const dollars = gpuSeconds * GPU_SECOND * 11 // retail API markup
+    const dollars = gpuSeconds * GPU_SECOND * VERTEX_CALIBRATION_VIDEO
 
     const warn = res >= 2160 && seconds >= 20
       ? 'At 4K for 20s+, real models hit VRAM walls and have to chunk — real cost often balloons 2–4× over this estimate.'
@@ -596,7 +618,7 @@ const audio: Modality = {
       visibleWhen: i => i.kind === 'music',
       options: [
         { value: 'lyria2',    label: 'Lyria 2 · $0.06 / 30s clip' },
-        { value: 'lyria3pro', label: 'Lyria 3 Pro · ~$0.08 flat per song (≤3 min)' },
+        { value: 'lyria3pro', label: 'Lyria 3 Pro · ~$0.08 flat per song (≤3 min)', estimated: true },
       ],
     },
     { id: 'seconds', type: 'slider', label: 'Track length', min: 5, max: 300, step: 5, default: 30, unit: 's',
@@ -826,6 +848,7 @@ const world: Modality = {
     hex: '#f59e0b',
   },
   tagline: 'Video you can *play*. Every input generates the next frame in real time.',
+  disclaimer: 'No vendor has published serving cluster sizes, fps targets, or per-session costs for interactive world models. The tiers below (1× / 4× / 8× H100) are illustrative — chosen to teach the cost shape, not to predict what Genie, Oasis, or GameNGen actually run on.',
   primer: [
     'World models (Genie 3, Oasis, GameNGen) are video models with a twist: every frame, you give them an action — an arrow key, a mouse move, a controller input — and they draw what happens next.',
     'These are research-only systems right now — there\'s no public price list, and vendors haven\'t said exactly how big the serving clusters are or how fast they run. What\'s clear is the cost *shape*: you rent the whole cluster for the duration of a session, not per frame.',
@@ -839,9 +862,9 @@ const world: Modality = {
     },
     { id: 'tier', type: 'select', label: 'Model tier', default: 'mid',
       options: [
-        { value: 'lite', label: 'Lite · distilled · 1× H100' },
-        { value: 'mid',  label: 'Mid · research SOTA · 4× H100' },
-        { value: 'sota', label: 'SOTA · film-quality · 8× H100' },
+        { value: 'lite', label: 'Lite · distilled · 1× H100', estimated: true },
+        { value: 'mid',  label: 'Mid · research SOTA · 4× H100', estimated: true },
+        { value: 'sota', label: 'SOTA · film-quality · 8× H100', estimated: true },
       ],
     },
   ],

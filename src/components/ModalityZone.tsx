@@ -93,6 +93,15 @@ export function ModalityZone({ modality }: { modality: Modality }) {
         ))}
       </div>
 
+      {modality.disclaimer && (
+        <div className="mt-6 max-w-2xl rounded-2xl bg-amber-50 border border-amber-200 px-5 py-4">
+          <div className="text-[11px] font-bold uppercase tracking-wider text-amber-800 mb-1">
+            Illustrative, not measured
+          </div>
+          <div className="text-amber-900 text-sm leading-relaxed">{modality.disclaimer}</div>
+        </div>
+      )}
+
       <div className={`mt-6 max-w-2xl rounded-2xl ${modality.accent.bgSoft} border ${modality.accent.border} px-5 py-4`}>
         <div className={`text-[11px] font-bold uppercase tracking-wider ${modality.accent.text} mb-1`}>
           The cost shape
