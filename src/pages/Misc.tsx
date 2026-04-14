@@ -320,6 +320,14 @@ const CONFIDENCE_STYLE: Record<Confidence, string> = {
   Low: 'bg-rose-50 text-rose-700 border-rose-200',
 }
 
+const PROVIDER_DOMAIN: Record<string, string> = {
+  xAI: 'x.ai',
+  Google: 'deepmind.google',
+  Runway: 'runwayml.com',
+  Kuaishou: 'klingai.com',
+  ByteDance: 'bytedance.com',
+}
+
 function VideoPriceWatch() {
   return (
     <section id="video-price-watch" className="py-12 border-t border-slate-200/60">
@@ -338,9 +346,18 @@ function VideoPriceWatch() {
         {VIDEO_PRICES.map((r, i) => (
           <Claim key={r.id} id={r.id}>
             <div className={`grid grid-cols-[1.3fr_1.1fr_0.65fr_0.65fr_0.85fr_0.85fr_1.7fr] text-sm ${i > 0 ? 'border-t border-slate-200/60' : ''}`}>
-              <div className="px-5 py-4">
-                <div className="font-medium">{r.model}</div>
-                <div className="text-xs text-slate-500">{r.provider}</div>
+              <div className="px-5 py-4 flex items-start gap-2.5">
+                <img
+                  src={`https://www.google.com/s2/favicons?domain=${PROVIDER_DOMAIN[r.provider] ?? r.provider.toLowerCase() + '.com'}&sz=64`}
+                  alt=""
+                  aria-hidden="true"
+                  loading="lazy"
+                  className="w-4 h-4 mt-0.5 rounded-sm shrink-0"
+                />
+                <div className="min-w-0">
+                  <div className="font-medium">{r.model}</div>
+                  <div className="text-xs text-slate-500">{r.provider}</div>
+                </div>
               </div>
               <div className="px-5 py-4 text-slate-700">{r.variant}</div>
               <div className="px-5 py-4 font-mono text-slate-900">{r.pricePerSec}</div>
