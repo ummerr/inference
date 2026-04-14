@@ -11,6 +11,8 @@ type Friction = {
   color: { text: string; bg: string; border: string; bgSoft: string }
   bottleneck: string
   tenX: string
+  delta: string
+  zoneId: string
   papers: { label: string; href: string }[]
 }
 
@@ -21,6 +23,8 @@ const FRICTIONS: Friction[] = [
     color: { text: 'text-indigo-700', bg: 'bg-indigo-600', border: 'border-indigo-200', bgSoft: 'bg-indigo-50' },
     bottleneck: 'Step count is the wall. Each denoising pass is a full U-Net/DiT forward. Cutting passes from ~25 to ~4 via distillation has been the main source of recent cost drops — at the price of a slightly narrower quality envelope at the top end.',
     tenX: 'A 10× cheaper image needs either single-step generation that holds diversity, or aggressive architectural sparsity (MoE, block-sparse attention). Hardware alone won\'t do it.',
+    delta: '25 → 4 passes via distillation ≈ 6× cheaper at equal quality.',
+    zoneId: 'images',
     papers: [
       { label: 'Consistency Models (Song et al., 2023)', href: 'https://arxiv.org/abs/2303.01469' },
       { label: 'Latent Consistency Models (Luo et al., 2023)', href: 'https://arxiv.org/abs/2310.04378' },
@@ -33,6 +37,8 @@ const FRICTIONS: Friction[] = [
     color: { text: 'text-rose-700', bg: 'bg-rose-600', border: 'border-rose-200', bgSoft: 'bg-rose-50' },
     bottleneck: 'Temporal attention memory. Frames are not independent — each frame attends across a context window, and the KV-cache grows with length × resolution × layers. HBM bandwidth, not FLOPs, is usually the binding constraint on long clips.',
     tenX: 'A 10× cheaper second of video needs sub-quadratic temporal attention (linear or state-space variants), better frame-token compression, or hierarchical generation that plans once and fills in cheaply.',
+    delta: 'Veo 3.1 Standard dropped to $0.40/sec on 2026-04-07 — 60% cut in one release.',
+    zoneId: 'video',
     papers: [
       { label: 'Lumiere: Space-Time Diffusion (Bar-Tal et al., 2024)', href: 'https://arxiv.org/abs/2401.12945' },
       { label: 'VideoPoet (Kondratyuk et al., 2024)', href: 'https://arxiv.org/abs/2312.14125' },
@@ -45,6 +51,8 @@ const FRICTIONS: Friction[] = [
     color: { text: 'text-emerald-700', bg: 'bg-emerald-600', border: 'border-emerald-200', bgSoft: 'bg-emerald-50' },
     bottleneck: 'Streaming latency budgets. Live voice has to produce tokens faster than they\'re spoken, with a KV-cache that grows linearly with dialogue length. Quality-of-service degrades the moment a single batch slot misses its frame.',
     tenX: 'A 10× cheaper minute of live voice needs aggressive cache eviction, speculative decoding tuned for audio tokenizers, and tighter co-design between the acoustic model and the streaming scheduler.',
+    delta: 'Speculative decoding delivers ~2–3× throughput wins on dense LMs — audio is the next front.',
+    zoneId: 'audio',
     papers: [
       { label: 'AudioLM (Borsos et al., 2022)', href: 'https://arxiv.org/abs/2209.03143' },
       { label: 'MusicLM (Agostinelli et al., 2023)', href: 'https://arxiv.org/abs/2301.11325' },
@@ -57,11 +65,73 @@ const FRICTIONS: Friction[] = [
     color: { text: 'text-amber-700', bg: 'bg-amber-600', border: 'border-amber-200', bgSoft: 'bg-amber-50' },
     bottleneck: 'Interactive world models have to generate, render, and remain consistent under user input — all inside a single frame budget. Persistence of state across long sessions is the open problem: the model has to remember what it drew five minutes ago without re-paying full attention cost.',
     tenX: 'A 10× cheaper interactive minute needs world-state compression that isn\'t just a growing KV-cache — some form of learned scene graph or neural memory that can be read cheaply and written sparsely.',
+    delta: 'Genie-class demos cap at minutes, not hours — memory is still the ceiling, not compute.',
+    zoneId: 'world',
     papers: [
       { label: 'Genie: Generative Interactive Environments (Bruce et al., 2024)', href: 'https://arxiv.org/abs/2402.15391' },
       { label: 'SIMA: Scalable Instructable Multiworld Agent', href: 'https://deepmind.google/discover/blog/sima-generalist-ai-agent-for-3d-virtual-environments/' },
       { label: 'World Models (Ha & Schmidhuber, 2018)', href: 'https://arxiv.org/abs/1803.10122' },
     ],
+  },
+]
+
+type Scenario = {
+  id: string
+  icon: string
+  title: string
+  blurb: string
+  params: string
+  tokens: string
+  rate: string
+  util: string
+}
+
+const SCENARIOS: Scenario[] = [
+  { id: 'chat-7b', icon: '💬', title: '7B chat reply', blurb: '~1k tokens, spot H100, healthy batch', params: '7', tokens: '1000', rate: '0.0004', util: '0.4' },
+  { id: 'llama-70b', icon: '🦙', title: 'Llama-70B answer', blurb: '~500 tokens, retail H100 rate', params: '70', tokens: '500', rate: '0.0006', util: '0.3' },
+  { id: 'frontier-400b', icon: '🧠', title: 'Frontier dense 400B', blurb: 'Treated as dense — MoE wins ignored', params: '400', tokens: '500', rate: '0.0008', util: '0.25' },
+  { id: 'long-ctx-30b', icon: '📚', title: 'Long-context 30B @ 32k', blurb: 'Attention cost not modeled — floor only', params: '30', tokens: '32000', rate: '0.0006', util: '0.35' },
+  { id: 'edge-1b', icon: '📱', title: 'Edge 1.5B on cheap silicon', blurb: 'High util, low rate, short reply', params: '1.5', tokens: '1000', rate: '0.0002', util: '0.5' },
+  { id: 'batch-throughput', icon: '⚙️', title: 'Batched 70B throughput', blurb: 'Push util to the ceiling', params: '70', tokens: '1000', rate: '0.0006', util: '0.6' },
+]
+
+type CostEvent = {
+  id: string
+  date: string
+  provider: string
+  model: string
+  headline: string
+  detail: string
+  href: string
+}
+
+const COST_EVENTS: CostEvent[] = [
+  {
+    id: 'evt-veo-31-cut',
+    date: '2026-04-07',
+    provider: 'Google',
+    model: 'Veo 3.1 Standard',
+    headline: '$1.00 → $0.40 / sec (flagship cut)',
+    detail: '60% price drop on the Vertex AI flagship tier with audio. 6s clip now $2.40.',
+    href: 'https://cloud.google.com/vertex-ai/generative-ai/pricing',
+  },
+  {
+    id: 'evt-grok-imagine-ga',
+    date: '2026-04-14',
+    provider: 'xAI',
+    model: 'Grok Imagine Video',
+    headline: '$0.05 / sec at GA',
+    detail: 'xAI publishes docs; 720p with audio at 60 RPM. Batch API offers no generation discount.',
+    href: 'https://docs.x.ai/docs/models',
+  },
+  {
+    id: 'evt-seedance-ark',
+    date: '2026-03-05',
+    provider: 'ByteDance',
+    model: 'Seedance 2.0 (Volcengine)',
+    headline: '~$0.14 / sec estimate (Ark direct)',
+    detail: 'TechNode reports ≈1 RMB/sec on Volcengine Ark — direct-API pricing still gated, reseller routes remain the verifiable path.',
+    href: 'https://technode.com/2026/03/05/bytedances-seedance-2-0-video-model-costs-about-0-14-per-second/',
   },
 ]
 
@@ -87,6 +157,8 @@ export function MiscPage() {
       <div className="max-w-5xl mx-auto px-5 sm:px-8 py-3 flex items-center gap-3 text-xs text-slate-500 border-b border-slate-200/40">
         <a href="#unit-swap" className="hover:text-slate-900">Unit swap</a>
         <span className="text-slate-300">·</span>
+        <a href="#cost-drops" className="hover:text-slate-900">Drops</a>
+        <span className="text-slate-300">·</span>
         <a href="#video-price-watch" className="hover:text-slate-900">Prices</a>
         <span className="text-slate-300">·</span>
         <a href="#frontier-frictions" className="hover:text-slate-900">Frictions</a>
@@ -96,6 +168,7 @@ export function MiscPage() {
       <main className="max-w-5xl mx-auto px-5 sm:px-8">
         <Header />
         <UnitSwap />
+        <CostDropTracker />
         <VideoPriceWatch />
         <FrontierFrictions />
         <Playground />
@@ -299,7 +372,7 @@ function VideoPriceWatch() {
 
   return (
     <section id="video-price-watch" className="py-12 border-t border-slate-200/60">
-      <SectionHeader kicker="02" title="Video price watch" lede="List prices for frontier video APIs, scraped from provider docs. Live — refreshed via the scrape-genmedia-prices skill." />
+      <SectionHeader kicker="03" title="Video price watch" lede="List prices for frontier video APIs, scraped from provider docs. Live — refreshed via the scrape-genmedia-prices skill." />
 
       <div className="mt-6 flex flex-wrap items-center gap-3 text-xs">
         <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-100 text-slate-600 font-medium">
@@ -411,7 +484,7 @@ function VideoPriceWatch() {
 function FrontierFrictions() {
   return (
     <section id="frontier-frictions" className="py-12 border-t border-slate-200/60">
-      <SectionHeader kicker="03" title="Frontier frictions" lede="What's actually hard right now. One card per modality — bottleneck, what a 10× cost drop would require, and papers worth reading." />
+      <SectionHeader kicker="04" title="Frontier frictions" lede="What's actually hard right now. One card per modality — bottleneck, what a 10× cost drop would require, and papers worth reading." />
 
       <div className="mt-8 grid sm:grid-cols-2 gap-4">
         {FRICTIONS.map(f => (
@@ -422,6 +495,12 @@ function FrontierFrictions() {
               <p className="text-sm text-slate-700 leading-relaxed mb-4">{f.bottleneck}</p>
               <div className="text-[11px] uppercase tracking-wider text-slate-500 font-semibold mb-1">What a 10× drop needs</div>
               <p className="text-sm text-slate-700 leading-relaxed mb-4">{f.tenX}</p>
+              <div className={`rounded-lg border ${f.color.border} bg-white/60 px-3 py-2 mb-4 text-xs text-slate-700`}>
+                <span className={`font-semibold ${f.color.text} mr-1.5`}>Δ</span>{f.delta}
+              </div>
+              <a href={`#/?zone=${f.zoneId}`} className={`inline-block text-xs font-medium ${f.color.text} hover:underline mb-3`}>
+                See {f.title.toLowerCase()} priced on page one →
+              </a>
               <div className="pt-3 border-t border-white/80 text-xs text-slate-500">
                 <span className="font-medium text-slate-600">Further reading: </span>
                 {f.papers.map((p, i) => (
@@ -440,15 +519,66 @@ function FrontierFrictions() {
 }
 
 function Playground() {
+  const scenarioHref = (s: Scenario) => {
+    const qs = new URLSearchParams({ params: s.params, tokens: s.tokens, rate: s.rate, util: s.util })
+    return `#/misc?${qs.toString()}#playground`
+  }
   return (
     <section id="playground" className="py-12 border-t border-slate-200/60">
-      <SectionHeader kicker="04" title="Back-of-envelope playground" lede="Inference cost from first principles. Four numbers in, three-line derivation out. The URL encodes your inputs — share it." />
-      <div className="mt-8">
+      <SectionHeader kicker="05" title="Back-of-envelope playground" lede="Inference cost from first principles. Four numbers in, three-line derivation out. The URL encodes your inputs — share it." />
+
+      <div className="mt-8 grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
+        {SCENARIOS.map(s => (
+          <a
+            key={s.id}
+            href={scenarioHref(s)}
+            className="group block rounded-2xl border border-slate-200 bg-white/70 hover:bg-white hover:border-slate-400 transition-colors p-4"
+          >
+            <div className="flex items-start gap-3">
+              <div className="text-xl shrink-0" aria-hidden="true">{s.icon}</div>
+              <div className="min-w-0">
+                <div className="text-sm font-semibold text-slate-900 group-hover:text-slate-700">{s.title}</div>
+                <div className="text-xs text-slate-500 mt-0.5">{s.blurb}</div>
+                <div className="mt-2 text-[10px] font-mono text-slate-400">
+                  {s.params}B · {s.tokens} tok · ${s.rate}/s · util {s.util}
+                </div>
+              </div>
+            </div>
+          </a>
+        ))}
+      </div>
+
+      <div className="mt-6">
         <NapkinMath />
       </div>
       <div className="mt-4 text-xs text-slate-500 leading-relaxed max-w-3xl">
         This treats every forward pass as dense FP16 on an H100. It ignores attention cost scaling with context length, MoE sparsity, and quantization wins. It gets you to within a factor of ~2 for most dense transformers — close enough to argue about.
       </div>
+    </section>
+  )
+}
+
+function CostDropTracker() {
+  return (
+    <section id="cost-drops" className="py-12 border-t border-slate-200/60">
+      <SectionHeader kicker="02" title="Recent price movements" lede="A rolling log of public cost changes — cuts, launches, and direct-API sightings. Sourced from the same docs the table below scrapes." />
+      <ol className="mt-8 relative border-l border-slate-200 ml-3 space-y-6">
+        {COST_EVENTS.map(e => (
+          <li key={e.id} className="pl-6 relative">
+            <span className="absolute -left-[5px] top-1.5 w-2.5 h-2.5 rounded-full bg-slate-900 ring-4 ring-white" />
+            <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+              <span className="text-[11px] font-mono text-slate-400">{e.date}</span>
+              <span className="text-[10px] uppercase tracking-wider font-semibold text-slate-500">{e.provider}</span>
+              <span className="text-sm font-semibold text-slate-900">{e.model}</span>
+            </div>
+            <div className="mt-1 text-sm text-slate-800">{e.headline}</div>
+            <div className="mt-1 text-xs text-slate-600 leading-relaxed max-w-2xl">{e.detail}</div>
+            <a href={e.href} target="_blank" rel="noopener noreferrer" className="mt-1.5 inline-block text-xs text-slate-500 hover:text-slate-900 underline decoration-slate-300">
+              {new URL(e.href).hostname.replace(/^www\./, '')}
+            </a>
+          </li>
+        ))}
+      </ol>
     </section>
   )
 }
