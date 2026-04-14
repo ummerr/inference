@@ -1,12 +1,15 @@
 import { useEffect, useState } from 'react'
 import { MODALITIES } from '../modalities'
+import { useRoute } from '../router'
 
 export function ModalityNav() {
-  const [active, setActive] = useState<string>(MODALITIES[0].id)
+  const route = useRoute()
+  const onMisc = route.path === '/misc'
+  const [active, setActive] = useState<string>(onMisc ? 'misc' : MODALITIES[0].id)
 
   useEffect(() => {
+    if (onMisc) { setActive('misc'); return }
     const handler = () => {
-      // Pick the section whose top is closest to 30% of viewport
       const pivot = window.innerHeight * 0.3
       let best = MODALITIES[0].id
       let bestDist = Infinity
@@ -28,7 +31,7 @@ export function ModalityNav() {
       window.removeEventListener('scroll', handler)
       window.removeEventListener('resize', handler)
     }
-  }, [])
+  }, [onMisc])
 
   return (
     <div className="sticky top-0 z-40 w-full backdrop-blur-md bg-white/70 border-b border-slate-200/60">
@@ -36,10 +39,11 @@ export function ModalityNav() {
         <span className="hidden sm:inline text-[11px] uppercase tracking-wider text-slate-500 font-semibold mr-2 whitespace-nowrap">Jump to</span>
         {MODALITIES.map(m => {
           const isActive = active === m.id
+          const href = onMisc ? `#/?zone=${m.id}` : `#zone-${m.id}`
           return (
             <a
               key={m.id}
-              href={`#zone-${m.id}`}
+              href={href}
               className={[
                 'px-3 sm:px-4 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-all',
                 isActive
@@ -53,9 +57,14 @@ export function ModalityNav() {
         })}
         <a
           href="#/misc"
-          className="ml-auto px-3 py-1.5 text-xs text-slate-400 hover:text-slate-700 transition-colors whitespace-nowrap"
+          className={[
+            'ml-auto px-3 sm:px-4 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-all',
+            active === 'misc'
+              ? 'bg-slate-900 text-white shadow-sm'
+              : 'text-slate-700 bg-slate-100 hover:bg-slate-200',
+          ].join(' ')}
         >
-          Misc →
+          Under the hood
         </a>
       </div>
     </div>

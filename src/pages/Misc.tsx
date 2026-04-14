@@ -1,7 +1,9 @@
-import { useEffect } from 'react'
-import { useRoute } from '../router'
+import { useEffect, useMemo } from 'react'
+import { useRoute, useQueryState } from '../router'
 import { Claim } from '../components/Claim'
 import { NapkinMath } from '../components/NapkinMath'
+import { ModalityNav } from '../components/ModalityNav'
+import genmediaPrices from '../../data/genmedia-prices.json'
 
 type Friction = {
   id: string
@@ -81,7 +83,16 @@ export function MiscPage() {
 
   return (
     <div className="min-h-screen text-slate-900">
-      <MiscNav />
+      <ModalityNav />
+      <div className="max-w-5xl mx-auto px-5 sm:px-8 py-3 flex items-center gap-3 text-xs text-slate-500 border-b border-slate-200/40">
+        <a href="#unit-swap" className="hover:text-slate-900">Unit swap</a>
+        <span className="text-slate-300">·</span>
+        <a href="#video-price-watch" className="hover:text-slate-900">Prices</a>
+        <span className="text-slate-300">·</span>
+        <a href="#frontier-frictions" className="hover:text-slate-900">Frictions</a>
+        <span className="text-slate-300">·</span>
+        <a href="#playground" className="hover:text-slate-900">Napkin</a>
+      </div>
       <main className="max-w-5xl mx-auto px-5 sm:px-8">
         <Header />
         <UnitSwap />
@@ -94,35 +105,17 @@ export function MiscPage() {
   )
 }
 
-function MiscNav() {
-  return (
-    <div className="sticky top-0 z-40 w-full backdrop-blur-md bg-white/70 border-b border-slate-200/60">
-      <div className="max-w-5xl mx-auto px-5 sm:px-8 py-3 flex items-center justify-between">
-        <a href="#/" className="text-sm text-slate-500 hover:text-slate-900 transition-colors">← Inference 101</a>
-        <span className="text-[11px] uppercase tracking-wider text-slate-400 font-semibold">Misc</span>
-        <div className="flex items-center gap-4 text-xs text-slate-500">
-          <a href="#unit-swap" className="hover:text-slate-900">Unit swap</a>
-          <a href="#video-price-watch" className="hover:text-slate-900">Prices</a>
-          <a href="#frontier-frictions" className="hover:text-slate-900">Frictions</a>
-          <a href="#playground" className="hover:text-slate-900">Napkin</a>
-        </div>
-      </div>
-    </div>
-  )
-}
-
 function Header() {
   return (
     <section className="pt-16 sm:pt-24 pb-10">
-      <div className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400 mb-4">Misc — companion notes</div>
+      <div className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400 mb-4">Under the hood</div>
       <h1 className="font-display text-4xl sm:text-6xl leading-[1.05]">
-        The bill is a shadow.
-        <br />
-        <em className="text-slate-500">Here's the object casting it.</em>
+        The physics behind the bill.
       </h1>
       <p className="mt-6 text-slate-600 text-lg leading-relaxed max-w-2xl">
-        Page one translates Gen Media workloads into dollars. This page translates them back — into FLOPs,
-        GPU-seconds, and the utilization gap that explains most of the delta. Same modalities, different slice.
+        A live, sourced, first-principles counterweight to the modality zones. Scraped prices from provider docs,
+        GPU-seconds instead of dollars, the bottlenecks a 10× drop would have to break, and a napkin calculator
+        that shows its work.
       </p>
     </section>
   )
@@ -161,152 +154,106 @@ function UnitSwap() {
 
 type Confidence = 'High' | 'Medium' | 'Low'
 
+type RawEntry = typeof genmediaPrices.entries[number]
+
+type TierKey = 'official' | 'official_reseller' | 'third_party'
+
 type VideoPriceRow = {
   id: string
   provider: string
+  providerKey: string
   model: string
   variant: string
   pricePerSec: string
+  pricePerSecNum: number
   perMinute: string
   sourceTier: 'Official' | 'Reseller' | 'Third-party'
+  sourceTierKey: TierKey
   confidence: Confidence
   confidenceReason: string
   source: { label: string; href: string }
   note: string
 }
 
-const VIDEO_PRICES: VideoPriceRow[] = [
-  {
-    id: 'price-grok-imagine',
-    provider: 'xAI',
-    model: 'Grok Imagine Video',
-    variant: '720p + audio',
-    pricePerSec: '$0.050',
-    perMinute: '$3.00',
-    sourceTier: 'Official',
-    confidence: 'High',
-    confidenceReason: 'Scraped directly from docs.x.ai with model ID and rate limit.',
-    source: { label: 'docs.x.ai/models', href: 'https://docs.x.ai/docs/models' },
-    note: 'Model ID grok-imagine-video. 60 RPM. Batch API gives no discount on generation.',
-  },
-  {
-    id: 'price-veo-31-lite',
-    provider: 'Google',
-    model: 'Veo 3.1 Lite',
-    variant: 'Vertex AI, no audio',
-    pricePerSec: '$0.05',
-    perMinute: '$3.00',
-    sourceTier: 'Official',
-    confidence: 'High',
-    confidenceReason: 'Already used elsewhere on this site; anchored to Vertex AI Veo pricing page.',
-    source: { label: 'Vertex AI Veo pricing', href: 'https://cloud.google.com/vertex-ai/generative-ai/pricing' },
-    note: 'Floor tier. 4/6/8s durations only.',
-  },
-  {
-    id: 'price-veo-31-fast',
-    provider: 'Google',
-    model: 'Veo 3.1 Fast',
-    variant: 'Vertex AI, w/ audio',
-    pricePerSec: '$0.10',
-    perMinute: '$6.00',
-    sourceTier: 'Official',
-    confidence: 'High',
-    confidenceReason: 'Anchored to Vertex AI Veo pricing; same source as rest of site.',
-    source: { label: 'Vertex AI Veo pricing', href: 'https://cloud.google.com/vertex-ai/generative-ai/pricing' },
-    note: 'Middle tier. Audio included.',
-  },
-  {
-    id: 'price-veo-31-standard',
-    provider: 'Google',
-    model: 'Veo 3.1 Standard',
-    variant: 'Vertex AI, w/ audio',
-    pricePerSec: '$0.40',
-    perMinute: '$24.00',
-    sourceTier: 'Official',
-    confidence: 'High',
-    confidenceReason: 'Post-April-7 2026 price cut. Anchored to Vertex pricing page used site-wide.',
-    source: { label: 'Vertex AI Veo pricing', href: 'https://cloud.google.com/vertex-ai/generative-ai/pricing' },
-    note: 'Flagship. 6s clip = $2.40. Supports 4/6/8s durations.',
-  },
-  {
-    id: 'price-runway-gen4-turbo',
-    provider: 'Runway',
-    model: 'Gen-4 Turbo',
-    variant: 'Runway API',
-    pricePerSec: '$0.05',
-    perMinute: '$3.00',
-    sourceTier: 'Official',
-    confidence: 'High',
-    confidenceReason: 'Scraped runway developer docs; credit math is explicit (5 credits × $0.01).',
-    source: { label: 'docs.dev.runwayml.com/pricing', href: 'https://docs.dev.runwayml.com/guides/pricing/' },
-    note: '5 credits/sec. Draft-tier model.',
-  },
-  {
-    id: 'price-runway-gen4',
-    provider: 'Runway',
-    model: 'Gen-4.5',
-    variant: 'Runway API',
-    pricePerSec: '$0.12',
-    perMinute: '$7.20',
-    sourceTier: 'Official',
-    confidence: 'High',
-    confidenceReason: 'Scraped runway developer docs. gen4_aleph variant = 15 credits/sec ($0.15/sec).',
-    source: { label: 'docs.dev.runwayml.com/pricing', href: 'https://docs.dev.runwayml.com/guides/pricing/' },
-    note: '12 credits/sec × $0.01/credit.',
-  },
-  {
-    id: 'price-kling-25-turbo',
-    provider: 'Kuaishou',
-    model: 'Kling 2.5 Turbo Pro',
-    variant: 'fal.ai',
-    pricePerSec: '$0.07',
-    perMinute: '$4.20',
-    sourceTier: 'Reseller',
-    confidence: 'High',
-    confidenceReason: 'Scraped fal.ai model page. Base rate confirmed ($0.35 flat for first 5s + $0.07/sec).',
-    source: { label: 'fal.ai model page', href: 'https://fal.ai/models/fal-ai/kling-video/v2.5-turbo/pro/text-to-video' },
-    note: 'Flat $0.35 baseline for 5s, then $0.07/sec. Direct Kuaishou API rates not checked.',
-  },
-  {
-    id: 'price-seedance-fal-fast',
-    provider: 'ByteDance',
-    model: 'Seedance 2.0 Fast',
-    variant: 'fal.ai, 720p + audio',
-    pricePerSec: '$0.2419',
-    perMinute: '$14.51',
-    sourceTier: 'Reseller',
-    confidence: 'High',
-    confidenceReason: 'Scraped fal.ai model page with explicit billing formula.',
-    source: { label: 'fal.ai model page', href: 'https://fal.ai/models/bytedance/seedance-2.0/fast/text-to-video' },
-    note: 'Billed as h × w × duration × 24 / 1024.',
-  },
-  {
-    id: 'price-seedance-fal-std',
-    provider: 'ByteDance',
-    model: 'Seedance 2.0',
-    variant: 'fal.ai, 720p + audio',
-    pricePerSec: '$0.3034',
-    perMinute: '$18.20',
-    sourceTier: 'Reseller',
-    confidence: 'High',
-    confidenceReason: 'Scraped fal.ai model page.',
-    source: { label: 'fal.ai model page', href: 'https://fal.ai/models/bytedance/seedance-2.0/text-to-video' },
-    note: 'Duration 4–15s. No 1080p variant on fal.',
-  },
-  {
-    id: 'price-seedance-volcengine',
-    provider: 'ByteDance',
-    model: 'Seedance 2.0',
-    variant: 'Volcengine direct, 1080p',
-    pricePerSec: '$0.14',
-    perMinute: '$8.40',
-    sourceTier: 'Third-party',
-    confidence: 'Low',
-    confidenceReason: 'TechNode estimate at 1 RMB/sec. Volcengine Ark GA still gated — no official English pricing page to verify.',
-    source: { label: 'TechNode 2026-03-05', href: 'https://technode.com/2026/03/05/bytedances-seedance-2-0-video-model-costs-about-0-14-per-second/' },
-    note: '≈1 RMB/sec at fx 1USD=7.2CNY. Token meter: 46 RMB per 1M output tokens.',
-  },
-]
+const PROVIDER_DISPLAY: Record<string, string> = {
+  xai: 'xAI',
+  google: 'Google',
+  runway: 'Runway',
+  kuaishou: 'Kuaishou',
+  bytedance: 'ByteDance',
+}
+
+const PROVIDER_DOMAIN: Record<string, string> = {
+  xai: 'x.ai',
+  google: 'deepmind.google',
+  runway: 'runwayml.com',
+  kuaishou: 'klingai.com',
+  bytedance: 'bytedance.com',
+}
+
+const TIER_DISPLAY: Record<TierKey, VideoPriceRow['sourceTier']> = {
+  official: 'Official',
+  official_reseller: 'Reseller',
+  third_party: 'Third-party',
+}
+
+const MODEL_DISPLAY: Record<string, string> = {
+  'xai:grok-imagine-video:1.0': 'Grok Imagine Video',
+  'google:veo:3.1-lite': 'Veo 3.1 Lite',
+  'google:veo:3.1-fast': 'Veo 3.1 Fast',
+  'google:veo:3.1-standard': 'Veo 3.1 Standard',
+  'runway:gen4-turbo:4.0': 'Gen-4 Turbo',
+  'runway:gen4.5:4.5': 'Gen-4.5',
+  'kuaishou:kling:2.5-turbo-pro': 'Kling 2.5 Turbo Pro',
+  'bytedance:seedance:2.0-fast': 'Seedance 2.0 Fast',
+  'bytedance:seedance:2.0': 'Seedance 2.0',
+}
+
+const VARIANT_DISPLAY: Record<string, string> = {
+  'default-720p-audio': '720p + audio',
+  'no-audio': 'Vertex AI, no audio',
+  'with-audio': 'Vertex AI, w/ audio',
+  turbo: 'Runway API',
+  standard: 'Runway API',
+  'fal-standard': 'fal.ai',
+  'fal-720p-audio': 'fal.ai, 720p + audio',
+  'volcengine-direct-1080p': 'Volcengine direct, 1080p',
+}
+
+function sourceLabel(url: string): string {
+  try {
+    const u = new URL(url)
+    return (u.hostname.replace(/^www\./, '') + u.pathname).replace(/\/$/, '')
+  } catch {
+    return url
+  }
+}
+
+function formatPrice(p: number): string {
+  if (p < 0.1) return `$${p.toFixed(3)}`
+  return `$${p.toFixed(p < 1 ? 2 : 2)}`
+}
+
+function toRow(e: RawEntry): VideoPriceRow {
+  const key = `${e.provider}:${e.model}:${e.version}`
+  const price = e.price_usd
+  return {
+    id: `price-${e.provider}-${e.model}-${e.version}-${e.variant}`.replace(/[^a-z0-9-]/gi, '-').toLowerCase(),
+    provider: PROVIDER_DISPLAY[e.provider] ?? e.provider,
+    providerKey: e.provider,
+    model: MODEL_DISPLAY[key] ?? `${e.model} ${e.version}`,
+    variant: VARIANT_DISPLAY[e.variant] ?? e.variant,
+    pricePerSec: formatPrice(price),
+    pricePerSecNum: price,
+    perMinute: `$${(price * 60).toFixed(2)}`,
+    sourceTier: TIER_DISPLAY[e.source_quality as TierKey] ?? 'Third-party',
+    sourceTierKey: e.source_quality as TierKey,
+    confidence: (e.confidence.charAt(0).toUpperCase() + e.confidence.slice(1)) as Confidence,
+    confidenceReason: e.confidence_reason,
+    source: { label: sourceLabel(e.source_url), href: e.source_url },
+    note: e.notes,
+  }
+}
 
 const TIER_STYLE: Record<VideoPriceRow['sourceTier'], string> = {
   Official: 'bg-emerald-50 text-emerald-700 border-emerald-200',
@@ -320,20 +267,84 @@ const CONFIDENCE_STYLE: Record<Confidence, string> = {
   Low: 'bg-rose-50 text-rose-700 border-rose-200',
 }
 
-const PROVIDER_DOMAIN: Record<string, string> = {
-  xAI: 'x.ai',
-  Google: 'deepmind.google',
-  Runway: 'runwayml.com',
-  Kuaishou: 'klingai.com',
-  ByteDance: 'bytedance.com',
-}
+type SortKey = 'default' | 'price-asc' | 'price-desc'
+type TierFilter = 'all' | TierKey
 
 function VideoPriceWatch() {
+  const [sort, setSort] = useQueryState('sort', 'default')
+  const [tier, setTier] = useQueryState('tier', 'all')
+
+  const rows = useMemo(() => {
+    const all = (genmediaPrices.entries as RawEntry[]).map(toRow)
+    const filtered = tier === 'all' ? all : all.filter(r => r.sourceTierKey === tier)
+    if (sort === 'price-asc') return [...filtered].sort((a, b) => a.pricePerSecNum - b.pricePerSecNum)
+    if (sort === 'price-desc') return [...filtered].sort((a, b) => b.pricePerSecNum - a.pricePerSecNum)
+    return filtered
+  }, [sort, tier])
+
+  const updated = new Date(genmediaPrices.updated)
+  const updatedLabel = updated.toISOString().slice(0, 10)
+
+  const tierOptions: { key: TierFilter; label: string }[] = [
+    { key: 'all', label: 'All' },
+    { key: 'official', label: 'Official' },
+    { key: 'official_reseller', label: 'Reseller' },
+    { key: 'third_party', label: 'Third-party' },
+  ]
+  const sortOptions: { key: SortKey; label: string }[] = [
+    { key: 'default', label: 'Default' },
+    { key: 'price-asc', label: '$/sec ↑' },
+    { key: 'price-desc', label: '$/sec ↓' },
+  ]
+
   return (
     <section id="video-price-watch" className="py-12 border-t border-slate-200/60">
-      <SectionHeader kicker="02" title="Video price watch" lede="List prices for frontier video APIs, scraped from provider docs. Snapshot — refresh via the scrape-genmedia-prices skill." />
+      <SectionHeader kicker="02" title="Video price watch" lede="List prices for frontier video APIs, scraped from provider docs. Live — refreshed via the scrape-genmedia-prices skill." />
 
-      <div className="mt-8 rounded-3xl border border-slate-200 bg-white/70 overflow-hidden">
+      <div className="mt-6 flex flex-wrap items-center gap-3 text-xs">
+        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-100 text-slate-600 font-medium">
+          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+          Last refreshed {updatedLabel}
+        </span>
+        <span className="text-slate-400">·</span>
+        <span className="text-[11px] uppercase tracking-wider text-slate-500 font-semibold">Source tier</span>
+        <div className="flex items-center gap-1">
+          {tierOptions.map(o => (
+            <button
+              key={o.key}
+              onClick={() => setTier(o.key)}
+              className={[
+                'px-2.5 py-1 rounded-full border transition-colors',
+                tier === o.key
+                  ? 'bg-slate-900 text-white border-slate-900'
+                  : 'bg-white text-slate-600 border-slate-200 hover:border-slate-400',
+              ].join(' ')}
+            >
+              {o.label}
+            </button>
+          ))}
+        </div>
+        <span className="text-slate-400">·</span>
+        <span className="text-[11px] uppercase tracking-wider text-slate-500 font-semibold">Sort</span>
+        <div className="flex items-center gap-1">
+          {sortOptions.map(o => (
+            <button
+              key={o.key}
+              onClick={() => setSort(o.key)}
+              className={[
+                'px-2.5 py-1 rounded-full border transition-colors',
+                sort === o.key
+                  ? 'bg-slate-900 text-white border-slate-900'
+                  : 'bg-white text-slate-600 border-slate-200 hover:border-slate-400',
+              ].join(' ')}
+            >
+              {o.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="mt-6 rounded-3xl border border-slate-200 bg-white/70 overflow-hidden">
         <div className="grid grid-cols-[1.3fr_1.1fr_0.65fr_0.65fr_0.85fr_0.85fr_1.7fr] text-[11px] uppercase tracking-wider text-slate-500 font-semibold border-b border-slate-200/70 bg-slate-50/60">
           <div className="px-5 py-3">Model</div>
           <div className="px-5 py-3">Variant</div>
@@ -343,12 +354,15 @@ function VideoPriceWatch() {
           <div className="px-5 py-3">Confidence</div>
           <div className="px-5 py-3">Notes</div>
         </div>
-        {VIDEO_PRICES.map((r, i) => (
+        {rows.length === 0 && (
+          <div className="px-5 py-8 text-sm text-slate-500 text-center">No rows match the current filter.</div>
+        )}
+        {rows.map((r, i) => (
           <Claim key={r.id} id={r.id}>
             <div className={`grid grid-cols-[1.3fr_1.1fr_0.65fr_0.65fr_0.85fr_0.85fr_1.7fr] text-sm ${i > 0 ? 'border-t border-slate-200/60' : ''}`}>
               <div className="px-5 py-4 flex items-start gap-2.5">
                 <img
-                  src={`https://www.google.com/s2/favicons?domain=${PROVIDER_DOMAIN[r.provider] ?? r.provider.toLowerCase() + '.com'}&sz=64`}
+                  src={`https://www.google.com/s2/favicons?domain=${PROVIDER_DOMAIN[r.providerKey] ?? r.providerKey + '.com'}&sz=64`}
                   alt=""
                   aria-hidden="true"
                   loading="lazy"
@@ -384,10 +398,10 @@ function VideoPriceWatch() {
 
       <div className="mt-6 text-sm text-slate-600 leading-relaxed max-w-3xl space-y-3">
         <p>
-          Snapshot from 2026-04-14. <span className="font-medium">Source tier</span> matters more than the headline number: <em>Official</em> means the provider's own pricing doc; <em>Reseller</em> is a hosted inference platform (fal, Replicate) that adds margin and infra; <em>Third-party</em> is a news or blog quote, so trust it less.
+          <span className="font-medium">Source tier</span> matters more than the headline number: <em>Official</em> means the provider's own pricing doc; <em>Reseller</em> is a hosted inference platform (fal, Replicate) that adds margin and infra; <em>Third-party</em> is a news or blog quote, so trust it less. Filters and sort live in the URL — share a view.
         </p>
         <p>
-          Three price bands are forming. A <span className="font-medium">$0.05/sec floor</span> (Grok Imagine, Runway Gen-4 Turbo, Veo 3.1 Lite) for draft-tier 720p, a <span className="font-medium">$0.07–0.14/sec mid band</span> (Kling 2.5 Turbo, Runway Gen-4.5, Seedance direct), and a <span className="font-medium">$0.24–0.40/sec flagship band</span> (Seedance on fal, Veo 3.1 Standard). Confidence is <em>High</em> on every row except Seedance-direct, where the Volcengine Ark API still isn't publicly GA and we're reading a TechNode estimate. Hover the confidence chip for the reason.
+          Three price bands are forming. A <span className="font-medium">$0.05/sec floor</span> (Grok Imagine, Runway Gen-4 Turbo, Veo 3.1 Lite) for draft-tier 720p, a <span className="font-medium">$0.07–0.14/sec mid band</span> (Kling 2.5 Turbo, Runway Gen-4.5, Seedance direct), and a <span className="font-medium">$0.24–0.40/sec flagship band</span> (Seedance on fal, Veo 3.1 Standard). Hover the confidence chip for the reason.
         </p>
       </div>
     </section>

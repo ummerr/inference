@@ -15,7 +15,19 @@ export default function App() {
   return <MainPage />
 }
 
+function useZoneScrollFromQuery() {
+  const route = useRoute()
+  useEffect(() => {
+    if (route.path !== '/') return
+    const zone = route.query.get('zone')
+    if (!zone) return
+    const el = document.getElementById(`zone-${zone}`)
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }, [route])
+}
+
 function MainPage() {
+  useZoneScrollFromQuery()
   const bgRef = useRef<HTMLDivElement>(null)
   useEffect(() => {
     let raf = 0
