@@ -235,25 +235,25 @@ export function MiscPage() {
     <div className="min-h-screen text-slate-900">
       <ModalityNav />
       <div className="max-w-5xl mx-auto px-5 sm:px-8 py-3 flex items-center gap-3 text-xs text-slate-500 border-b border-slate-200/40">
+        <SectionLink id="frontier-frictions">Frictions</SectionLink>
+        <span className="text-slate-300">·</span>
+        <SectionLink id="forward-bets">Bets</SectionLink>
+        <span className="text-slate-300">·</span>
         <SectionLink id="unit-swap">Unit swap</SectionLink>
         <span className="text-slate-300">·</span>
         <SectionLink id="cost-drops">Drops</SectionLink>
         <span className="text-slate-300">·</span>
         <SectionLink id="video-price-watch">Prices</SectionLink>
         <span className="text-slate-300">·</span>
-        <SectionLink id="frontier-frictions">Frictions</SectionLink>
-        <span className="text-slate-300">·</span>
-        <SectionLink id="forward-bets">Bets</SectionLink>
-        <span className="text-slate-300">·</span>
         <SectionLink id="playground">Napkin</SectionLink>
       </div>
       <main className="max-w-5xl mx-auto px-5 sm:px-8">
         <Header />
+        <FrontierFrictions />
+        <ForwardBets />
         <UnitSwap />
         <CostDropTracker />
         <VideoPriceWatch />
-        <FrontierFrictions />
-        <ForwardBets />
         <Playground />
         <BridgeFooter />
       </main>
@@ -296,7 +296,7 @@ function Header() {
 function UnitSwap() {
   return (
     <section id="unit-swap" className="py-12 border-t border-slate-200/60">
-      <SectionHeader kicker="01" title="Unit swap" lede="Re-expressing list prices as physical quantities. Numbers are illustrative, shape-correct." />
+      <SectionHeader kicker="03" title="Unit swap" lede="Re-expressing list prices as physical quantities. Numbers are illustrative, shape-correct." />
 
       <div className="mt-8 rounded-3xl border border-slate-200 bg-white/70 overflow-hidden">
         <div className="grid grid-cols-[1.1fr_0.8fr_1fr_2fr] text-[11px] uppercase tracking-wider text-slate-500 font-semibold border-b border-slate-200/70 bg-slate-50/60">
@@ -472,7 +472,7 @@ function VideoPriceWatch() {
 
   return (
     <section id="video-price-watch" className="py-12 border-t border-slate-200/60">
-      <SectionHeader kicker="03" title="Video price watch" lede="List prices for frontier video APIs, scraped from provider docs. Live — refreshed via the scrape-genmedia-prices skill." />
+      <SectionHeader kicker="05" title="Video price watch" lede="List prices for frontier video APIs, scraped from provider docs. Live — refreshed via the scrape-genmedia-prices skill." />
 
       <div className="mt-6 flex flex-wrap items-center gap-3 text-xs">
         <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-100 text-slate-600 font-medium">
@@ -584,7 +584,7 @@ function VideoPriceWatch() {
 function FrontierFrictions() {
   return (
     <section id="frontier-frictions" className="py-12 border-t border-slate-200/60">
-      <SectionHeader kicker="04" title="Frontier frictions" lede="What's actually hard right now. One card per modality — bottleneck, what a 10× cost drop would require, and papers worth reading." />
+      <SectionHeader kicker="01" title="Frontier frictions" lede="What's actually hard right now. One card per modality — bottleneck, what a 10× cost drop would require, and papers worth reading." />
 
       <div className="mt-8 grid sm:grid-cols-2 gap-4">
         {FRICTIONS.map(f => (
@@ -622,7 +622,7 @@ function ForwardBets() {
   return (
     <section id="forward-bets" className="py-12 border-t border-slate-200/60">
       <SectionHeader
-        kicker="05"
+        kicker="02"
         title="Four bets for the next 18 months"
         lede="Where the floor lands once the frictions above break. Calibrated guesses, not forecasts — confidence levels spell out which bets are engineering and which are research."
       />
@@ -713,7 +713,7 @@ function Playground() {
 function CostDropTracker() {
   return (
     <section id="cost-drops" className="py-12 border-t border-slate-200/60">
-      <SectionHeader kicker="02" title="Recent price movements" lede="A rolling log of public cost changes — cuts, launches, and direct-API sightings. Sourced from the same docs the table below scrapes." />
+      <SectionHeader kicker="04" title="Recent price movements" lede="A rolling log of public cost changes — cuts, launches, and direct-API sightings. Sourced from the same docs the table below scrapes." />
       <ol className="mt-8 relative border-l border-slate-200 ml-3 space-y-6">
         {COST_EVENTS.map(e => (
           <li key={e.id} className="pl-6 relative">

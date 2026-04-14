@@ -1,0 +1,52 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  <defs>
+    <radialGradient id="g1" cx="90%" cy="-5%" r="70%">
+      <stop offset="0%" stop-color="#6366f1" stop-opacity="0.22"/>
+      <stop offset="100%" stop-color="#6366f1" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="g2" cx="-5%" cy="30%" r="65%">
+      <stop offset="0%" stop-color="#10b981" stop-opacity="0.18"/>
+      <stop offset="100%" stop-color="#10b981" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="g3" cx="55%" cy="55%" r="60%">
+      <stop offset="0%" stop-color="#f472b6" stop-opacity="0.14"/>
+      <stop offset="100%" stop-color="#f472b6" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="g4" cx="15%" cy="110%" r="70%">
+      <stop offset="0%" stop-color="#fbbf24" stop-opacity="0.16"/>
+      <stop offset="100%" stop-color="#fbbf24" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <rect width="1200" height="630" fill="#f8fafc"/>
+  <rect width="1200" height="630" fill="url(#g1)"/>
+  <rect width="1200" height="630" fill="url(#g2)"/>
+  <rect width="1200" height="630" fill="url(#g3)"/>
+  <rect width="1200" height="630" fill="url(#g4)"/>
+
+  <g font-family="'Inter', 'Helvetica Neue', Helvetica, Arial, sans-serif">
+    <text x="72" y="90" font-size="14" font-weight="600" letter-spacing="3.5" fill="#64748b">
+      GEN MEDIA INFERENCE · 101
+    </text>
+  </g>
+
+  <g font-family="'Instrument Serif', 'Iowan Old Style', 'Palatino', Georgia, serif" fill="#0f172a">
+    <text x="72" y="210" font-size="82" font-style="italic" font-weight="400">What it actually costs</text>
+    <text x="72" y="300" font-size="82" font-weight="400">to generate a</text>
+    <text x="72" y="400" font-size="82" font-weight="400">
+      <tspan fill="#6366f1">picture</tspan><tspan fill="#0f172a">, a </tspan><tspan fill="#f43f5e">video</tspan><tspan fill="#0f172a">,</tspan>
+    </text>
+    <text x="72" y="490" font-size="82" font-weight="400">
+      <tspan fill="#0f172a">a bit of </tspan><tspan fill="#10b981">audio</tspan><tspan fill="#0f172a">, a </tspan><tspan fill="#f59e0b">world</tspan><tspan fill="#0f172a">.</tspan>
+    </text>
+  </g>
+
+  <g font-family="'Inter', 'Helvetica Neue', Helvetica, Arial, sans-serif">
+    <text x="72" y="572" font-size="18" font-weight="500" fill="#475569">
+      Play with the knobs. Watch the price change. Build intuition.
+    </text>
+    <text x="1128" y="572" font-size="18" font-weight="600" fill="#0f172a" text-anchor="end">
+      inference.ummerr.com
+    </text>
+  </g>
+</svg>
