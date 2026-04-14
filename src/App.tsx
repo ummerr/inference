@@ -79,6 +79,15 @@ function Footer() {
     <footer className="py-12 text-center text-xs text-slate-500 border-t border-slate-200/60">
       <div>Numbers are illustrative, tuned to match real-world <em>shapes</em>, not quotes.</div>
       <div className="mt-2">Built to help you think about Gen Media inference — not to replace a pricing calculator.</div>
+      <div className="mt-4 print-hide">
+        <a
+          href="#"
+          onClick={(e) => { e.preventDefault(); window.print() }}
+          className="text-slate-400 hover:text-slate-700 underline decoration-slate-300"
+        >
+          Print-friendly one-pager →
+        </a>
+      </div>
     </footer>
   )
 }

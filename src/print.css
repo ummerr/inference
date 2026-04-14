@@ -1,0 +1,120 @@
+/* ---------- Print one-pager ----------
+   Goal: Cmd+P on the homepage or /misc produces a coherent executive
+   handout. Hides interactive chrome (sticky nav, decorative blobs,
+   calculator knobs) while preserving the narrative: thesis, exec tiles,
+   cross-modality units, modality primers, scenario cards.
+*/
+
+@media print {
+  /* Page setup */
+  @page {
+    size: Letter;
+    margin: 0.5in;
+  }
+
+  html, body {
+    background: white !important;
+    color: #0f172a !important;
+    font-size: 10.5pt;
+    line-height: 1.4;
+  }
+
+  /* Kill decorative background blobs + sticky nav */
+  .blob,
+  nav[class*="sticky"],
+  .sticky {
+    display: none !important;
+  }
+
+  /* Remove fixed/sticky positioning so flow-based print works */
+  [class*="fixed"],
+  [class*="sticky"] {
+    position: static !important;
+  }
+
+  /* Hide interactive controls — sliders, toggles, selects */
+  input[type="range"],
+  button,
+  select,
+  .fancy-slider,
+  [role="tab"],
+  [role="tablist"] {
+    display: none !important;
+  }
+
+  /* Explicit opt-outs */
+  .print-hide {
+    display: none !important;
+  }
+
+  /* Elements only rendered in print */
+  .print-only {
+    display: block !important;
+  }
+
+  /* Shrink hero headline so it fits print column */
+  h1 {
+    font-size: 28pt !important;
+    line-height: 1.05 !important;
+    page-break-after: avoid;
+  }
+  h2 {
+    font-size: 16pt !important;
+    page-break-after: avoid;
+  }
+  h3 {
+    font-size: 13pt !important;
+    page-break-after: avoid;
+  }
+
+  /* Narrow paragraphs a bit; keep line-height readable */
+  p, li {
+    orphans: 3;
+    widows: 3;
+  }
+
+  /* Avoid splitting cards across pages where possible */
+  section {
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+
+  /* Encourage a page break between major modality zones */
+  [id^="zone-"] {
+    page-break-before: auto;
+    break-before: auto;
+  }
+
+  /* Links: show the destination inline for offline readers */
+  a[href^="http"]::after {
+    content: " (" attr(href) ")";
+    font-size: 8pt;
+    color: #64748b;
+    word-break: break-all;
+  }
+  /* Don't inflate internal anchors with the URL */
+  a[href^="#"]::after,
+  a[href^="/"]::after {
+    content: "";
+  }
+
+  /* Soften the colored accents so they print readably on laser printers */
+  .bg-indigo-50, .bg-rose-50, .bg-emerald-50, .bg-amber-50 {
+    background: #f8fafc !important;
+  }
+  .border-indigo-200, .border-rose-200, .border-emerald-200, .border-amber-200 {
+    border-color: #cbd5e1 !important;
+  }
+
+  /* Drop shadows / glows off */
+  * {
+    box-shadow: none !important;
+    text-shadow: none !important;
+  }
+}
+
+/* The print-only utility is hidden on screen and revealed by the
+   @media print block above. */
+.print-only {
+  display: none;
+}
