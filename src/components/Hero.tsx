@@ -44,6 +44,9 @@ export function Hero() {
             ~$0.04 per image · $0.10–$0.40 per video-second · $0.005 per voice-minute ·
             cents per interactive world-minute.
           </p>
+          <p className="mt-2 text-[11px] text-slate-500 italic leading-snug">
+            Vertex AI list prices, April 2026; world-models is our own estimate.
+          </p>
           <a href="#zone-images" className="mt-3 inline-block text-xs font-medium text-slate-500 hover:text-slate-800">
             See the math →
           </a>

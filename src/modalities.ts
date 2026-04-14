@@ -353,7 +353,9 @@ const images: Modality = {
         'Self-hosting wins when you need custom fine-tunes, offline generation, or total control — not for API-scale traffic.',
       ],
       sources: [
-        { label: 'RunPod / TensorDock / Lambda GPU pricing (Apr 2026)' },
+        { label: 'RunPod — H100 & RTX 5090 on-demand pricing', href: 'https://www.runpod.io/pricing' },
+        { label: 'Lambda Cloud — GPU pricing', href: 'https://lambdalabs.com/service/gpu-cloud' },
+        { label: 'TensorDock — GPU marketplace pricing', href: 'https://www.tensordock.com/' },
         { label: 'Black Forest Labs — Flux 2 release notes', href: 'https://blackforestlabs.ai/' },
       ],
     },
@@ -505,7 +507,7 @@ const video: Modality = {
       ],
       sources: [
         { label: 'Vertex AI Veo pricing (Apr 2026)', href: 'https://cloud.google.com/vertex-ai/generative-ai/pricing' },
-        { label: 'Veo 3.1 on Vertex — supported durations (4/6/8s)', href: 'https://docs.cloud.google.com/vertex-ai/generative-ai/docs/models/veo/3-1-generate' },
+        { label: 'Veo on Vertex — video generation docs (durations & tiers)', href: 'https://cloud.google.com/vertex-ai/generative-ai/docs/video/generate-videos' },
       ],
     },
     {
@@ -534,7 +536,9 @@ const video: Modality = {
         'Pricing now scales honestly with length instead of hiding an exponential tail.',
       ],
       sources: [
-        { label: 'Google DeepMind — Veo 3.1 technical notes', href: 'https://deepmind.google/technologies/veo/' },
+        { label: 'Lumiere: Space-Time Diffusion (Bar-Tal et al., 2024)', href: 'https://arxiv.org/abs/2401.12945' },
+        { label: 'VideoPoet (Kondratyuk et al., 2024)', href: 'https://arxiv.org/abs/2312.14125' },
+        { label: 'Google DeepMind — Veo overview (product page)', href: 'https://deepmind.google/technologies/veo/' },
       ],
     },
     {
@@ -547,8 +551,9 @@ const video: Modality = {
         'That\'s why providers cap single-clip length at 16–30 seconds.',
       ],
       sources: [
-        { label: 'Runway Gen-4 announcement', href: 'https://runwayml.com/research/introducing-runway-gen-4' },
-        { label: 'Kling AI — Kuaishou', href: 'https://kling.kuaishou.com/' },
+        { label: 'Lumiere: Space-Time Diffusion (Bar-Tal et al., 2024)', href: 'https://arxiv.org/abs/2401.12945' },
+        { label: 'Ho et al. — Video Diffusion Models (chunked generation)', href: 'https://arxiv.org/abs/2204.03458' },
+        { label: 'Runway Gen-4 announcement (single-clip caps)', href: 'https://runwayml.com/research/introducing-runway-gen-4' },
       ],
     },
     {
