@@ -207,6 +207,182 @@ const COST_EVENTS: CostEvent[] = [
   },
 ]
 
+type Technique = {
+  id: string
+  name: string
+  where: string
+  gain: string
+  maturity: 'Shipping' | 'Early' | 'Research'
+  what: string
+  tradeoff: string
+  paper?: { label: string; href: string }
+}
+
+const TECHNIQUES: Technique[] = [
+  {
+    id: 'distillation',
+    name: 'Step distillation',
+    where: 'Images (shipped), video (early)',
+    gain: '6–25×',
+    maturity: 'Shipping',
+    what: 'Train a student to match a teacher in far fewer denoising passes. 25 → 4 steps is the industry floor; 25 → 1 (consistency models, ADD) is the frontier. This is the single largest source of the 2024–2026 image-cost collapse.',
+    tradeoff: 'Quality envelope narrows at the top. Prompt adherence and fine detail degrade before overall fidelity does — which is why flagship tiers keep the teacher.',
+    paper: { label: 'Adversarial Diffusion Distillation (Sauer et al., 2023)', href: 'https://arxiv.org/abs/2311.17042' },
+  },
+  {
+    id: 'speculative',
+    name: 'Speculative decoding',
+    where: 'Text (everywhere), audio next',
+    gain: '2–3×',
+    maturity: 'Shipping',
+    what: 'A small draft model proposes N tokens; the target model verifies them in a single batched forward. Accepted tokens are free tokens. Rejections fall back to normal decoding.',
+    tradeoff: 'Net gain depends on draft-acceptance rate. A weak draft wastes verification compute; a too-strong draft defeats the point.',
+    paper: { label: 'Fast Inference via Speculative Decoding (Leviathan et al., 2023)', href: 'https://arxiv.org/abs/2211.17192' },
+  },
+  {
+    id: 'moe',
+    name: 'Mixture of Experts',
+    where: 'Text (all frontier), video next',
+    gain: '3–5× at equal quality',
+    maturity: 'Shipping',
+    what: 'The FFN is split into N experts; a router sends each token to the top-k. Active parameters per token drop to 10–25% of total. Mixtral, DeepSeek-V3, and every frontier flagship now use some variant.',
+    tradeoff: 'Memory footprint is the full model; only FLOPs are saved. All-to-all communication across GPUs becomes the new bottleneck — MoE gains only show up with the right topology.',
+    paper: { label: 'Mixtral of Experts (Jiang et al., 2024)', href: 'https://arxiv.org/abs/2401.04088' },
+  },
+  {
+    id: 'quant',
+    name: 'Low-precision inference',
+    where: 'All modalities',
+    gain: '1.5–2×',
+    maturity: 'Shipping',
+    what: 'Run the forward pass at FP8 or INT4 instead of FP16. Weights shrink, memory bandwidth roughly doubles, tensor cores run faster on H100/B200.',
+    tradeoff: 'Near-lossless at FP8 with calibration; perceptible at INT4 without. Requires hardware support and per-layer quantization-aware tuning — not a free switch.',
+    paper: { label: 'SmoothQuant (Xiao et al., 2022)', href: 'https://arxiv.org/abs/2211.10438' },
+  },
+  {
+    id: 'kvcache',
+    name: 'KV-cache compression',
+    where: 'Long-context text, video, audio',
+    gain: '2–10× (context-dependent)',
+    maturity: 'Shipping (paging), research (eviction)',
+    what: 'PagedAttention (vLLM) eliminates fragmentation. H2O and StreamingLLM evict low-importance keys. Quantized caches halve memory. Together they raise the concurrent-users-per-GPU ceiling.',
+    tradeoff: 'Eviction can drop keys that turn out to matter. Quantized caches lose a long-range accuracy tail that shows up on needle-in-haystack tasks, not on benchmarks.',
+    paper: { label: 'vLLM / PagedAttention (Kwon et al., 2023)', href: 'https://arxiv.org/abs/2309.06180' },
+  },
+  {
+    id: 'prefix',
+    name: 'Prompt / prefix caching',
+    where: 'Text — every major API',
+    gain: '5–10× on repeated prefixes',
+    maturity: 'Shipping',
+    what: 'Cache the KV state of the shared prefix (system prompt, RAG context, tool schema) and reuse it across requests. You pay full rate only for the tail.',
+    tradeoff: 'Provider-side and opaque. Cache evictions are invisible — you get the discount when you get it, and small prompt variations break the hit.',
+  },
+]
+
+const MATURITY_STYLE: Record<Technique['maturity'], string> = {
+  Shipping: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+  Early: 'bg-amber-50 text-amber-700 border-amber-200',
+  Research: 'bg-rose-50 text-rose-700 border-rose-200',
+}
+
+type FailureMode = {
+  id: string
+  modality: string
+  color: { text: string; bg: string; border: string; bgSoft: string }
+  stillBreaks: string
+  whyItMatters: string
+  zoneId: string
+}
+
+const FAILURES: FailureMode[] = [
+  {
+    id: 'images',
+    modality: 'Images',
+    color: { text: 'text-indigo-700', bg: 'bg-indigo-600', border: 'border-indigo-200', bgSoft: 'bg-indigo-50' },
+    stillBreaks: 'Typography at small scale (text inside signs, packaging, UI), hands in occlusion (gloves, gripping objects), and prompt adherence on 4+ subject compositions. Flash Image 2.5 hallucinates sign text at a rate no retry loop fixes.',
+    whyItMatters: 'These are the failures that push draft-tier users back to flagship models. The true price of a cheap image is the retry multiplier, not the sticker.',
+    zoneId: 'images',
+  },
+  {
+    id: 'video',
+    modality: 'Video',
+    color: { text: 'text-rose-700', bg: 'bg-rose-600', border: 'border-rose-200', bgSoft: 'bg-rose-50' },
+    stillBreaks: 'Physics under fast motion (pouring liquid, cloth, collisions), face identity past 6 seconds, and object permanence across cuts. Even Veo 3.1 Standard produces liquids that defy gravity mid-clip on common prompts.',
+    whyItMatters: '$/sec hides that most production pipelines burn 3 generations to land one usable shot. The effective price is 3× the list.',
+    zoneId: 'video',
+  },
+  {
+    id: 'audio',
+    modality: 'Audio',
+    color: { text: 'text-emerald-700', bg: 'bg-emerald-600', border: 'border-emerald-200', bgSoft: 'bg-emerald-50' },
+    stillBreaks: 'Barge-in latency on live voice sits at 400–700ms, which is where interruptions feel wrong. Code-switching mid-sentence still collapses prosody. Flash Live sounds flat on one-word replies — the exact case voice agents hit most.',
+    whyItMatters: 'Voice agents feel "AI" in precisely the places where the cheap tier drops performance. The cost of sounding human is mostly paid above $0.02/min.',
+    zoneId: 'audio',
+  },
+  {
+    id: 'world',
+    modality: 'World',
+    color: { text: 'text-amber-700', bg: 'bg-amber-600', border: 'border-amber-200', bgSoft: 'bg-amber-50' },
+    stillBreaks: 'Persistence past a minute — walk away, come back, the scene has drifted. State consistency under active player intervention. No public system crosses five minutes without visible world-state loss.',
+    whyItMatters: 'This is the ceiling that keeps world models a research question, not a pricing one. The bet isn\'t cheaper minutes — it\'s longer ones.',
+    zoneId: 'world',
+  },
+]
+
+type HiddenCost = {
+  id: string
+  icon: string
+  title: string
+  detail: string
+  magnitude: string
+}
+
+const HIDDEN_COSTS: HiddenCost[] = [
+  {
+    id: 'retries',
+    icon: '🔁',
+    title: 'The retry tax',
+    detail: 'Draft-tier image and video models need 2–3 generations to land one usable output. The list price divides per call; the real price per shipped asset does not.',
+    magnitude: '2–4× on draft-tier $/output',
+  },
+  {
+    id: 'failed-gens',
+    icon: '⛔',
+    title: 'Failed generations you still pay for',
+    detail: 'Content-filter refusals and safety rejections on most video and image APIs charge full generation cost. Only a handful of providers refund, and the policy is buried.',
+    magnitude: '3–15% surcharge on prompt-heavy work',
+  },
+  {
+    id: 'cold-starts',
+    icon: '🥶',
+    title: 'Cold starts',
+    detail: 'Loading a 70B model into GPU memory is 15–60 seconds of compute someone pays for. Shared endpoints amortize it into the base rate; dedicated endpoints charge it to the first caller.',
+    magnitude: '$0.01–0.20 per first-after-idle request',
+  },
+  {
+    id: 'rate-limit',
+    icon: '🚧',
+    title: 'Rate-limit overhead',
+    detail: '429s mean retries, which means paying for compute queued but not delivered on time. Bursty workloads pay this invisibly — it looks like latency, not cost.',
+    magnitude: '10–30% on spiky traffic',
+  },
+  {
+    id: 'egress',
+    icon: '🚚',
+    title: 'Egress',
+    detail: 'Moving a minute of 4K video out of the provider\'s cloud is non-trivial. Text is negligible; generated media is not. Cross-region makes it worse.',
+    magnitude: '$0.01–0.12 per GB',
+  },
+  {
+    id: 'storage',
+    icon: '🗄️',
+    title: 'Storage TTL',
+    detail: 'Video providers typically store outputs for 24–72 hours. Re-fetching past the TTL means regenerating — you pay the full generation cost for an asset you already made.',
+    magnitude: 'Full $/gen on expired assets',
+  },
+]
+
 const SWAP_ROWS: { id: string; modality: string; list: string; gpuSec: string; note: string; accent: string }[] = [
   { id: 'swap-image', modality: 'Image (1024²)', list: '$0.039', gpuSec: '~65 GPU-s on H100', note: '25 denoising passes × ~2.5 GPU-s per pass. Batching hides most of it.', accent: 'bg-indigo-500' },
   { id: 'swap-video', modality: 'Video (1s, 720p)', list: '$0.40', gpuSec: '~670 GPU-s H100-equiv', note: '~24 frames × spatio-temporal attention; memory-bound more than compute-bound.', accent: 'bg-rose-500' },
@@ -237,9 +413,15 @@ export function MiscPage() {
       <div className="max-w-5xl mx-auto px-5 sm:px-8 py-3 flex items-center gap-3 text-xs text-slate-500 border-b border-slate-200/40">
         <SectionLink id="frontier-frictions">Frictions</SectionLink>
         <span className="text-slate-300">·</span>
+        <SectionLink id="techniques">Techniques</SectionLink>
+        <span className="text-slate-300">·</span>
         <SectionLink id="forward-bets">Bets</SectionLink>
         <span className="text-slate-300">·</span>
+        <SectionLink id="failure-modes">Failures</SectionLink>
+        <span className="text-slate-300">·</span>
         <SectionLink id="unit-swap">Unit swap</SectionLink>
+        <span className="text-slate-300">·</span>
+        <SectionLink id="hidden-costs">Hidden</SectionLink>
         <span className="text-slate-300">·</span>
         <SectionLink id="cost-drops">Drops</SectionLink>
         <span className="text-slate-300">·</span>
@@ -250,8 +432,11 @@ export function MiscPage() {
       <main className="max-w-5xl mx-auto px-5 sm:px-8">
         <Header />
         <FrontierFrictions />
+        <TechniquesLadder />
         <ForwardBets />
+        <FailureModes />
         <UnitSwap />
+        <HiddenCosts />
         <CostDropTracker />
         <VideoPriceWatch />
         <Playground />
@@ -296,7 +481,7 @@ function Header() {
 function UnitSwap() {
   return (
     <section id="unit-swap" className="py-12 border-t border-slate-200/60">
-      <SectionHeader kicker="03" title="Unit swap" lede="Re-expressing list prices as physical quantities. Numbers are illustrative, shape-correct." />
+      <SectionHeader kicker="05" title="Unit swap" lede="Re-expressing list prices as physical quantities. Numbers are illustrative, shape-correct." />
 
       <div className="mt-8 rounded-3xl border border-slate-200 bg-white/70 overflow-hidden">
         <div className="grid grid-cols-[1.1fr_0.8fr_1fr_2fr] text-[11px] uppercase tracking-wider text-slate-500 font-semibold border-b border-slate-200/70 bg-slate-50/60">
@@ -472,7 +657,7 @@ function VideoPriceWatch() {
 
   return (
     <section id="video-price-watch" className="py-12 border-t border-slate-200/60">
-      <SectionHeader kicker="05" title="Video price watch" lede="List prices for frontier video APIs, scraped from provider docs. Live — refreshed via the scrape-genmedia-prices skill." />
+      <SectionHeader kicker="08" title="Video price watch" lede="List prices for frontier video APIs, scraped from provider docs. Live — refreshed via the scrape-genmedia-prices skill." />
 
       <div className="mt-6 flex flex-wrap items-center gap-3 text-xs">
         <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-100 text-slate-600 font-medium">
@@ -677,7 +862,7 @@ function Playground() {
   }
   return (
     <section id="playground" className="py-12 border-t border-slate-200/60">
-      <SectionHeader kicker="06" title="Back-of-envelope playground" lede="Inference cost from first principles. Four numbers in, three-line derivation out. The URL encodes your inputs — share it." />
+      <SectionHeader kicker="09" title="Back-of-envelope playground" lede="Inference cost from first principles. Four numbers in, three-line derivation out. The URL encodes your inputs — share it." />
 
       <div className="mt-8 grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
         {SCENARIOS.map(s => (
@@ -713,7 +898,7 @@ function Playground() {
 function CostDropTracker() {
   return (
     <section id="cost-drops" className="py-12 border-t border-slate-200/60">
-      <SectionHeader kicker="04" title="Recent price movements" lede="A rolling log of public cost changes — cuts, launches, and direct-API sightings. Sourced from the same docs the table below scrapes." />
+      <SectionHeader kicker="07" title="Recent price movements" lede="A rolling log of public cost changes — cuts, launches, and direct-API sightings. Sourced from the same docs the table below scrapes." />
       <ol className="mt-8 relative border-l border-slate-200 ml-3 space-y-6">
         {COST_EVENTS.map(e => (
           <li key={e.id} className="pl-6 relative">
@@ -731,6 +916,126 @@ function CostDropTracker() {
           </li>
         ))}
       </ol>
+    </section>
+  )
+}
+
+function TechniquesLadder() {
+  return (
+    <section id="techniques" className="py-12 border-t border-slate-200/60">
+      <SectionHeader
+        kicker="02"
+        title="How models actually get cheaper"
+        lede="Six techniques doing the bulk of the work. Headline gain, where it ships today, and the tradeoff the sticker price doesn't show."
+      />
+
+      <div className="mt-8 grid sm:grid-cols-2 gap-4">
+        {TECHNIQUES.map(t => (
+          <Claim key={t.id} id={`technique-${t.id}`}>
+            <div className="rounded-2xl border border-slate-200 bg-white/70 p-5 sm:p-6 h-full">
+              <div className="flex items-start justify-between gap-3 mb-2">
+                <div>
+                  <div className="text-sm font-semibold text-slate-900">{t.name}</div>
+                  <div className="text-xs text-slate-500 mt-0.5">{t.where}</div>
+                </div>
+                <span className={`shrink-0 text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full border ${MATURITY_STYLE[t.maturity]}`}>
+                  {t.maturity}
+                </span>
+              </div>
+
+              <div className="flex items-baseline gap-2 mb-3">
+                <span className="text-[11px] uppercase tracking-wider text-slate-500 font-semibold">Gain</span>
+                <span className="font-mono text-sm text-slate-900 font-semibold">{t.gain}</span>
+              </div>
+
+              <div className="text-[11px] uppercase tracking-wider text-slate-500 font-semibold mb-1">What it does</div>
+              <p className="text-sm text-slate-700 leading-relaxed mb-3">{t.what}</p>
+
+              <div className="text-[11px] uppercase tracking-wider text-slate-500 font-semibold mb-1">Tradeoff</div>
+              <p className="text-sm text-slate-700 leading-relaxed">{t.tradeoff}</p>
+
+              {t.paper && (
+                <div className="mt-4 pt-3 border-t border-slate-200/70 text-xs text-slate-500">
+                  <span className="font-medium text-slate-600">Canonical paper: </span>
+                  <a href={t.paper.href} target="_blank" rel="noopener noreferrer" className="text-slate-700 hover:text-slate-900 underline decoration-slate-300">
+                    {t.paper.label}
+                  </a>
+                </div>
+              )}
+            </div>
+          </Claim>
+        ))}
+      </div>
+
+      <div className="mt-6 text-sm text-slate-600 leading-relaxed max-w-3xl">
+        Stack them and you get the cost collapse. Distillation × MoE × FP8 × prefix caching on a well-batched H100 fleet is roughly the delta between a 2023 flagship and a 2026 draft tier — no new silicon required.
+      </div>
+    </section>
+  )
+}
+
+function FailureModes() {
+  return (
+    <section id="failure-modes" className="py-12 border-t border-slate-200/60">
+      <SectionHeader
+        kicker="04"
+        title="What still breaks — April 2026"
+        lede="The cheapest thing in each modality that still fails visibly. This is the gap between list price and shipped output."
+      />
+
+      <div className="mt-8 grid sm:grid-cols-2 gap-4">
+        {FAILURES.map(f => (
+          <Claim key={f.id} id={`failure-${f.id}`}>
+            <div className={`rounded-2xl border ${f.color.border} ${f.color.bgSoft} p-5 sm:p-6 h-full`}>
+              <div className={`text-xs font-semibold uppercase tracking-wider ${f.color.text} mb-3`}>{f.modality}</div>
+              <div className="text-[11px] uppercase tracking-wider text-slate-500 font-semibold mb-1">Still breaks</div>
+              <p className="text-sm text-slate-700 leading-relaxed mb-4">{f.stillBreaks}</p>
+              <div className="text-[11px] uppercase tracking-wider text-slate-500 font-semibold mb-1">Why it matters</div>
+              <p className="text-sm text-slate-700 leading-relaxed mb-3">{f.whyItMatters}</p>
+              <a href={`#/?zone=${f.zoneId}`} className={`inline-block text-xs font-medium ${f.color.text} hover:underline`}>
+                See {f.modality.toLowerCase()} priced on page one →
+              </a>
+            </div>
+          </Claim>
+        ))}
+      </div>
+
+      <div className="mt-6 text-xs text-slate-500 leading-relaxed max-w-3xl">
+        Snapshot as of {new Date().toISOString().slice(0, 10)}. Every entry here is a benchmark the cheap tier fails today and the flagship tier mostly passes — the price of quality, in failure modes.
+      </div>
+    </section>
+  )
+}
+
+function HiddenCosts() {
+  return (
+    <section id="hidden-costs" className="py-12 border-t border-slate-200/60">
+      <SectionHeader
+        kicker="06"
+        title="What the bill doesn't price"
+        lede="List prices describe a successful, first-try, in-region generation. Real pipelines don't get that. Six things that quietly move the real $/output."
+      />
+
+      <div className="mt-8 grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
+        {HIDDEN_COSTS.map(h => (
+          <Claim key={h.id} id={`hidden-${h.id}`}>
+            <div className="rounded-2xl border border-slate-200 bg-white/70 p-5 h-full">
+              <div className="flex items-start gap-3 mb-3">
+                <div className="text-xl shrink-0" aria-hidden="true">{h.icon}</div>
+                <div className="min-w-0">
+                  <div className="text-sm font-semibold text-slate-900">{h.title}</div>
+                  <div className="mt-0.5 font-mono text-[11px] text-slate-500">{h.magnitude}</div>
+                </div>
+              </div>
+              <p className="text-sm text-slate-700 leading-relaxed">{h.detail}</p>
+            </div>
+          </Claim>
+        ))}
+      </div>
+
+      <div className="mt-6 text-sm text-slate-600 leading-relaxed max-w-3xl">
+        None of these show up in a $/sec or $/Mtok table, and most of them compound. The honest number for any modality is the sticker price times the retry rate plus the out-of-band fees — which is why procurement teams budget 1.5–2× list.
+      </div>
     </section>
   )
 }
