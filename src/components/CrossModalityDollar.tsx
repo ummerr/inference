@@ -69,7 +69,7 @@ const ROWS: Row[] = [
 
 export function CrossModalityDollar() {
   return (
-    <section className="py-16 sm:py-24 border-t border-slate-200/60">
+    <section id="cross-modality" className="py-16 sm:py-24 border-t border-slate-200/60">
       <div className="text-xs font-semibold uppercase tracking-[0.25em] text-slate-500 mb-3">
         The punchline
       </div>
