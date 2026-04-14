@@ -135,11 +135,19 @@ const COST_EVENTS: CostEvent[] = [
   },
 ]
 
-const SWAP_ROWS: { id: string; modality: string; list: string; gpuSec: string; note: string }[] = [
-  { id: 'swap-image', modality: 'Image (1024²)', list: '$0.039', gpuSec: '~65 GPU-s on H100', note: '25 denoising passes × ~2.5 GPU-s per pass. Batching hides most of it.' },
-  { id: 'swap-video', modality: 'Video (1s, 720p)', list: '$0.40', gpuSec: '~670 GPU-s H100-equiv', note: '~24 frames × spatio-temporal attention; memory-bound more than compute-bound.' },
-  { id: 'swap-world', modality: 'World (1 min interactive)', list: 'tier-dependent', gpuSec: '~1200 GPU-s H100-equiv', note: 'Frame budget is the constraint; utilization is the lever.' },
+const SWAP_ROWS: { id: string; modality: string; list: string; gpuSec: string; note: string; accent: string }[] = [
+  { id: 'swap-image', modality: 'Image (1024²)', list: '$0.039', gpuSec: '~65 GPU-s on H100', note: '25 denoising passes × ~2.5 GPU-s per pass. Batching hides most of it.', accent: 'bg-indigo-500' },
+  { id: 'swap-video', modality: 'Video (1s, 720p)', list: '$0.40', gpuSec: '~670 GPU-s H100-equiv', note: '~24 frames × spatio-temporal attention; memory-bound more than compute-bound.', accent: 'bg-rose-500' },
+  { id: 'swap-world', modality: 'World (1 min interactive)', list: 'tier-dependent', gpuSec: '~1200 GPU-s H100-equiv', note: 'Frame budget is the constraint; utilization is the lever.', accent: 'bg-amber-500' },
 ]
+
+const PROVIDER_ACCENT: Record<string, string> = {
+  Google: 'bg-blue-500',
+  xAI: 'bg-slate-900',
+  ByteDance: 'bg-rose-500',
+  Runway: 'bg-violet-500',
+  Kuaishou: 'bg-amber-500',
+}
 
 export function MiscPage() {
   const route = useRoute()
@@ -208,7 +216,8 @@ function UnitSwap() {
         </div>
         {SWAP_ROWS.map((r, i) => (
           <Claim key={r.id} id={r.id}>
-            <div className={`grid grid-cols-[1.1fr_0.8fr_1fr_2fr] text-sm ${i > 0 ? 'border-t border-slate-200/60' : ''}`}>
+            <div className={`relative grid grid-cols-[1.1fr_0.8fr_1fr_2fr] text-sm ${i > 0 ? 'border-t border-slate-200/60' : ''}`}>
+              <span className={`absolute left-0 top-0 bottom-0 w-[3px] ${r.accent}`} aria-hidden="true" />
               <div className="px-5 py-4 font-medium">{r.modality}</div>
               <div className="px-5 py-4 font-mono text-slate-700">{r.list}</div>
               <div className="px-5 py-4 font-mono text-slate-700">{r.gpuSec}</div>
@@ -565,7 +574,7 @@ function CostDropTracker() {
       <ol className="mt-8 relative border-l border-slate-200 ml-3 space-y-6">
         {COST_EVENTS.map(e => (
           <li key={e.id} className="pl-6 relative">
-            <span className="absolute -left-[5px] top-1.5 w-2.5 h-2.5 rounded-full bg-slate-900 ring-4 ring-white" />
+            <span className={`absolute -left-[5px] top-1.5 w-2.5 h-2.5 rounded-full ring-4 ring-white ${PROVIDER_ACCENT[e.provider] ?? 'bg-slate-900'}`} />
             <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
               <span className="text-[11px] font-mono text-slate-400">{e.date}</span>
               <span className="text-[10px] uppercase tracking-wider font-semibold text-slate-500">{e.provider}</span>
