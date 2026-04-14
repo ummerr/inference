@@ -51,6 +51,12 @@ export function ModalityNav() {
             </a>
           )
         })}
+        <a
+          href="#/misc"
+          className="ml-auto px-3 py-1.5 text-xs text-slate-400 hover:text-slate-700 transition-colors whitespace-nowrap"
+        >
+          Misc →
+        </a>
       </div>
     </div>
   )

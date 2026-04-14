@@ -6,8 +6,16 @@ import { ModalityNav } from './components/ModalityNav'
 import { ModalityZone } from './components/ModalityZone'
 import { CrossModalityDollar } from './components/CrossModalityDollar'
 import { Glossary } from './components/Glossary'
+import { MiscPage } from './pages/Misc'
+import { useRoute } from './router'
 
 export default function App() {
+  const route = useRoute()
+  if (route.path === '/misc') return <MiscPage />
+  return <MainPage />
+}
+
+function MainPage() {
   const bgRef = useRef<HTMLDivElement>(null)
   useEffect(() => {
     let raf = 0
