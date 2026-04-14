@@ -389,6 +389,168 @@ const SWAP_ROWS: { id: string; modality: string; list: string; gpuSec: string; n
   { id: 'swap-world', modality: 'World (1 min interactive)', list: 'tier-dependent', gpuSec: '~1200 GPU-s H100-equiv', note: 'Frame budget is the constraint; utilization is the lever.', accent: 'bg-amber-500' },
 ]
 
+type Chip = {
+  id: string
+  name: string
+  vendor: string
+  released: string
+  fp16Tflops: string
+  hbm: string
+  bandwidth: string
+  spotRate: string
+  accent: string
+  unlocked: string
+}
+
+const CHIPS: Chip[] = [
+  {
+    id: 'h100',
+    name: 'H100 SXM',
+    vendor: 'NVIDIA',
+    released: '2022',
+    fp16Tflops: '989',
+    hbm: '80 GB HBM3',
+    bandwidth: '3.35 TB/s',
+    spotRate: '$2–3 / hr',
+    accent: 'bg-emerald-500',
+    unlocked: 'Made 70B dense inference tractable on a single node. Still the reference chip for public $/Mtok math.',
+  },
+  {
+    id: 'h200',
+    name: 'H200',
+    vendor: 'NVIDIA',
+    released: '2024',
+    fp16Tflops: '989',
+    hbm: '141 GB HBM3e',
+    bandwidth: '4.8 TB/s',
+    spotRate: '$3–4 / hr',
+    accent: 'bg-teal-500',
+    unlocked: 'Same FLOPs, ~1.4× memory and bandwidth. Long-context and larger KV-caches became affordable without sharding.',
+  },
+  {
+    id: 'b200',
+    name: 'B200',
+    vendor: 'NVIDIA',
+    released: '2025',
+    fp16Tflops: '~2 250',
+    hbm: '192 GB HBM3e',
+    bandwidth: '8 TB/s',
+    spotRate: '$4–6 / hr (early tenancy)',
+    accent: 'bg-indigo-500',
+    unlocked: 'FP8 throughput jumps again; per-GPU MoE inference stops paying the all-to-all tax. Where 2026 flagship training lives.',
+  },
+  {
+    id: 'gb200',
+    name: 'GB200 NVL72',
+    vendor: 'NVIDIA',
+    released: '2025',
+    fp16Tflops: '~162 000 (rack)',
+    hbm: '13.5 TB (rack)',
+    bandwidth: '576 TB/s NVLink',
+    spotRate: 'rack-only tenancy',
+    accent: 'bg-violet-500',
+    unlocked: '72 B200s behaving as one accelerator. Trillion-parameter MoE training without the interconnect penalty — the reason frontier labs are ordering them by the thousand.',
+  },
+  {
+    id: 'tpu-v5p',
+    name: 'TPU v5p',
+    vendor: 'Google',
+    released: '2023',
+    fp16Tflops: '459 (BF16)',
+    hbm: '95 GB',
+    bandwidth: '2.76 TB/s',
+    spotRate: 'Google-internal',
+    accent: 'bg-blue-500',
+    unlocked: 'The silicon behind Gemini 2.x training. Pod-level interconnect (ICI) is the real weapon, not the per-chip FLOPs.',
+  },
+  {
+    id: 'tpu-v6',
+    name: 'TPU v6 (Trillium)',
+    vendor: 'Google',
+    released: '2024',
+    fp16Tflops: '~920 (BF16)',
+    hbm: '32 GB per chip',
+    bandwidth: '1.64 TB/s',
+    spotRate: 'Google-internal / Vertex',
+    accent: 'bg-sky-500',
+    unlocked: 'Powers Flash-tier economics on Vertex. High chip count + cheap interconnect is how Google undercuts NVIDIA on per-token price for its own models.',
+  },
+]
+
+type BatchRow = {
+  id: string
+  modality: string
+  realtime: string
+  batch: string
+  discount: string
+  turnaround: string
+  note: string
+  accent: string
+}
+
+const BATCH_ROWS: BatchRow[] = [
+  {
+    id: 'batch-text-anthropic',
+    modality: 'Text — Anthropic',
+    realtime: 'list $/Mtok',
+    batch: '50% off',
+    discount: '2×',
+    turnaround: '≤ 24 h',
+    note: 'Message Batches API. Same models, same quality, async delivery. Ideal for evals, classification, extraction.',
+    accent: 'bg-amber-500',
+  },
+  {
+    id: 'batch-text-openai',
+    modality: 'Text — OpenAI',
+    realtime: 'list $/Mtok',
+    batch: '50% off',
+    discount: '2×',
+    turnaround: '≤ 24 h',
+    note: 'Batch API. Drop-in JSONL; queued against spare capacity. Cheapest way to run production evals.',
+    accent: 'bg-emerald-500',
+  },
+  {
+    id: 'batch-text-google',
+    modality: 'Text — Google',
+    realtime: 'list $/Mtok',
+    batch: '50% off',
+    discount: '2×',
+    turnaround: '≤ 24 h',
+    note: 'Vertex batch prediction. Same discount structure, BigQuery and GCS-native pipelines.',
+    accent: 'bg-blue-500',
+  },
+  {
+    id: 'batch-image',
+    modality: 'Image APIs',
+    realtime: '$0.039–0.12 / image',
+    batch: 'none',
+    discount: '1×',
+    turnaround: 'n/a',
+    note: 'No public batch discount across Flash Image, DALL·E, or SDXL-hosted. The throughput lever is parallelism + prefix reuse, not batch pricing.',
+    accent: 'bg-indigo-500',
+  },
+  {
+    id: 'batch-video',
+    modality: 'Video APIs',
+    realtime: '$0.05–0.40 / sec',
+    batch: 'none',
+    discount: '1×',
+    turnaround: 'n/a',
+    note: 'Grok Imagine explicitly documents no generation discount on Batch; Veo and Seedance offer no public batch tier. Async, yes; cheaper, no.',
+    accent: 'bg-rose-500',
+  },
+  {
+    id: 'batch-audio',
+    modality: 'Audio (live)',
+    realtime: '$0.005–0.018 / voice-min',
+    batch: 'n/a',
+    discount: '—',
+    turnaround: 'n/a',
+    note: 'Streaming latency is the product. No batch equivalent for live voice; the pricing lever is speculative decoding, not deferral.',
+    accent: 'bg-emerald-500',
+  },
+]
+
 const PROVIDER_ACCENT: Record<string, string> = {
   Google: 'bg-blue-500',
   xAI: 'bg-slate-900',
@@ -427,6 +589,10 @@ export function MiscPage() {
         <span className="text-slate-300">·</span>
         <SectionLink id="video-price-watch">Prices</SectionLink>
         <span className="text-slate-300">·</span>
+        <SectionLink id="silicon">Silicon</SectionLink>
+        <span className="text-slate-300">·</span>
+        <SectionLink id="batch-vs-realtime">Batch</SectionLink>
+        <span className="text-slate-300">·</span>
         <SectionLink id="playground">Napkin</SectionLink>
       </div>
       <main className="max-w-5xl mx-auto px-5 sm:px-8">
@@ -439,6 +605,8 @@ export function MiscPage() {
         <HiddenCosts />
         <CostDropTracker />
         <VideoPriceWatch />
+        <Silicon />
+        <BatchVsRealtime />
         <Playground />
         <BridgeFooter />
       </main>
@@ -862,7 +1030,7 @@ function Playground() {
   }
   return (
     <section id="playground" className="py-12 border-t border-slate-200/60">
-      <SectionHeader kicker="09" title="Back-of-envelope playground" lede="Inference cost from first principles. Four numbers in, three-line derivation out. The URL encodes your inputs — share it." />
+      <SectionHeader kicker="11" title="Back-of-envelope playground" lede="Inference cost from first principles. Four numbers in, three-line derivation out. The URL encodes your inputs — share it." />
 
       <div className="mt-8 grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
         {SCENARIOS.map(s => (
@@ -1035,6 +1203,91 @@ function HiddenCosts() {
 
       <div className="mt-6 text-sm text-slate-600 leading-relaxed max-w-3xl">
         None of these show up in a $/sec or $/Mtok table, and most of them compound. The honest number for any modality is the sticker price times the retry rate plus the out-of-band fees — which is why procurement teams budget 1.5–2× list.
+      </div>
+    </section>
+  )
+}
+
+function Silicon() {
+  return (
+    <section id="silicon" className="py-12 border-t border-slate-200/60">
+      <SectionHeader
+        kicker="09"
+        title="The silicon floor"
+        lede="Every $/token number on this site runs on one of these. Per-chip FP16 TFLOPs, memory, bandwidth, and what each generation actually unlocked."
+      />
+
+      <div className="mt-8 rounded-3xl border border-slate-200 bg-white/70 overflow-hidden">
+        <div className="grid grid-cols-[1.1fr_0.7fr_0.7fr_0.8fr_0.9fr_0.9fr_2fr] text-[11px] uppercase tracking-wider text-slate-500 font-semibold border-b border-slate-200/70 bg-slate-50/60">
+          <div className="px-4 py-3">Chip</div>
+          <div className="px-4 py-3">Year</div>
+          <div className="px-4 py-3">FP16 TFLOPs</div>
+          <div className="px-4 py-3">HBM</div>
+          <div className="px-4 py-3">Bandwidth</div>
+          <div className="px-4 py-3">Spot $/hr</div>
+          <div className="px-4 py-3">What it unlocked</div>
+        </div>
+        {CHIPS.map((c, i) => (
+          <Claim key={c.id} id={`chip-${c.id}`}>
+            <div className={`relative grid grid-cols-[1.1fr_0.7fr_0.7fr_0.8fr_0.9fr_0.9fr_2fr] text-sm ${i > 0 ? 'border-t border-slate-200/60' : ''}`}>
+              <span className={`absolute left-0 top-0 bottom-0 w-[3px] ${c.accent}`} aria-hidden="true" />
+              <div className="px-4 py-4">
+                <div className="font-medium">{c.name}</div>
+                <div className="text-xs text-slate-500 mt-0.5">{c.vendor}</div>
+              </div>
+              <div className="px-4 py-4 font-mono text-slate-700">{c.released}</div>
+              <div className="px-4 py-4 font-mono text-slate-700">{c.fp16Tflops}</div>
+              <div className="px-4 py-4 font-mono text-slate-700">{c.hbm}</div>
+              <div className="px-4 py-4 font-mono text-slate-700">{c.bandwidth}</div>
+              <div className="px-4 py-4 font-mono text-slate-700">{c.spotRate}</div>
+              <div className="px-4 py-4 text-slate-600">{c.unlocked}</div>
+            </div>
+          </Claim>
+        ))}
+      </div>
+
+      <div className="mt-6 text-sm text-slate-600 leading-relaxed max-w-3xl">
+        Per-chip FLOPs roughly doubled H100 → B200 in three years. Memory bandwidth — the thing that actually gates inference — grew 2.4×. The TPU column exists because Google undercuts itself on Flash pricing by building its own silicon; nobody else has that lever.
+      </div>
+    </section>
+  )
+}
+
+function BatchVsRealtime() {
+  return (
+    <section id="batch-vs-realtime" className="py-12 border-t border-slate-200/60">
+      <SectionHeader
+        kicker="10"
+        title="Batch vs realtime"
+        lede="Text APIs hand you a 2× discount for trading latency for throughput. Genmedia APIs don't. The asymmetry is the story."
+      />
+
+      <div className="mt-8 rounded-3xl border border-slate-200 bg-white/70 overflow-hidden">
+        <div className="grid grid-cols-[1.2fr_1fr_0.9fr_0.7fr_0.8fr_2fr] text-[11px] uppercase tracking-wider text-slate-500 font-semibold border-b border-slate-200/70 bg-slate-50/60">
+          <div className="px-4 py-3">Modality</div>
+          <div className="px-4 py-3">Realtime</div>
+          <div className="px-4 py-3">Batch</div>
+          <div className="px-4 py-3">Discount</div>
+          <div className="px-4 py-3">Turnaround</div>
+          <div className="px-4 py-3">Notes</div>
+        </div>
+        {BATCH_ROWS.map((r, i) => (
+          <Claim key={r.id} id={r.id}>
+            <div className={`relative grid grid-cols-[1.2fr_1fr_0.9fr_0.7fr_0.8fr_2fr] text-sm ${i > 0 ? 'border-t border-slate-200/60' : ''}`}>
+              <span className={`absolute left-0 top-0 bottom-0 w-[3px] ${r.accent}`} aria-hidden="true" />
+              <div className="px-4 py-4 font-medium">{r.modality}</div>
+              <div className="px-4 py-4 font-mono text-slate-700">{r.realtime}</div>
+              <div className="px-4 py-4 font-mono text-slate-700">{r.batch}</div>
+              <div className="px-4 py-4 font-mono text-slate-900 font-semibold">{r.discount}</div>
+              <div className="px-4 py-4 font-mono text-slate-700">{r.turnaround}</div>
+              <div className="px-4 py-4 text-slate-600">{r.note}</div>
+            </div>
+          </Claim>
+        ))}
+      </div>
+
+      <div className="mt-6 text-sm text-slate-600 leading-relaxed max-w-3xl">
+        Batch pricing only exists where the workload is <em>decomposable and deferrable</em>. Text evals and extraction are both. Video generation is neither — you want the asset now, and each job is a full pipeline of its own. That's why text $/Mtok fell faster than video $/sec, even after Veo's 60% cut.
       </div>
     </section>
   )
