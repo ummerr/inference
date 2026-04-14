@@ -75,6 +75,78 @@ const FRICTIONS: Friction[] = [
   },
 ]
 
+type Confidence2 = 'Low' | 'Medium' | 'High'
+
+type Bet = {
+  id: string
+  title: string
+  color: { text: string; bg: string; border: string; bgSoft: string }
+  floorToday: string
+  floor2027: string
+  multiple: string
+  unlock: string
+  confidence: Confidence2
+  confidenceReason: string
+  zoneId: string
+}
+
+const BETS: Bet[] = [
+  {
+    id: 'images',
+    title: 'Images',
+    color: { text: 'text-indigo-700', bg: 'bg-indigo-600', border: 'border-indigo-200', bgSoft: 'bg-indigo-50' },
+    floorToday: '$0.039 / image (Flash Image 2.5, 1024²)',
+    floor2027: '~$0.005 / image',
+    multiple: '~8×',
+    unlock: 'Single-step or 2-step generation that holds diversity at flagship quality. Consistency-model successors plus MoE sparsity in the denoiser.',
+    confidence: 'High',
+    confidenceReason: 'Distillation has already delivered 6× in one generation; another 2–3× is within the current research trajectory.',
+    zoneId: 'images',
+  },
+  {
+    id: 'video',
+    title: 'Video',
+    color: { text: 'text-rose-700', bg: 'bg-rose-600', border: 'border-rose-200', bgSoft: 'bg-rose-50' },
+    floorToday: '$0.40 / sec (Veo 3.1 Standard, post 2026-04-07 cut)',
+    floor2027: '~$0.05 / sec',
+    multiple: '~8×',
+    unlock: 'Sub-quadratic temporal attention (linear or state-space) plus frame-token compression. Hierarchical plan-then-fill architectures shipping in production.',
+    confidence: 'Medium',
+    confidenceReason: 'Research direction is clear but memory-bound workloads are bandwidth-limited; HBM roadmaps set the ceiling more than algorithms.',
+    zoneId: 'video',
+  },
+  {
+    id: 'audio',
+    title: 'Audio',
+    color: { text: 'text-emerald-700', bg: 'bg-emerald-600', border: 'border-emerald-200', bgSoft: 'bg-emerald-50' },
+    floorToday: '$0.005 / voice-min input, $0.018 / voice-min output (Flash Live)',
+    floor2027: '~$0.001 / voice-min blended',
+    multiple: '~5×',
+    unlock: 'Speculative decoding tuned for audio tokenizers, plus KV-cache eviction co-designed with the streaming scheduler. Cheap end-to-end, not just cheap per token.',
+    confidence: 'High',
+    confidenceReason: 'Speculative decoding is already proven for text; porting it to audio codecs is an engineering fight, not a research bet.',
+    zoneId: 'audio',
+  },
+  {
+    id: 'world',
+    title: 'World',
+    color: { text: 'text-amber-700', bg: 'bg-amber-600', border: 'border-amber-200', bgSoft: 'bg-amber-50' },
+    floorToday: 'Tier-dependent; minute-scale sessions only',
+    floor2027: 'Hour-scale sessions at today\'s per-minute cost',
+    multiple: '~10× in session length, not $/min',
+    unlock: 'Learned neural memory for world-state persistence — not a growing KV-cache. Sparse read, sparse write, compositional scene representations.',
+    confidence: 'Low',
+    confidenceReason: 'No public architecture yet credibly cracks persistence cheaply. This is the modality where a research breakthrough — not scaling — is required.',
+    zoneId: 'world',
+  },
+]
+
+const CONFIDENCE2_STYLE: Record<Confidence2, string> = {
+  High: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+  Medium: 'bg-amber-50 text-amber-700 border-amber-200',
+  Low: 'bg-rose-50 text-rose-700 border-rose-200',
+}
+
 type Scenario = {
   id: string
   icon: string
@@ -171,6 +243,8 @@ export function MiscPage() {
         <span className="text-slate-300">·</span>
         <SectionLink id="frontier-frictions">Frictions</SectionLink>
         <span className="text-slate-300">·</span>
+        <SectionLink id="forward-bets">Bets</SectionLink>
+        <span className="text-slate-300">·</span>
         <SectionLink id="playground">Napkin</SectionLink>
       </div>
       <main className="max-w-5xl mx-auto px-5 sm:px-8">
@@ -179,6 +253,7 @@ export function MiscPage() {
         <CostDropTracker />
         <VideoPriceWatch />
         <FrontierFrictions />
+        <ForwardBets />
         <Playground />
         <BridgeFooter />
       </main>
@@ -543,6 +618,58 @@ function FrontierFrictions() {
   )
 }
 
+function ForwardBets() {
+  return (
+    <section id="forward-bets" className="py-12 border-t border-slate-200/60">
+      <SectionHeader
+        kicker="05"
+        title="Four bets for the next 18 months"
+        lede="Where the floor lands once the frictions above break. Calibrated guesses, not forecasts — confidence levels spell out which bets are engineering and which are research."
+      />
+
+      <div className="mt-8 grid sm:grid-cols-2 gap-4">
+        {BETS.map(b => (
+          <Claim key={b.id} id={`bet-${b.id}`}>
+            <div className={`rounded-2xl border ${b.color.border} ${b.color.bgSoft} p-5 sm:p-6 h-full`}>
+              <div className="flex items-center justify-between mb-3">
+                <div className={`text-xs font-semibold uppercase tracking-wider ${b.color.text}`}>{b.title}</div>
+                <span className={`text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full border ${CONFIDENCE2_STYLE[b.confidence]}`}>
+                  {b.confidence} confidence
+                </span>
+              </div>
+
+              <div className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 text-sm mb-4">
+                <div className="text-[11px] uppercase tracking-wider text-slate-500 font-semibold self-center">Today</div>
+                <div className="text-slate-700 font-mono text-xs leading-relaxed">{b.floorToday}</div>
+                <div className="text-[11px] uppercase tracking-wider text-slate-500 font-semibold self-center">End-2027</div>
+                <div className="text-slate-700 font-mono text-xs leading-relaxed">{b.floor2027}</div>
+                <div className="text-[11px] uppercase tracking-wider text-slate-500 font-semibold self-center">Move</div>
+                <div className={`font-mono text-xs ${b.color.text} font-semibold`}>{b.multiple}</div>
+              </div>
+
+              <div className="text-[11px] uppercase tracking-wider text-slate-500 font-semibold mb-1">Required unlock</div>
+              <p className="text-sm text-slate-700 leading-relaxed mb-4">{b.unlock}</p>
+
+              <div className={`rounded-lg border ${b.color.border} bg-white/60 px-3 py-2 text-xs text-slate-600 leading-relaxed`}>
+                <span className={`font-semibold ${b.color.text} mr-1.5`}>Why {b.confidence.toLowerCase()}:</span>
+                {b.confidenceReason}
+              </div>
+
+              <a href={`#/?zone=${b.zoneId}`} className={`mt-4 inline-block text-xs font-medium ${b.color.text} hover:underline`}>
+                See {b.title.toLowerCase()} priced on page one →
+              </a>
+            </div>
+          </Claim>
+        ))}
+      </div>
+
+      <div className="mt-6 text-xs text-slate-500 leading-relaxed max-w-3xl">
+        Confidence is about the research path, not market timing. High = the technique exists and needs engineering. Medium = research direction is clear, implementation is unproven at scale. Low = a genuine breakthrough is required.
+      </div>
+    </section>
+  )
+}
+
 function Playground() {
   const scenarioHref = (s: Scenario) => {
     const qs = new URLSearchParams({ params: s.params, tokens: s.tokens, rate: s.rate, util: s.util })
@@ -550,7 +677,7 @@ function Playground() {
   }
   return (
     <section id="playground" className="py-12 border-t border-slate-200/60">
-      <SectionHeader kicker="05" title="Back-of-envelope playground" lede="Inference cost from first principles. Four numbers in, three-line derivation out. The URL encodes your inputs — share it." />
+      <SectionHeader kicker="06" title="Back-of-envelope playground" lede="Inference cost from first principles. Four numbers in, three-line derivation out. The URL encodes your inputs — share it." />
 
       <div className="mt-8 grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
         {SCENARIOS.map(s => (
