@@ -77,8 +77,8 @@ function MainPage() {
 function Footer() {
   return (
     <footer className="py-12 text-center text-xs text-slate-500 border-t border-slate-200/60">
-      <div>Numbers are illustrative, tuned to match real-world <em>shapes</em>, not quotes.</div>
-      <div className="mt-2">Built to help you think about Gen Media inference — not to replace a pricing calculator.</div>
+      <div>Prices anchored to Vertex AI list rates (April 2026); FLOPs and latency derived from published model cards and H100/TPUv5 throughput.</div>
+      <div className="mt-2">Built to build intuition about Gen Media inference — not to replace a pricing calculator.</div>
       <div className="mt-4 print-hide">
         <a
           href="#"

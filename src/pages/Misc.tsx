@@ -264,7 +264,7 @@ const TECHNIQUES: Technique[] = [
     name: 'KV-cache compression',
     where: 'Long-context text, video, audio',
     gain: '2–10× (context-dependent)',
-    maturity: 'Shipping (paging), research (eviction)',
+    maturity: 'Shipping',
     what: 'PagedAttention (vLLM) eliminates fragmentation. H2O and StreamingLLM evict low-importance keys. Quantized caches halve memory. Together they raise the concurrent-users-per-GPU ceiling.',
     tradeoff: 'Eviction can drop keys that turn out to matter. Quantized caches lose a long-range accuracy tail that shows up on needle-in-haystack tasks, not on benchmarks.',
     paper: { label: 'vLLM / PagedAttention (Kwon et al., 2023)', href: 'https://arxiv.org/abs/2309.06180' },
