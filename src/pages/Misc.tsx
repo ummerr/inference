@@ -392,13 +392,17 @@ const SWAP_ROWS: { id: string; modality: string; list: string; gpuSec: string; n
 type Chip = {
   id: string
   name: string
-  vendor: string
+  vendor: 'NVIDIA' | 'Google'
   released: string
-  fp16Tflops: string
-  hbm: string
-  bandwidth: string
+  scale: 'per-chip' | 'rack'
+  fp16Tflops: number
+  fp16Label: string
+  hbmGb: number
+  hbmLabel: string
+  bandwidthTBs: number
+  bandwidthLabel: string
   spotRate: string
-  accent: string
+  accent: { bar: string; dot: string; text: string; border: string; soft: string }
   unlocked: string
 }
 
@@ -408,72 +412,96 @@ const CHIPS: Chip[] = [
     name: 'H100 SXM',
     vendor: 'NVIDIA',
     released: '2022',
-    fp16Tflops: '989',
-    hbm: '80 GB HBM3',
-    bandwidth: '3.35 TB/s',
+    scale: 'per-chip',
+    fp16Tflops: 989,
+    fp16Label: '989',
+    hbmGb: 80,
+    hbmLabel: '80 GB HBM3',
+    bandwidthTBs: 3.35,
+    bandwidthLabel: '3.35 TB/s',
     spotRate: '$2–3 / hr',
-    accent: 'bg-emerald-500',
-    unlocked: 'Made 70B dense inference tractable on a single node. Still the reference chip for public $/Mtok math.',
+    accent: { bar: 'bg-emerald-500', dot: 'bg-emerald-500', text: 'text-emerald-700', border: 'border-emerald-200', soft: 'bg-emerald-50' },
+    unlocked: 'Made 70B dense inference tractable on a single node. Still the reference chip every public $/Mtok number is implicitly priced against.',
   },
   {
     id: 'h200',
     name: 'H200',
     vendor: 'NVIDIA',
     released: '2024',
-    fp16Tflops: '989',
-    hbm: '141 GB HBM3e',
-    bandwidth: '4.8 TB/s',
+    scale: 'per-chip',
+    fp16Tflops: 989,
+    fp16Label: '989',
+    hbmGb: 141,
+    hbmLabel: '141 GB HBM3e',
+    bandwidthTBs: 4.8,
+    bandwidthLabel: '4.8 TB/s',
     spotRate: '$3–4 / hr',
-    accent: 'bg-teal-500',
-    unlocked: 'Same FLOPs, ~1.4× memory and bandwidth. Long-context and larger KV-caches became affordable without sharding.',
+    accent: { bar: 'bg-teal-500', dot: 'bg-teal-500', text: 'text-teal-700', border: 'border-teal-200', soft: 'bg-teal-50' },
+    unlocked: 'Same FLOPs, 1.43× bandwidth, 1.76× memory. The chip that made long-context and fat KV-caches affordable without sharding — a pure bandwidth generation.',
   },
   {
     id: 'b200',
     name: 'B200',
     vendor: 'NVIDIA',
     released: '2025',
-    fp16Tflops: '~2 250',
-    hbm: '192 GB HBM3e',
-    bandwidth: '8 TB/s',
-    spotRate: '$4–6 / hr (early tenancy)',
-    accent: 'bg-indigo-500',
-    unlocked: 'FP8 throughput jumps again; per-GPU MoE inference stops paying the all-to-all tax. Where 2026 flagship training lives.',
+    scale: 'per-chip',
+    fp16Tflops: 2250,
+    fp16Label: '~2 250',
+    hbmGb: 192,
+    hbmLabel: '192 GB HBM3e',
+    bandwidthTBs: 8,
+    bandwidthLabel: '8 TB/s',
+    spotRate: '$4–6 / hr',
+    accent: { bar: 'bg-indigo-500', dot: 'bg-indigo-500', text: 'text-indigo-700', border: 'border-indigo-200', soft: 'bg-indigo-50' },
+    unlocked: 'FP8 throughput jumps 2.3×, bandwidth 2.4× over H100. Per-GPU MoE inference stops paying the all-to-all tax — where 2026 flagships train and serve.',
   },
   {
     id: 'gb200',
     name: 'GB200 NVL72',
     vendor: 'NVIDIA',
     released: '2025',
-    fp16Tflops: '~162 000 (rack)',
-    hbm: '13.5 TB (rack)',
-    bandwidth: '576 TB/s NVLink',
+    scale: 'rack',
+    fp16Tflops: 162000,
+    fp16Label: '~162 000',
+    hbmGb: 13500,
+    hbmLabel: '13.5 TB',
+    bandwidthTBs: 576,
+    bandwidthLabel: '576 TB/s NVLink',
     spotRate: 'rack-only tenancy',
-    accent: 'bg-violet-500',
-    unlocked: '72 B200s behaving as one accelerator. Trillion-parameter MoE training without the interconnect penalty — the reason frontier labs are ordering them by the thousand.',
+    accent: { bar: 'bg-violet-500', dot: 'bg-violet-500', text: 'text-violet-700', border: 'border-violet-200', soft: 'bg-violet-50' },
+    unlocked: '72 B200s behaving as one accelerator. Trillion-parameter MoE training without the interconnect tax — the reason frontier labs are ordering them by the thousand.',
   },
   {
     id: 'tpu-v5p',
     name: 'TPU v5p',
     vendor: 'Google',
     released: '2023',
-    fp16Tflops: '459 (BF16)',
-    hbm: '95 GB',
-    bandwidth: '2.76 TB/s',
+    scale: 'per-chip',
+    fp16Tflops: 459,
+    fp16Label: '459 BF16',
+    hbmGb: 95,
+    hbmLabel: '95 GB',
+    bandwidthTBs: 2.76,
+    bandwidthLabel: '2.76 TB/s',
     spotRate: 'Google-internal',
-    accent: 'bg-blue-500',
-    unlocked: 'The silicon behind Gemini 2.x training. Pod-level interconnect (ICI) is the real weapon, not the per-chip FLOPs.',
+    accent: { bar: 'bg-blue-500', dot: 'bg-blue-500', text: 'text-blue-700', border: 'border-blue-200', soft: 'bg-blue-50' },
+    unlocked: 'The silicon behind Gemini 2.x training. Pod-level ICI interconnect is the real weapon — per-chip FLOPs undersell the system.',
   },
   {
     id: 'tpu-v6',
-    name: 'TPU v6 (Trillium)',
+    name: 'TPU v6 Trillium',
     vendor: 'Google',
     released: '2024',
-    fp16Tflops: '~920 (BF16)',
-    hbm: '32 GB per chip',
-    bandwidth: '1.64 TB/s',
-    spotRate: 'Google-internal / Vertex',
-    accent: 'bg-sky-500',
-    unlocked: 'Powers Flash-tier economics on Vertex. High chip count + cheap interconnect is how Google undercuts NVIDIA on per-token price for its own models.',
+    scale: 'per-chip',
+    fp16Tflops: 920,
+    fp16Label: '~920 BF16',
+    hbmGb: 32,
+    hbmLabel: '32 GB',
+    bandwidthTBs: 1.64,
+    bandwidthLabel: '1.64 TB/s',
+    spotRate: 'Internal / Vertex',
+    accent: { bar: 'bg-sky-500', dot: 'bg-sky-500', text: 'text-sky-700', border: 'border-sky-200', soft: 'bg-sky-50' },
+    unlocked: 'Powers Flash-tier economics on Vertex. High chip count × cheap interconnect is how Google undercuts NVIDIA on per-token price for its own models.',
   },
 ]
 
@@ -1209,85 +1237,200 @@ function HiddenCosts() {
 }
 
 function Silicon() {
+  const perChip = CHIPS.filter(c => c.scale === 'per-chip')
+  const rack = CHIPS.filter(c => c.scale === 'rack')
+  const maxPerChipBw = Math.max(...perChip.map(c => c.bandwidthTBs))
+  const h100 = CHIPS.find(c => c.id === 'h100')!
+
   return (
     <section id="silicon" className="py-12 border-t border-slate-200/60">
       <SectionHeader
         kicker="09"
         title="The silicon floor"
-        lede="Every $/token number on this site runs on one of these. Per-chip FP16 TFLOPs, memory, bandwidth, and what each generation actually unlocked."
+        lede="Every $/token number on this site runs on one of these. Memory bandwidth — not FLOPs — is what gates inference, so that's what the bars show."
       />
 
-      <div className="mt-8 rounded-3xl border border-slate-200 bg-white/70 overflow-hidden">
-        <div className="grid grid-cols-[1.1fr_0.7fr_0.7fr_0.8fr_0.9fr_0.9fr_2fr] text-[11px] uppercase tracking-wider text-slate-500 font-semibold border-b border-slate-200/70 bg-slate-50/60">
-          <div className="px-4 py-3">Chip</div>
-          <div className="px-4 py-3">Year</div>
-          <div className="px-4 py-3">FP16 TFLOPs</div>
-          <div className="px-4 py-3">HBM</div>
-          <div className="px-4 py-3">Bandwidth</div>
-          <div className="px-4 py-3">Spot $/hr</div>
-          <div className="px-4 py-3">What it unlocked</div>
+      <div className="mt-8 grid grid-cols-3 gap-3">
+        <div className="rounded-2xl border border-slate-200 bg-white/70 p-4">
+          <div className="text-[10px] uppercase tracking-wider text-slate-500 font-semibold">H100 → B200, 3 years</div>
+          <div className="mt-1 font-mono text-2xl text-slate-900">2.4×</div>
+          <div className="text-xs text-slate-600 mt-1">memory bandwidth. The real generational delta.</div>
         </div>
-        {CHIPS.map((c, i) => (
-          <Claim key={c.id} id={`chip-${c.id}`}>
-            <div className={`relative grid grid-cols-[1.1fr_0.7fr_0.7fr_0.8fr_0.9fr_0.9fr_2fr] text-sm ${i > 0 ? 'border-t border-slate-200/60' : ''}`}>
-              <span className={`absolute left-0 top-0 bottom-0 w-[3px] ${c.accent}`} aria-hidden="true" />
-              <div className="px-4 py-4">
-                <div className="font-medium">{c.name}</div>
-                <div className="text-xs text-slate-500 mt-0.5">{c.vendor}</div>
+        <div className="rounded-2xl border border-slate-200 bg-white/70 p-4">
+          <div className="text-[10px] uppercase tracking-wider text-slate-500 font-semibold">FP16 FLOPs over same span</div>
+          <div className="mt-1 font-mono text-2xl text-slate-900">2.3×</div>
+          <div className="text-xs text-slate-600 mt-1">Compute and bandwidth moved together — this time.</div>
+        </div>
+        <div className="rounded-2xl border border-slate-200 bg-white/70 p-4">
+          <div className="text-[10px] uppercase tracking-wider text-slate-500 font-semibold">GB200 rack, relative to a single H100</div>
+          <div className="mt-1 font-mono text-2xl text-slate-900">172×</div>
+          <div className="text-xs text-slate-600 mt-1">Bandwidth at the rack level. A different unit of silicon.</div>
+        </div>
+      </div>
+
+      <div className="mt-6 text-[11px] uppercase tracking-wider text-slate-500 font-semibold">Per-chip accelerators</div>
+      <div className="mt-3 grid sm:grid-cols-2 gap-3">
+        {perChip.map(c => {
+          const bwPct = Math.round((c.bandwidthTBs / maxPerChipBw) * 100)
+          const vsH100 = c.bandwidthTBs / h100.bandwidthTBs
+          return (
+            <Claim key={c.id} id={`chip-${c.id}`}>
+              <div className={`rounded-2xl border ${c.accent.border} ${c.accent.soft} p-5 h-full`}>
+                <div className="flex items-start justify-between gap-3 mb-3">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className={`w-1.5 h-1.5 rounded-full ${c.accent.dot}`} aria-hidden="true" />
+                      <span className={`text-xs font-semibold uppercase tracking-wider ${c.accent.text}`}>{c.vendor}</span>
+                      <span className="text-[10px] font-mono text-slate-500">{c.released}</span>
+                    </div>
+                    <div className="mt-1 font-display text-xl text-slate-900">{c.name}</div>
+                  </div>
+                  <div className="text-right shrink-0">
+                    <div className="text-[10px] uppercase tracking-wider text-slate-500 font-semibold">Spot</div>
+                    <div className="font-mono text-xs text-slate-700">{c.spotRate}</div>
+                  </div>
+                </div>
+
+                <div className="mb-1 flex items-baseline justify-between">
+                  <span className="text-[10px] uppercase tracking-wider text-slate-500 font-semibold">HBM bandwidth</span>
+                  <span className="font-mono text-sm text-slate-900 font-semibold">{c.bandwidthLabel}</span>
+                </div>
+                <div className="h-2 rounded-full bg-white/70 overflow-hidden border border-white">
+                  <div className={`h-full ${c.accent.bar} rounded-full transition-all`} style={{ width: `${bwPct}%` }} />
+                </div>
+                <div className="mt-1 text-[10px] font-mono text-slate-500">{vsH100.toFixed(2)}× H100</div>
+
+                <div className="mt-3 grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">FP16</span>
+                    <span className="font-mono text-slate-700">{c.fp16Label}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">Memory</span>
+                    <span className="font-mono text-slate-700">{c.hbmLabel}</span>
+                  </div>
+                </div>
+
+                <p className="mt-3 pt-3 border-t border-white/80 text-sm text-slate-700 leading-relaxed">{c.unlocked}</p>
               </div>
-              <div className="px-4 py-4 font-mono text-slate-700">{c.released}</div>
-              <div className="px-4 py-4 font-mono text-slate-700">{c.fp16Tflops}</div>
-              <div className="px-4 py-4 font-mono text-slate-700">{c.hbm}</div>
-              <div className="px-4 py-4 font-mono text-slate-700">{c.bandwidth}</div>
-              <div className="px-4 py-4 font-mono text-slate-700">{c.spotRate}</div>
-              <div className="px-4 py-4 text-slate-600">{c.unlocked}</div>
+            </Claim>
+          )
+        })}
+      </div>
+
+      <div className="mt-8 text-[11px] uppercase tracking-wider text-slate-500 font-semibold">Rack-scale systems</div>
+      <div className="mt-3 grid gap-3">
+        {rack.map(c => (
+          <Claim key={c.id} id={`chip-${c.id}`}>
+            <div className={`rounded-2xl border ${c.accent.border} ${c.accent.soft} p-5 sm:p-6`}>
+              <div className="flex flex-wrap items-start justify-between gap-4 mb-3">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className={`w-1.5 h-1.5 rounded-full ${c.accent.dot}`} aria-hidden="true" />
+                    <span className={`text-xs font-semibold uppercase tracking-wider ${c.accent.text}`}>{c.vendor}</span>
+                    <span className="text-[10px] font-mono text-slate-500">{c.released}</span>
+                    <span className="text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded border border-slate-200 bg-white/60 text-slate-600 font-semibold">Rack-scale</span>
+                  </div>
+                  <div className="mt-1 font-display text-2xl text-slate-900">{c.name}</div>
+                </div>
+                <div className="flex gap-6 text-xs">
+                  <div>
+                    <div className="text-[10px] uppercase tracking-wider text-slate-500 font-semibold">Bandwidth</div>
+                    <div className="font-mono text-slate-900 font-semibold">{c.bandwidthLabel}</div>
+                  </div>
+                  <div>
+                    <div className="text-[10px] uppercase tracking-wider text-slate-500 font-semibold">FP16</div>
+                    <div className="font-mono text-slate-700">{c.fp16Label}</div>
+                  </div>
+                  <div>
+                    <div className="text-[10px] uppercase tracking-wider text-slate-500 font-semibold">HBM</div>
+                    <div className="font-mono text-slate-700">{c.hbmLabel}</div>
+                  </div>
+                </div>
+              </div>
+              <p className="text-sm text-slate-700 leading-relaxed">{c.unlocked}</p>
             </div>
           </Claim>
         ))}
       </div>
 
       <div className="mt-6 text-sm text-slate-600 leading-relaxed max-w-3xl">
-        Per-chip FLOPs roughly doubled H100 → B200 in three years. Memory bandwidth — the thing that actually gates inference — grew 2.4×. The TPU column exists because Google undercuts itself on Flash pricing by building its own silicon; nobody else has that lever.
+        The bars say the quiet part out loud: most inference is memory-bound, so bandwidth is the number that moves prices. The TPU cards are here because Google undercuts itself on Flash pricing by building its own silicon — nobody else has that lever, and it's why Gemini Flash keeps resetting the floor.
       </div>
     </section>
   )
 }
 
 function BatchVsRealtime() {
+  const withLever = BATCH_ROWS.filter(r => r.discount === '2×')
+  const withoutLever = BATCH_ROWS.filter(r => r.discount !== '2×')
+
   return (
     <section id="batch-vs-realtime" className="py-12 border-t border-slate-200/60">
       <SectionHeader
         kicker="10"
         title="Batch vs realtime"
-        lede="Text APIs hand you a 2× discount for trading latency for throughput. Genmedia APIs don't. The asymmetry is the story."
+        lede="Text APIs hand you a 2× discount for trading latency for throughput. Image, video, and live voice don't offer one. The asymmetry is the whole story."
       />
 
-      <div className="mt-8 rounded-3xl border border-slate-200 bg-white/70 overflow-hidden">
-        <div className="grid grid-cols-[1.2fr_1fr_0.9fr_0.7fr_0.8fr_2fr] text-[11px] uppercase tracking-wider text-slate-500 font-semibold border-b border-slate-200/70 bg-slate-50/60">
-          <div className="px-4 py-3">Modality</div>
-          <div className="px-4 py-3">Realtime</div>
-          <div className="px-4 py-3">Batch</div>
-          <div className="px-4 py-3">Discount</div>
-          <div className="px-4 py-3">Turnaround</div>
-          <div className="px-4 py-3">Notes</div>
+      <div className="mt-8 grid md:grid-cols-2 gap-6">
+        <div className="rounded-3xl border border-emerald-200 bg-emerald-50/60 p-6">
+          <div className="flex items-center gap-3 mb-1">
+            <span className="text-[10px] uppercase tracking-wider font-semibold px-2 py-0.5 rounded border bg-emerald-50 text-emerald-700 border-emerald-200">Batch lever exists</span>
+            <span className="font-mono text-xs text-slate-500">text only</span>
+          </div>
+          <div className="mt-2 flex items-baseline gap-3">
+            <span className="font-display text-5xl text-emerald-700">2×</span>
+            <span className="text-sm text-slate-600">cheaper, for deferring ≤ 24 h</span>
+          </div>
+
+          <div className="mt-5 space-y-3">
+            {withLever.map(r => (
+              <Claim key={r.id} id={r.id}>
+                <div className="rounded-xl bg-white/70 border border-emerald-100 px-4 py-3">
+                  <div className="flex items-center justify-between gap-3 mb-1">
+                    <div className="text-sm font-semibold text-slate-900">{r.modality}</div>
+                    <div className="flex items-center gap-2 text-[10px] font-mono text-slate-500">
+                      <span>{r.realtime}</span>
+                      <span className="text-slate-400">→</span>
+                      <span className="text-emerald-700 font-semibold">{r.batch}</span>
+                    </div>
+                  </div>
+                  <p className="text-xs text-slate-600 leading-relaxed">{r.note}</p>
+                </div>
+              </Claim>
+            ))}
+          </div>
         </div>
-        {BATCH_ROWS.map((r, i) => (
-          <Claim key={r.id} id={r.id}>
-            <div className={`relative grid grid-cols-[1.2fr_1fr_0.9fr_0.7fr_0.8fr_2fr] text-sm ${i > 0 ? 'border-t border-slate-200/60' : ''}`}>
-              <span className={`absolute left-0 top-0 bottom-0 w-[3px] ${r.accent}`} aria-hidden="true" />
-              <div className="px-4 py-4 font-medium">{r.modality}</div>
-              <div className="px-4 py-4 font-mono text-slate-700">{r.realtime}</div>
-              <div className="px-4 py-4 font-mono text-slate-700">{r.batch}</div>
-              <div className="px-4 py-4 font-mono text-slate-900 font-semibold">{r.discount}</div>
-              <div className="px-4 py-4 font-mono text-slate-700">{r.turnaround}</div>
-              <div className="px-4 py-4 text-slate-600">{r.note}</div>
-            </div>
-          </Claim>
-        ))}
+
+        <div className="rounded-3xl border border-slate-200 bg-slate-50/60 p-6">
+          <div className="flex items-center gap-3 mb-1">
+            <span className="text-[10px] uppercase tracking-wider font-semibold px-2 py-0.5 rounded border bg-slate-100 text-slate-600 border-slate-200">No batch lever</span>
+            <span className="font-mono text-xs text-slate-500">image · video · live audio</span>
+          </div>
+          <div className="mt-2 flex items-baseline gap-3">
+            <span className="font-display text-5xl text-slate-900">1×</span>
+            <span className="text-sm text-slate-600">list price is the only price</span>
+          </div>
+
+          <div className="mt-5 space-y-3">
+            {withoutLever.map(r => (
+              <Claim key={r.id} id={r.id}>
+                <div className="rounded-xl bg-white/70 border border-slate-200 px-4 py-3">
+                  <div className="flex items-center justify-between gap-3 mb-1">
+                    <div className="text-sm font-semibold text-slate-900">{r.modality}</div>
+                    <div className="font-mono text-[10px] text-slate-500">{r.realtime}</div>
+                  </div>
+                  <p className="text-xs text-slate-600 leading-relaxed">{r.note}</p>
+                </div>
+              </Claim>
+            ))}
+          </div>
+        </div>
       </div>
 
       <div className="mt-6 text-sm text-slate-600 leading-relaxed max-w-3xl">
-        Batch pricing only exists where the workload is <em>decomposable and deferrable</em>. Text evals and extraction are both. Video generation is neither — you want the asset now, and each job is a full pipeline of its own. That's why text $/Mtok fell faster than video $/sec, even after Veo's 60% cut.
+        Batch pricing only exists where the workload is <em>decomposable and deferrable</em>. Text evals and extraction are both. Video generation is neither — you want the asset now, and each job is already a full async pipeline. That's half the reason text $/Mtok has fallen faster than video $/sec, even after Veo's 60% cut.
       </div>
     </section>
   )
