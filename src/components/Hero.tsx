@@ -35,47 +35,6 @@ export function Hero() {
         ))}
       </div>
 
-      <div className="mt-10 grid grid-cols-1 sm:grid-cols-3 gap-3 fade-up">
-        <div className="rounded-2xl border border-slate-200 bg-white/60 p-4">
-          <div className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
-            Where costs sit today
-          </div>
-          <p className="mt-2 text-sm text-slate-700 leading-relaxed">
-            ~$0.04 per image · $0.10–$0.40 per video-second · $0.005 per voice-minute ·
-            cents per interactive world-minute.
-          </p>
-          <p className="mt-2 text-[11px] text-slate-500 italic leading-snug">
-            Vertex AI list prices, April 2026; world-models is our own estimate.
-          </p>
-          <a href="#zone-images" className="mt-3 inline-block text-xs font-medium text-slate-500 hover:text-slate-800">
-            See the math →
-          </a>
-        </div>
-        <div className="rounded-2xl border border-slate-200 bg-white/60 p-4">
-          <div className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
-            Where the next 10× comes from
-          </div>
-          <p className="mt-2 text-sm text-slate-700 leading-relaxed">
-            Step distillation for images. Sparse temporal attention for video.
-            Speculative decoding for audio. Learned memory for worlds.
-          </p>
-          <a href="#/misc" className="mt-3 inline-block text-xs font-medium text-slate-500 hover:text-slate-800">
-            Frontier frictions →
-          </a>
-        </div>
-        <div className="rounded-2xl border border-slate-200 bg-white/60 p-4">
-          <div className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
-            Why this matters for Google
-          </div>
-          <p className="mt-2 text-sm text-slate-700 leading-relaxed">
-            Google ships across all four modalities — Veo, Imagen/Nano Banana, Lyria, Genie —
-            on TPU, through Vertex. No other lab has that surface area.
-          </p>
-          <a href="#cross-modality" className="mt-3 inline-block text-xs font-medium text-slate-500 hover:text-slate-800">
-            What a dollar buys →
-          </a>
-        </div>
-      </div>
     </header>
   )
 }
