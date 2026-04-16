@@ -1,8 +1,9 @@
-import { useEffect, useMemo, type ReactNode } from 'react'
+import { useEffect, useMemo } from 'react'
 import { useRoute, useQueryState } from '../router'
 import { Claim } from '../components/Claim'
 import { NapkinMath } from '../components/NapkinMath'
 import { ModalityNav } from '../components/ModalityNav'
+import { SideAnchors } from '../components/SideAnchors'
 import genmediaPrices from '../../data/genmedia-prices.json'
 
 type Friction = {
@@ -600,29 +601,21 @@ export function MiscPage() {
   return (
     <div className="min-h-screen text-slate-900">
       <ModalityNav />
-      <div className="max-w-5xl mx-auto px-5 sm:px-8 py-3 flex items-center gap-3 text-xs text-slate-500 border-b border-slate-200/40">
-        <SectionLink id="frontier-frictions">Frictions</SectionLink>
-        <span className="text-slate-300">·</span>
-        <SectionLink id="techniques">Techniques</SectionLink>
-        <span className="text-slate-300">·</span>
-        <SectionLink id="forward-bets">Bets</SectionLink>
-        <span className="text-slate-300">·</span>
-        <SectionLink id="failure-modes">Failures</SectionLink>
-        <span className="text-slate-300">·</span>
-        <SectionLink id="unit-swap">Unit swap</SectionLink>
-        <span className="text-slate-300">·</span>
-        <SectionLink id="hidden-costs">Hidden</SectionLink>
-        <span className="text-slate-300">·</span>
-        <SectionLink id="cost-drops">Drops</SectionLink>
-        <span className="text-slate-300">·</span>
-        <SectionLink id="video-price-watch">Prices</SectionLink>
-        <span className="text-slate-300">·</span>
-        <SectionLink id="silicon">Silicon</SectionLink>
-        <span className="text-slate-300">·</span>
-        <SectionLink id="batch-vs-realtime">Batch</SectionLink>
-        <span className="text-slate-300">·</span>
-        <SectionLink id="playground">Napkin</SectionLink>
-      </div>
+      <SideAnchors
+        items={[
+          { id: 'frontier-frictions', label: 'Frictions' },
+          { id: 'techniques', label: 'Techniques' },
+          { id: 'forward-bets', label: 'Bets' },
+          { id: 'failure-modes', label: 'Failures' },
+          { id: 'unit-swap', label: 'Unit swap' },
+          { id: 'hidden-costs', label: 'Hidden costs' },
+          { id: 'cost-drops', label: 'Drops' },
+          { id: 'video-price-watch', label: 'Prices' },
+          { id: 'silicon', label: 'Silicon' },
+          { id: 'batch-vs-realtime', label: 'Batch' },
+          { id: 'playground', label: 'Napkin' },
+        ]}
+      />
       <main className="max-w-5xl mx-auto px-5 sm:px-8">
         <Header />
         <FrontierFrictions />
@@ -639,22 +632,6 @@ export function MiscPage() {
         <BridgeFooter />
       </main>
     </div>
-  )
-}
-
-function SectionLink({ id, children }: { id: string; children: ReactNode }) {
-  return (
-    <a
-      href={`#/misc?c=${id}`}
-      onClick={(e) => {
-        e.preventDefault()
-        const el = document.getElementById(id)
-        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' })
-      }}
-      className="hover:text-slate-900"
-    >
-      {children}
-    </a>
   )
 }
 

@@ -3,6 +3,7 @@ import { MODALITIES } from './modalities'
 import { Hero } from './components/Hero'
 import { Primer } from './components/Primer'
 import { ModalityNav } from './components/ModalityNav'
+import { SideAnchors } from './components/SideAnchors'
 import { ModalityZone } from './components/ModalityZone'
 import { CrossModalityDollar } from './components/CrossModalityDollar'
 import { Glossary } from './components/Glossary'
@@ -58,6 +59,10 @@ function MainPage() {
         <div className="blob absolute top-2/3 right-[-10%] w-[40vw] h-[40vw] rounded-full bg-amber-300/30" style={{ animationDelay: '-9s' }} />
       </div>
       <ModalityNav />
+      <SideAnchors
+        idPrefix="zone-"
+        items={MODALITIES.map(m => ({ id: m.id, label: m.short }))}
+      />
       <main className="max-w-6xl mx-auto px-5 sm:px-8">
         <Hero />
         <CrossModalityDollar />
