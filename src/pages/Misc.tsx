@@ -4,6 +4,10 @@ import { Claim } from '../components/Claim'
 import { NapkinMath } from '../components/NapkinMath'
 import { ModalityNav } from '../components/ModalityNav'
 import { SideAnchors } from '../components/SideAnchors'
+import { ImageLifecycle } from '../components/diagrams/ImageLifecycle'
+import { VideoLifecycle } from '../components/diagrams/VideoLifecycle'
+import { TechniqueGlyph } from '../components/diagrams/TechniqueGlyphs'
+import { FrictionGlyph } from '../components/diagrams/FrictionGlyphs'
 import genmediaPrices from '../../data/genmedia-prices.json'
 
 type Friction = {
@@ -604,6 +608,7 @@ export function MiscPage() {
       <SideAnchors
         items={[
           { id: 'frontier-frictions', label: 'Frictions' },
+          { id: 'lifecycle', label: 'Lifecycle' },
           { id: 'techniques', label: 'Techniques' },
           { id: 'forward-bets', label: 'Bets' },
           { id: 'failure-modes', label: 'Failures' },
@@ -619,6 +624,7 @@ export function MiscPage() {
       <main className="max-w-5xl mx-auto px-5 sm:px-8">
         <Header />
         <FrontierFrictions />
+        <Lifecycle />
         <TechniquesLadder />
         <ForwardBets />
         <FailureModes />
@@ -654,7 +660,7 @@ function Header() {
 function UnitSwap() {
   return (
     <section id="unit-swap" className="py-12 border-t border-slate-200/60">
-      <SectionHeader kicker="05" title="Unit swap" lede="Re-expressing list prices as physical quantities. Numbers are illustrative, shape-correct." />
+      <SectionHeader kicker="06" title="Unit swap" lede="Re-expressing list prices as physical quantities. Numbers are illustrative, shape-correct." />
 
       <div className="mt-8 rounded-3xl border border-slate-200 bg-white/70 overflow-hidden">
         <div className="grid grid-cols-[1.1fr_0.8fr_1fr_2fr] text-[11px] uppercase tracking-wider text-slate-500 font-semibold border-b border-slate-200/70 bg-slate-50/60">
@@ -830,7 +836,7 @@ function VideoPriceWatch() {
 
   return (
     <section id="video-price-watch" className="py-12 border-t border-slate-200/60">
-      <SectionHeader kicker="08" title="Video price watch" lede="List prices for frontier video APIs, scraped from provider docs. Live — refreshed via the scrape-genmedia-prices skill." />
+      <SectionHeader kicker="09" title="Video price watch" lede="List prices for frontier video APIs, scraped from provider docs. Live — refreshed via the scrape-genmedia-prices skill." />
 
       <div className="mt-6 flex flex-wrap items-center gap-3 text-xs">
         <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-100 text-slate-600 font-medium">
@@ -948,7 +954,8 @@ function FrontierFrictions() {
         {FRICTIONS.map(f => (
           <Claim key={f.id} id={`friction-${f.id}`}>
             <div className={`rounded-2xl border ${f.color.border} ${f.color.bgSoft} p-5 sm:p-6 h-full`}>
-              <div className={`text-xs font-semibold uppercase tracking-wider ${f.color.text} mb-3`}>{f.title}</div>
+              <div className={`text-xs font-semibold uppercase tracking-wider ${f.color.text} mb-1`}>{f.title}</div>
+              <FrictionGlyph id={f.id} />
               <div className="text-[11px] uppercase tracking-wider text-slate-500 font-semibold mb-1">Bottleneck</div>
               <p className="text-sm text-slate-700 leading-relaxed mb-4">{f.bottleneck}</p>
               <div className="text-[11px] uppercase tracking-wider text-slate-500 font-semibold mb-1">What a 10× drop needs</div>
@@ -976,11 +983,32 @@ function FrontierFrictions() {
   )
 }
 
+function Lifecycle() {
+  return (
+    <section id="lifecycle" className="py-12 border-t border-slate-200/60">
+      <SectionHeader
+        kicker="02"
+        title="Lifecycle of a query"
+        lede="Where the dollars actually go. The same six-ish stages move every modality, but the bottleneck shifts — image is step-count, video is KV-cache. Two diagrams, one bill dissected."
+      />
+
+      <div className="mt-8 grid gap-5">
+        <ImageLifecycle />
+        <VideoLifecycle />
+      </div>
+
+      <div className="mt-6 text-xs text-slate-500 leading-relaxed max-w-3xl">
+        Stages and percentages are illustrative — shape-correct within ~5 points for current DiT-class architectures. The point isn't the exact split; it's the lopsidedness. Almost everything you pay for is one stage.
+      </div>
+    </section>
+  )
+}
+
 function ForwardBets() {
   return (
     <section id="forward-bets" className="py-12 border-t border-slate-200/60">
       <SectionHeader
-        kicker="02"
+        kicker="04"
         title="Four bets for the next 18 months"
         lede="Where the floor lands once the frictions above break. Calibrated guesses, not forecasts — confidence levels spell out which bets are engineering and which are research."
       />
@@ -1035,7 +1063,7 @@ function Playground() {
   }
   return (
     <section id="playground" className="py-12 border-t border-slate-200/60">
-      <SectionHeader kicker="11" title="Back-of-envelope playground" lede="Inference cost from first principles. Four numbers in, three-line derivation out. The URL encodes your inputs — share it." />
+      <SectionHeader kicker="12" title="Back-of-envelope playground" lede="Inference cost from first principles. Four numbers in, three-line derivation out. The URL encodes your inputs — share it." />
 
       <div className="mt-8 grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
         {SCENARIOS.map(s => (
@@ -1071,7 +1099,7 @@ function Playground() {
 function CostDropTracker() {
   return (
     <section id="cost-drops" className="py-12 border-t border-slate-200/60">
-      <SectionHeader kicker="07" title="Recent price movements" lede="A rolling log of public cost changes — cuts, launches, and direct-API sightings. Sourced from the same docs the table below scrapes." />
+      <SectionHeader kicker="08" title="Recent price movements" lede="A rolling log of public cost changes — cuts, launches, and direct-API sightings. Sourced from the same docs the table below scrapes." />
       <ol className="mt-8 relative border-l border-slate-200 ml-3 space-y-6">
         {COST_EVENTS.map(e => (
           <li key={e.id} className="pl-6 relative">
@@ -1097,7 +1125,7 @@ function TechniquesLadder() {
   return (
     <section id="techniques" className="py-12 border-t border-slate-200/60">
       <SectionHeader
-        kicker="02"
+        kicker="03"
         title="How models actually get cheaper"
         lede="Six techniques doing the bulk of the work. Headline gain, where it ships today, and the tradeoff the sticker price doesn't show."
       />
@@ -1115,6 +1143,8 @@ function TechniquesLadder() {
                   {t.maturity}
                 </span>
               </div>
+
+              <TechniqueGlyph id={t.id} />
 
               <div className="flex items-baseline gap-2 mb-3">
                 <span className="text-[11px] uppercase tracking-wider text-slate-500 font-semibold">Gain</span>
@@ -1151,7 +1181,7 @@ function FailureModes() {
   return (
     <section id="failure-modes" className="py-12 border-t border-slate-200/60">
       <SectionHeader
-        kicker="04"
+        kicker="05"
         title="What still breaks — April 2026"
         lede="The cheapest thing in each modality that still fails visibly. This is the gap between list price and shipped output."
       />
@@ -1184,7 +1214,7 @@ function HiddenCosts() {
   return (
     <section id="hidden-costs" className="py-12 border-t border-slate-200/60">
       <SectionHeader
-        kicker="06"
+        kicker="07"
         title="What the bill doesn't price"
         lede="List prices describe a successful, first-try, in-region generation. Real pipelines don't get that. Six things that quietly move the real $/output."
       />
@@ -1222,7 +1252,7 @@ function Silicon() {
   return (
     <section id="silicon" className="py-12 border-t border-slate-200/60">
       <SectionHeader
-        kicker="09"
+        kicker="10"
         title="The silicon floor"
         lede="Every $/token number on this site runs on one of these. Memory bandwidth — not FLOPs — is what gates inference, so that's what the bars show."
       />
@@ -1345,7 +1375,7 @@ function BatchVsRealtime() {
   return (
     <section id="batch-vs-realtime" className="py-12 border-t border-slate-200/60">
       <SectionHeader
-        kicker="10"
+        kicker="11"
         title="Batch vs realtime"
         lede="Text APIs hand you a 2× discount for trading latency for throughput. Image, video, and live voice don't offer one. The asymmetry is the whole story."
       />
