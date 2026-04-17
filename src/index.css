@@ -31,15 +31,22 @@ body {
   background-attachment: fixed;
 }
 
-@keyframes blob {
-  0%, 100% { transform: translate(0, 0) scale(1); }
-  33%      { transform: translate(30px, -40px) scale(1.08); }
-  66%      { transform: translate(-20px, 30px) scale(0.95); }
+@keyframes hero-drift {
+  0%, 100% { background-position: 30% 20%; }
+  50%      { background-position: 70% 60%; }
 }
-.blob {
-  animation: blob 18s ease-in-out infinite;
-  filter: blur(60px);
-  will-change: transform;
+.hero-atmosphere {
+  position: fixed;
+  inset: 0;
+  z-index: -10;
+  background:
+    radial-gradient(ellipse 80% 60% at 30% 20%,
+      rgba(99, 102, 241, 0.08),
+      rgba(244, 63, 94, 0.04) 45%,
+      transparent 70%);
+  background-size: 200% 200%;
+  animation: hero-drift 40s ease-in-out infinite;
+  pointer-events: none;
 }
 
 @keyframes fadeUp {

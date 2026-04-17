@@ -95,17 +95,11 @@ export function ModalityZone({ modality }: { modality: Modality }) {
 
       {modality.disclaimer && (
         <div className="mt-6 max-w-2xl rounded-2xl bg-amber-50 border border-amber-200 px-5 py-4">
-          <div className="text-[11px] font-bold uppercase tracking-wider text-amber-800 mb-1">
-            Illustrative, not measured
-          </div>
           <div className="text-amber-900 text-sm leading-relaxed">{modality.disclaimer}</div>
         </div>
       )}
 
-      <div className={`mt-6 max-w-2xl rounded-2xl ${modality.accent.bgSoft} border ${modality.accent.border} px-5 py-4`}>
-        <div className={`text-[11px] font-bold uppercase tracking-wider ${modality.accent.text} mb-1`}>
-          The cost shape
-        </div>
+      <div className={`mt-6 max-w-2xl border-l-4 ${modality.accent.bg} pl-5 py-1`}>
         <div className="text-slate-800 text-sm leading-relaxed">{modality.whyExpensive}</div>
       </div>
 
@@ -122,14 +116,6 @@ export function ModalityZone({ modality }: { modality: Modality }) {
       </div>
 
       <div className="mt-12">
-        <div className="flex items-baseline justify-between mb-3">
-          <div className="text-xs font-semibold uppercase tracking-wider text-slate-500">
-            What real things cost
-          </div>
-          <div className="text-xs text-slate-400 italic">
-            click a card to load it into the calculator ↑
-          </div>
-        </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {modality.scenarios.map(s => (
             <ScenarioCard

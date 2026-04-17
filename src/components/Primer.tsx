@@ -37,10 +37,7 @@ export function Primer() {
       </div>
 
       <div className="mt-10 max-w-3xl rounded-2xl border border-slate-200 bg-white/60 p-5 sm:p-6">
-        <div className="flex items-baseline justify-between gap-4 flex-wrap">
-          <div className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
-            Calibration
-          </div>
+        <div className="flex items-baseline justify-end gap-4 flex-wrap">
           <a
             href="https://cloud.google.com/vertex-ai/generative-ai/pricing"
             target="_blank"

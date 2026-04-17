@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { AlertTriangle, Link2, Check } from 'lucide-react'
 import type { Modality, Inputs, Field } from '../modalities'
 
 export function Calculator({
@@ -13,7 +14,17 @@ export function Calculator({
   onReset?: () => void
 }) {
   const [showMath, setShowMath] = useState(false)
+  const [copied, setCopied] = useState(false)
   const result = modality.calc(inputs)
+
+  const copyScenarioLink = () => {
+    const url = typeof window === 'undefined' ? '' : window.location.href
+    if (!url) return
+    navigator.clipboard?.writeText(url).then(() => {
+      setCopied(true)
+      window.setTimeout(() => setCopied(false), 1400)
+    })
+  }
 
   const set = (id: string, v: Inputs[string]) =>
     onChange({ ...inputs, [id]: v })
@@ -49,20 +60,17 @@ export function Calculator({
         })}
       <div className="grid md:grid-cols-[1fr_auto]">
         <div className="p-5 sm:p-7 space-y-5">
-          <div className="flex items-center justify-between gap-3">
-            <h3 className="text-sm font-semibold text-slate-600 uppercase tracking-wider">Play with the knobs</h3>
-            <div className="flex items-center gap-3">
-              {onReset && (
-                <button
-                  type="button"
-                  onClick={onReset}
-                  className="text-xs text-slate-500 hover:text-slate-800 underline underline-offset-4 decoration-slate-300 hover:decoration-slate-600 transition-colors"
-                >
-                  reset
-                </button>
-              )}
-              <span className={`text-xs font-medium ${modality.accent.text}`}>{modality.label} calculator</span>
-            </div>
+          <div className="flex items-center justify-end gap-3">
+            {onReset && (
+              <button
+                type="button"
+                onClick={onReset}
+                className="text-xs text-slate-500 hover:text-slate-800 underline underline-offset-4 decoration-slate-300 hover:decoration-slate-600 transition-colors"
+              >
+                reset
+              </button>
+            )}
+            <span className={`text-xs font-medium ${modality.accent.text}`}>{modality.label} calculator</span>
           </div>
           {modality.fields
             .filter(f => !(f.type === 'select' && (f as { prominent?: boolean }).prominent))
@@ -73,8 +81,7 @@ export function Calculator({
         </div>
 
         <div className={`p-5 sm:p-7 md:min-w-[280px] border-t md:border-t-0 md:border-l ${modality.accent.border} ${modality.accent.bgSoft}`}>
-          <div className="text-xs font-semibold uppercase tracking-wider text-slate-500">Estimated cost</div>
-          <div className={`font-display text-4xl sm:text-5xl leading-none mt-2 ${modality.accent.text}`}>
+          <div className={`font-display text-5xl sm:text-6xl leading-none ${modality.accent.text}`}>
             {result.headline}
           </div>
           <div className="text-sm text-slate-600 mt-1">{result.sub}</div>
@@ -89,10 +96,29 @@ export function Calculator({
           </div>
 
           {result.warn && (
-            <div className="mt-4 text-xs leading-relaxed text-amber-800 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2">
-              ⚠️ {result.warn}
+            <div className="mt-4 flex items-start gap-2 text-xs leading-relaxed text-amber-800 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2">
+              <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-0.5" strokeWidth={2} aria-hidden="true" />
+              <span>{result.warn}</span>
             </div>
           )}
+
+          <button
+            type="button"
+            onClick={copyScenarioLink}
+            className={`mt-5 inline-flex items-center gap-1.5 text-xs ${modality.accent.text} hover:underline decoration-dotted underline-offset-4 transition-colors`}
+          >
+            {copied ? (
+              <>
+                <Check className="w-3.5 h-3.5" strokeWidth={2.25} aria-hidden="true" />
+                <span>link copied</span>
+              </>
+            ) : (
+              <>
+                <Link2 className="w-3.5 h-3.5" strokeWidth={2} aria-hidden="true" />
+                <span>Copy link to this scenario</span>
+              </>
+            )}
+          </button>
         </div>
       </div>
 

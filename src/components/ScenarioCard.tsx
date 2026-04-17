@@ -10,6 +10,8 @@ export function ScenarioCard({
   onApply: (partial: Partial<Inputs>) => void
 }) {
   const cardInteractive = Boolean(scenario.inputs)
+  const loadable = cardInteractive && !scenario.tiers
+  const Icon = scenario.icon
 
   const applyTier = (tierInputs?: Partial<Inputs>) => {
     if (!scenario.inputs && !tierInputs) return
@@ -19,20 +21,27 @@ export function ScenarioCard({
   return (
     <div
       className={[
-        'rounded-2xl border bg-white p-5 transition-all',
+        'group relative rounded-2xl border bg-white p-5 transition-all',
         accent.border,
         cardInteractive ? 'hover:shadow-md hover:-translate-y-0.5 cursor-pointer' : 'hover:shadow-md',
       ].join(' ')}
-      onClick={cardInteractive && !scenario.tiers ? () => applyTier() : undefined}
-      role={cardInteractive && !scenario.tiers ? 'button' : undefined}
-      tabIndex={cardInteractive && !scenario.tiers ? 0 : undefined}
+      onClick={loadable ? () => applyTier() : undefined}
+      role={loadable ? 'button' : undefined}
+      tabIndex={loadable ? 0 : undefined}
       onKeyDown={
-        cardInteractive && !scenario.tiers
+        loadable
           ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); applyTier() } }
           : undefined
       }
     >
-      <div className="text-2xl">{scenario.icon}</div>
+      {loadable && (
+        <span
+          className={`absolute top-4 right-4 text-[10px] font-semibold uppercase tracking-wider ${accent.text} opacity-60 group-hover:opacity-100 transition-opacity`}
+        >
+          Load →
+        </span>
+      )}
+      <Icon className={`w-5 h-5 ${accent.text}`} strokeWidth={1.75} aria-hidden="true" />
       <div className="mt-2 font-semibold text-slate-900">{scenario.title}</div>
       <div className="text-xs text-slate-500 mt-0.5">{scenario.blurb}</div>
 

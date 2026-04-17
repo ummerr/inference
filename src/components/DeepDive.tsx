@@ -1,3 +1,4 @@
+import { Lightbulb } from 'lucide-react'
 import type { Modality } from '../modalities'
 
 export function DeepDive({ modality }: { modality: Modality }) {
@@ -27,8 +28,8 @@ export function DeepDive({ modality }: { modality: Modality }) {
                 </div>
               )}
               {block.metaphor && (
-                <div className={`inline-flex items-start gap-2 rounded-full ${modality.accent.bgSoft} ${modality.accent.text} px-3 py-1 text-xs italic mb-3`}>
-                  <span aria-hidden>💡</span>
+                <div className={`inline-flex items-center gap-2 rounded-full ${modality.accent.bgSoft} ${modality.accent.text} px-3 py-1 text-xs italic mb-3`}>
+                  <Lightbulb className="w-3.5 h-3.5 shrink-0" strokeWidth={2} aria-hidden="true" />
                   <span>{block.metaphor}</span>
                 </div>
               )}

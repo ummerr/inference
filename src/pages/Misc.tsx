@@ -1,4 +1,6 @@
 import { useEffect, useMemo } from 'react'
+import type { LucideIcon } from 'lucide-react'
+import { MessageCircle, Bot, Brain, BookOpen, Smartphone, Settings } from 'lucide-react'
 import { useRoute, useQueryState } from '../router'
 import { Claim } from '../components/Claim'
 import { NapkinMath } from '../components/NapkinMath'
@@ -154,7 +156,7 @@ const CONFIDENCE2_STYLE: Record<Confidence2, string> = {
 
 type Scenario = {
   id: string
-  icon: string
+  icon: LucideIcon
   title: string
   blurb: string
   params: string
@@ -164,12 +166,12 @@ type Scenario = {
 }
 
 const SCENARIOS: Scenario[] = [
-  { id: 'chat-7b', icon: '💬', title: '7B chat reply', blurb: '~1k tokens, spot H100, healthy batch', params: '7', tokens: '1000', rate: '0.0004', util: '0.4' },
-  { id: 'llama-70b', icon: '🦙', title: 'Llama-70B answer', blurb: '~500 tokens, retail H100 rate', params: '70', tokens: '500', rate: '0.0006', util: '0.3' },
-  { id: 'frontier-400b', icon: '🧠', title: 'Frontier dense 400B', blurb: 'Treated as dense — MoE wins ignored', params: '400', tokens: '500', rate: '0.0008', util: '0.25' },
-  { id: 'long-ctx-30b', icon: '📚', title: 'Long-context 30B @ 32k', blurb: 'Attention cost not modeled — floor only', params: '30', tokens: '32000', rate: '0.0006', util: '0.35' },
-  { id: 'edge-1b', icon: '📱', title: 'Edge 1.5B on cheap silicon', blurb: 'High util, low rate, short reply', params: '1.5', tokens: '1000', rate: '0.0002', util: '0.5' },
-  { id: 'batch-throughput', icon: '⚙️', title: 'Batched 70B throughput', blurb: 'Push util to the ceiling', params: '70', tokens: '1000', rate: '0.0006', util: '0.6' },
+  { id: 'chat-7b', icon: MessageCircle, title: '7B chat reply', blurb: '~1k tokens, spot H100, healthy batch', params: '7', tokens: '1000', rate: '0.0004', util: '0.4' },
+  { id: 'llama-70b', icon: Bot, title: 'Llama-70B answer', blurb: '~500 tokens, retail H100 rate', params: '70', tokens: '500', rate: '0.0006', util: '0.3' },
+  { id: 'frontier-400b', icon: Brain, title: 'Frontier dense 400B', blurb: 'Treated as dense — MoE wins ignored', params: '400', tokens: '500', rate: '0.0008', util: '0.25' },
+  { id: 'long-ctx-30b', icon: BookOpen, title: 'Long-context 30B @ 32k', blurb: 'Attention cost not modeled — floor only', params: '30', tokens: '32000', rate: '0.0006', util: '0.35' },
+  { id: 'edge-1b', icon: Smartphone, title: 'Edge 1.5B on cheap silicon', blurb: 'High util, low rate, short reply', params: '1.5', tokens: '1000', rate: '0.0002', util: '0.5' },
+  { id: 'batch-throughput', icon: Settings, title: 'Batched 70B throughput', blurb: 'Push util to the ceiling', params: '70', tokens: '1000', rate: '0.0006', util: '0.6' },
 ]
 
 type CostEvent = {
@@ -332,59 +334,6 @@ const FAILURES: FailureMode[] = [
     stillBreaks: 'Persistence past a minute — walk away, come back, the scene has drifted. State consistency under active player intervention. No public system crosses five minutes without visible world-state loss.',
     whyItMatters: 'This is the ceiling that keeps world models a research question, not a pricing one. The bet isn\'t cheaper minutes — it\'s longer ones.',
     zoneId: 'world',
-  },
-]
-
-type HiddenCost = {
-  id: string
-  icon: string
-  title: string
-  detail: string
-  magnitude: string
-}
-
-const HIDDEN_COSTS: HiddenCost[] = [
-  {
-    id: 'retries',
-    icon: '🔁',
-    title: 'The retry tax',
-    detail: 'Draft-tier image and video models need 2–3 generations to land one usable output. The list price divides per call; the real price per shipped asset does not.',
-    magnitude: '2–4× on draft-tier $/output',
-  },
-  {
-    id: 'failed-gens',
-    icon: '⛔',
-    title: 'Failed generations you still pay for',
-    detail: 'Content-filter refusals and safety rejections on most video and image APIs charge full generation cost. Only a handful of providers refund, and the policy is buried.',
-    magnitude: '3–15% surcharge on prompt-heavy work',
-  },
-  {
-    id: 'cold-starts',
-    icon: '🥶',
-    title: 'Cold starts',
-    detail: 'Loading a 70B model into GPU memory is 15–60 seconds of compute someone pays for. Shared endpoints amortize it into the base rate; dedicated endpoints charge it to the first caller.',
-    magnitude: '$0.01–0.20 per first-after-idle request',
-  },
-  {
-    id: 'rate-limit',
-    icon: '🚧',
-    title: 'Rate-limit overhead',
-    detail: '429s mean retries, which means paying for compute queued but not delivered on time. Bursty workloads pay this invisibly — it looks like latency, not cost.',
-    magnitude: '10–30% on spiky traffic',
-  },
-  {
-    id: 'egress',
-    icon: '🚚',
-    title: 'Egress',
-    detail: 'Moving a minute of 4K video out of the provider\'s cloud is non-trivial. Text is negligible; generated media is not. Cross-region makes it worse.',
-    magnitude: '$0.01–0.12 per GB',
-  },
-  {
-    id: 'storage',
-    icon: '🗄️',
-    title: 'Storage TTL',
-    detail: 'Video providers typically store outputs for 24–72 hours. Re-fetching past the TTL means regenerating — you pay the full generation cost for an asset you already made.',
-    magnitude: 'Full $/gen on expired assets',
   },
 ]
 
@@ -607,33 +556,43 @@ export function MiscPage() {
       <ModalityNav />
       <SideAnchors
         items={[
-          { id: 'frontier-frictions', label: 'Frictions' },
+          { id: 'arc-mechanics', label: 'Mechanics' },
           { id: 'lifecycle', label: 'Lifecycle' },
-          { id: 'techniques', label: 'Techniques' },
-          { id: 'forward-bets', label: 'Bets' },
-          { id: 'failure-modes', label: 'Failures' },
           { id: 'unit-swap', label: 'Unit swap' },
-          { id: 'hidden-costs', label: 'Hidden costs' },
-          { id: 'cost-drops', label: 'Drops' },
-          { id: 'video-price-watch', label: 'Prices' },
+          { id: 'techniques', label: 'Techniques' },
           { id: 'silicon', label: 'Silicon' },
           { id: 'batch-vs-realtime', label: 'Batch' },
+          { id: 'arc-market', label: 'Market' },
+          { id: 'frontier-frictions', label: 'Frictions' },
+          { id: 'forward-bets', label: 'Bets' },
+          { id: 'failure-modes', label: 'Failures' },
+          { id: 'video-price-watch', label: 'Prices' },
           { id: 'playground', label: 'Napkin' },
         ]}
       />
       <main className="max-w-5xl mx-auto px-5 sm:px-8">
         <Header />
-        <FrontierFrictions />
+        <ArcDivider
+          id="arc-mechanics"
+          kicker="Arc A"
+          title="The mechanics"
+          lede="How inference actually works — the shape of one request, the hardware it runs on, and the techniques that make it cheap."
+        />
         <Lifecycle />
-        <TechniquesLadder />
-        <ForwardBets />
-        <FailureModes />
         <UnitSwap />
-        <HiddenCosts />
-        <CostDropTracker />
-        <VideoPriceWatch />
+        <TechniquesLadder />
         <Silicon />
         <BatchVsRealtime />
+        <ArcDivider
+          id="arc-market"
+          kicker="Arc B"
+          title="The market"
+          lede="What's hard, where prices go next, and what quietly breaks. The same mechanics, now observed from the invoice side."
+        />
+        <FrontierFrictions />
+        <ForwardBets />
+        <FailureModes />
+        <VideoPriceWatch />
         <Playground />
         <BridgeFooter />
       </main>
@@ -660,7 +619,7 @@ function Header() {
 function UnitSwap() {
   return (
     <section id="unit-swap" className="py-12 border-t border-slate-200/60">
-      <SectionHeader kicker="06" title="Unit swap" lede="Re-expressing list prices as physical quantities. Numbers are illustrative, shape-correct." />
+      <SectionHeader kicker="A · 02" title="Unit swap" lede="Re-expressing list prices as physical quantities. Numbers are illustrative, shape-correct." />
 
       <div className="mt-8 rounded-3xl border border-slate-200 bg-white/70 overflow-hidden">
         <div className="grid grid-cols-[1.1fr_0.8fr_1fr_2fr] text-[11px] uppercase tracking-wider text-slate-500 font-semibold border-b border-slate-200/70 bg-slate-50/60">
@@ -836,7 +795,7 @@ function VideoPriceWatch() {
 
   return (
     <section id="video-price-watch" className="py-12 border-t border-slate-200/60">
-      <SectionHeader kicker="09" title="Video price watch" lede="List prices for frontier video APIs, scraped from provider docs. Live — refreshed via the scrape-genmedia-prices skill." />
+      <SectionHeader kicker="B · 04" title="Video price watch" lede="List prices for frontier video APIs, scraped from provider docs. Live — refreshed via the scrape-genmedia-prices skill." />
 
       <div className="mt-6 flex flex-wrap items-center gap-3 text-xs">
         <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-100 text-slate-600 font-medium">
@@ -940,7 +899,12 @@ function VideoPriceWatch() {
         <p>
           Three price bands are forming. A <span className="font-medium">$0.05/sec floor</span> (Grok Imagine, Runway Gen-4 Turbo, Veo 3.1 Lite) for draft-tier 720p, a <span className="font-medium">$0.07–0.14/sec mid band</span> (Kling 2.5 Turbo, Runway Gen-4.5, Seedance direct), and a <span className="font-medium">$0.24–0.40/sec flagship band</span> (Seedance on fal, Veo 3.1 Standard). Hover the confidence chip for the reason.
         </p>
+        <p className="text-xs text-slate-500">
+          <span className="font-medium text-slate-600">A note on the sticker price:</span> list $/sec is a first-try, in-region generation. Draft-tier models usually need 2–3 tries to land one usable clip, so the honest number per <em>shipped</em> asset is 2–4× the table value. Procurement teams budget 1.5–2× list; that's why.
+        </p>
       </div>
+
+      <RecentPriceEvents />
     </section>
   )
 }
@@ -948,7 +912,7 @@ function VideoPriceWatch() {
 function FrontierFrictions() {
   return (
     <section id="frontier-frictions" className="py-12 border-t border-slate-200/60">
-      <SectionHeader kicker="01" title="Frontier frictions" lede="What's actually hard right now. One card per modality — bottleneck, what a 10× cost drop would require, and papers worth reading." />
+      <SectionHeader kicker="B · 01" title="Frontier frictions" lede="What's actually hard right now. One card per modality — bottleneck, what a 10× cost drop would require, and papers worth reading." />
 
       <div className="mt-8 grid sm:grid-cols-2 gap-4">
         {FRICTIONS.map(f => (
@@ -987,7 +951,7 @@ function Lifecycle() {
   return (
     <section id="lifecycle" className="py-12 border-t border-slate-200/60">
       <SectionHeader
-        kicker="02"
+        kicker="A · 01"
         title="Lifecycle of a query"
         lede="Where the dollars actually go. The same six-ish stages move every modality, but the bottleneck shifts — image is step-count, video is KV-cache. Two diagrams, one bill dissected."
       />
@@ -1008,7 +972,7 @@ function ForwardBets() {
   return (
     <section id="forward-bets" className="py-12 border-t border-slate-200/60">
       <SectionHeader
-        kicker="04"
+        kicker="B · 02"
         title="Four bets for the next 18 months"
         lede="Where the floor lands once the frictions above break. Calibrated guesses, not forecasts — confidence levels spell out which bets are engineering and which are research."
       />
@@ -1063,17 +1027,19 @@ function Playground() {
   }
   return (
     <section id="playground" className="py-12 border-t border-slate-200/60">
-      <SectionHeader kicker="12" title="Back-of-envelope playground" lede="Inference cost from first principles. Four numbers in, three-line derivation out. The URL encodes your inputs — share it." />
+      <SectionHeader kicker="Tool" title="Back-of-envelope playground" lede="Inference cost from first principles. Four numbers in, three-line derivation out. The URL encodes your inputs — share it." />
 
       <div className="mt-8 grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
-        {SCENARIOS.map(s => (
+        {SCENARIOS.map(s => {
+          const Icon = s.icon
+          return (
           <a
             key={s.id}
             href={scenarioHref(s)}
             className="group block rounded-2xl border border-slate-200 bg-white/70 hover:bg-white hover:border-slate-400 transition-colors p-4"
           >
             <div className="flex items-start gap-3">
-              <div className="text-xl shrink-0" aria-hidden="true">{s.icon}</div>
+              <Icon className="w-5 h-5 shrink-0 text-slate-500" strokeWidth={1.75} aria-hidden="true" />
               <div className="min-w-0">
                 <div className="text-sm font-semibold text-slate-900 group-hover:text-slate-700">{s.title}</div>
                 <div className="text-xs text-slate-500 mt-0.5">{s.blurb}</div>
@@ -1083,7 +1049,8 @@ function Playground() {
               </div>
             </div>
           </a>
-        ))}
+          )
+        })}
       </div>
 
       <div className="mt-6">
@@ -1096,11 +1063,11 @@ function Playground() {
   )
 }
 
-function CostDropTracker() {
+function RecentPriceEvents() {
   return (
-    <section id="cost-drops" className="py-12 border-t border-slate-200/60">
-      <SectionHeader kicker="08" title="Recent price movements" lede="A rolling log of public cost changes — cuts, launches, and direct-API sightings. Sourced from the same docs the table below scrapes." />
-      <ol className="mt-8 relative border-l border-slate-200 ml-3 space-y-6">
+    <div id="cost-drops" className="mt-10 rounded-3xl border border-slate-200 bg-white/60 px-6 sm:px-8 py-6">
+      <div className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 mb-4">Recent price events</div>
+      <ol className="relative border-l border-slate-200 ml-3 space-y-6">
         {COST_EVENTS.map(e => (
           <li key={e.id} className="pl-6 relative">
             <span className={`absolute -left-[5px] top-1.5 w-2.5 h-2.5 rounded-full ring-4 ring-white ${PROVIDER_ACCENT[e.provider] ?? 'bg-slate-900'}`} />
@@ -1117,7 +1084,7 @@ function CostDropTracker() {
           </li>
         ))}
       </ol>
-    </section>
+    </div>
   )
 }
 
@@ -1125,7 +1092,7 @@ function TechniquesLadder() {
   return (
     <section id="techniques" className="py-12 border-t border-slate-200/60">
       <SectionHeader
-        kicker="03"
+        kicker="A · 03"
         title="How models actually get cheaper"
         lede="Six techniques doing the bulk of the work. Headline gain, where it ships today, and the tradeoff the sticker price doesn't show."
       />
@@ -1181,7 +1148,7 @@ function FailureModes() {
   return (
     <section id="failure-modes" className="py-12 border-t border-slate-200/60">
       <SectionHeader
-        kicker="05"
+        kicker="B · 03"
         title="What still breaks — April 2026"
         lede="The cheapest thing in each modality that still fails visibly. This is the gap between list price and shipped output."
       />
@@ -1210,39 +1177,6 @@ function FailureModes() {
   )
 }
 
-function HiddenCosts() {
-  return (
-    <section id="hidden-costs" className="py-12 border-t border-slate-200/60">
-      <SectionHeader
-        kicker="07"
-        title="What the bill doesn't price"
-        lede="List prices describe a successful, first-try, in-region generation. Real pipelines don't get that. Six things that quietly move the real $/output."
-      />
-
-      <div className="mt-8 grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
-        {HIDDEN_COSTS.map(h => (
-          <Claim key={h.id} id={`hidden-${h.id}`}>
-            <div className="rounded-2xl border border-slate-200 bg-white/70 p-5 h-full">
-              <div className="flex items-start gap-3 mb-3">
-                <div className="text-xl shrink-0" aria-hidden="true">{h.icon}</div>
-                <div className="min-w-0">
-                  <div className="text-sm font-semibold text-slate-900">{h.title}</div>
-                  <div className="mt-0.5 font-mono text-[11px] text-slate-500">{h.magnitude}</div>
-                </div>
-              </div>
-              <p className="text-sm text-slate-700 leading-relaxed">{h.detail}</p>
-            </div>
-          </Claim>
-        ))}
-      </div>
-
-      <div className="mt-6 text-sm text-slate-600 leading-relaxed max-w-3xl">
-        None of these show up in a $/sec or $/Mtok table, and most of them compound. The honest number for any modality is the sticker price times the retry rate plus the out-of-band fees — which is why procurement teams budget 1.5–2× list.
-      </div>
-    </section>
-  )
-}
-
 function Silicon() {
   const perChip = CHIPS.filter(c => c.scale === 'per-chip')
   const rack = CHIPS.filter(c => c.scale === 'rack')
@@ -1252,7 +1186,7 @@ function Silicon() {
   return (
     <section id="silicon" className="py-12 border-t border-slate-200/60">
       <SectionHeader
-        kicker="10"
+        kicker="A · 04"
         title="The silicon floor"
         lede="Every $/token number on this site runs on one of these. Memory bandwidth — not FLOPs — is what gates inference, so that's what the bars show."
       />
@@ -1375,7 +1309,7 @@ function BatchVsRealtime() {
   return (
     <section id="batch-vs-realtime" className="py-12 border-t border-slate-200/60">
       <SectionHeader
-        kicker="11"
+        kicker="A · 05"
         title="Batch vs realtime"
         lede="Text APIs hand you a 2× discount for trading latency for throughput. Image, video, and live voice don't offer one. The asymmetry is the whole story."
       />
@@ -1461,5 +1395,18 @@ function SectionHeader({ kicker, title, lede }: { kicker: string; title: string;
       <h2 className="font-display text-3xl sm:text-4xl">{title}</h2>
       <p className="mt-3 text-slate-600 leading-relaxed max-w-2xl">{lede}</p>
     </div>
+  )
+}
+
+function ArcDivider({ id, kicker, title, lede }: { id: string; kicker: string; title: string; lede: string }) {
+  return (
+    <section id={id} className="scroll-mt-24 pt-16 pb-4">
+      <div className="flex items-baseline gap-3 mb-2">
+        <span className="text-[11px] font-bold uppercase tracking-[0.25em] text-slate-400">{kicker}</span>
+        <span className="h-px flex-1 bg-gradient-to-r from-slate-300/80 to-transparent" />
+      </div>
+      <h2 className="font-display text-4xl sm:text-5xl text-slate-900 leading-tight">{title}</h2>
+      <p className="mt-3 text-slate-600 leading-relaxed max-w-2xl">{lede}</p>
+    </section>
   )
 }

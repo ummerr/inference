@@ -4,6 +4,14 @@
 // authoritative pricing. Real prices vary wildly by provider, batch size,
 // and hardware utilization.
 
+import type { LucideIcon } from 'lucide-react'
+import {
+  Image, Printer, Package, Scissors,
+  Smartphone, Tv, Clapperboard, Film,
+  Music, Disc, Sofa, PhoneCall, Globe, Headphones, Phone,
+  Joystick, Gamepad2, FlaskConical,
+} from 'lucide-react'
+
 export type FieldType = 'slider' | 'toggle' | 'select'
 
 export interface SliderField {
@@ -71,7 +79,7 @@ export interface ScenarioTier {
 }
 
 export interface Scenario {
-  icon: string
+  icon: LucideIcon
   title: string
   blurb: string
   cost: string
@@ -251,7 +259,7 @@ const images: Modality = {
   },
   scenarios: [
     {
-      icon: '🖼️', title: 'One 1024² image', blurb: 'Single Gemini image call',
+      icon: Image, title: 'One 1024² image', blurb: 'Single Gemini image call',
       cost: '$0.039 → $0.134', footnote: 'Vertex list price per image — tier = Nano Banana (2.5 Flash Image) / NB 2 (3.1 Flash Image) / NB Pro (3 Pro Image)',
       inputs: { steps: 25, guided: true, resolution: '1024' },
       tiers: [
@@ -261,7 +269,7 @@ const images: Modality = {
       ],
     },
     {
-      icon: '🖨️', title: '2K print-ready', blurb: 'Native 2048² output',
+      icon: Printer, title: '2K print-ready', blurb: 'Native 2048² output',
       cost: '$0.101 → $0.134', footnote: '3.1 Flash Image scales with resolution ($0.101 at 2K); 3 Pro Image is flat $0.134 through 2K (then $0.24 at 4K). 2.5 Flash Image is fixed at 1024².',
       inputs: { steps: 25, guided: true, resolution: '2048' },
       tiers: [
@@ -270,7 +278,7 @@ const images: Modality = {
       ],
     },
     {
-      icon: '📦', title: 'Catalogue of 10k', blurb: 'Batched via Vertex batch API',
+      icon: Package, title: 'Catalogue of 10k', blurb: 'Batched via Vertex batch API',
       cost: '$195 → $670', footnote: 'Batch API is ~50% cheaper than online; committed-use discounts stack on top',
       tiers: [
         { label: 'Gemini 2.5 Flash Image', cost: '$195' },
@@ -279,7 +287,7 @@ const images: Modality = {
       ],
     },
     {
-      icon: '✂️', title: 'Edit pass', blurb: 'Send an image in, get an edited image back',
+      icon: Scissors, title: 'Edit pass', blurb: 'Send an image in, get an edited image back',
       cost: '$0.039 – $0.134', footnote: 'Editing costs the same as generating from scratch — price is per output image, regardless of whether you supplied one as input',
     },
   ],
@@ -456,7 +464,7 @@ const video: Modality = {
   },
   scenarios: [
     {
-      icon: '📱', title: '6s social clip', blurb: '720p, one generation',
+      icon: Smartphone, title: '6s social clip', blurb: '720p, one generation',
       cost: '$0.30 → $2.40', footnote: 'Lite has no audio; Fast/Standard include synchronized audio',
       inputs: { seconds: 6, fps: 24, resolution: '720' },
       tiers: [
@@ -466,7 +474,7 @@ const video: Modality = {
       ],
     },
     {
-      icon: '📺', title: '30s ad spot', blurb: 'Stitched from ≤8s clips',
+      icon: Tv, title: '30s ad spot', blurb: 'Stitched from ≤8s clips',
       cost: '$1.50 → $12', footnote: 'Vertex list price: 30s × per-second rate. Retries and edits are extra in practice.',
       inputs: { fps: 24, resolution: '720' },
       tiers: [
@@ -476,7 +484,7 @@ const video: Modality = {
       ],
     },
     {
-      icon: '🎬', title: '2min short scene', blurb: '~15 clips stitched',
+      icon: Clapperboard, title: '2min short scene', blurb: '~15 clips stitched',
       cost: '$6 → $48', footnote: 'Vertex list price: 120s × per-second rate, before the VFX/color pass a real short needs.',
       inputs: { fps: 24, resolution: '720' },
       tiers: [
@@ -486,7 +494,7 @@ const video: Modality = {
       ],
     },
     {
-      icon: '🎞️', title: '1hr generated film', blurb: 'Linear extrapolation',
+      icon: Film, title: '1hr generated film', blurb: 'Linear extrapolation',
       cost: '$180 → $1,440', footnote: 'just inference — before retries, rejects, and post',
       tiers: [
         { label: 'Lite',     cost: '$180' },
@@ -614,8 +622,8 @@ const audio: Modality = {
     { id: 'kind', type: 'select', label: 'Mode', default: 'music',
       prominent: true,
       options: [
-        { value: 'music', label: '🎵 Music · Lyria' },
-        { value: 'voice', label: '🗣️ Voice · Flash Live' },
+        { value: 'music', label: 'Music · Lyria' },
+        { value: 'voice', label: 'Voice · Flash Live' },
       ],
     },
     // --- Music fields ---
@@ -702,12 +710,12 @@ const audio: Modality = {
   scenarios: [
     // --- Music ---
     {
-      icon: '🎺', title: '30s jingle', blurb: 'One Lyria 2 clip',
+      icon: Music, title: '30s jingle', blurb: 'One Lyria 2 clip',
       cost: '$0.06', footnote: 'exactly one billing unit on Lyria 2',
       inputs: { kind: 'music', tier: 'lyria2', seconds: 30 },
     },
     {
-      icon: '🎵', title: '3-min full song', blurb: 'Lyria 3 Pro flat vs Lyria 2 stitched',
+      icon: Disc, title: '3-min full song', blurb: 'Lyria 3 Pro flat vs Lyria 2 stitched',
       cost: '$0.08 → $0.36', footnote: 'Lyria 2: 6 × $0.06 = $0.36 (Vertex list). Lyria 3 Pro ~$0.08 is our working estimate for access-gated pricing.',
       inputs: { kind: 'music', seconds: 180 },
       tiers: [
@@ -716,33 +724,33 @@ const audio: Modality = {
       ],
     },
     {
-      icon: '💿', title: '20-song album', blurb: 'Lyria 3 Pro batch',
+      icon: Package, title: '20-song album', blurb: 'Lyria 3 Pro batch',
       cost: '~$1.60', footnote: '20 × ~$0.08/song — before iteration and rejected takes',
       inputs: { kind: 'music', tier: 'lyria3pro', seconds: 180 },
     },
     {
-      icon: '🛋️', title: '1hr background bed', blurb: 'Lyria 2 continuous',
+      icon: Sofa, title: '1hr background bed', blurb: 'Lyria 2 continuous',
       cost: '$7.20', footnote: '120 × 30s clips at $0.06 — crossfaded to loop seamlessly',
       inputs: { kind: 'music', tier: 'lyria2' },
     },
     // --- Voice ---
     {
-      icon: '☎️', title: '10-min support call', blurb: 'Flash Live · balanced turns',
+      icon: PhoneCall, title: '10-min support call', blurb: 'Flash Live · balanced turns',
       cost: '$0.12', footnote: '5 min in @ $0.005 + 5 min out @ $0.018',
       inputs: { kind: 'voice', minutes: 10, outputShare: 50 },
     },
     {
-      icon: '🌐', title: '1hr live translation', blurb: 'Model talks most of the time',
+      icon: Globe, title: '1hr live translation', blurb: 'Model talks most of the time',
       cost: '~$0.85', footnote: '42 min out @ $0.018 + 18 min in @ $0.005 — model speaking ~70% of the session',
       inputs: { kind: 'voice', minutes: 60, outputShare: 70 },
     },
     {
-      icon: '🎧', title: '30-min listening agent', blurb: 'Mostly intake, short replies',
+      icon: Headphones, title: '30-min listening agent', blurb: 'Mostly intake, short replies',
       cost: '~$0.21', footnote: '25.5 min in + 4.5 min out — cheap because the model listens',
       inputs: { kind: 'voice', minutes: 30, outputShare: 15 },
     },
     {
-      icon: '📞', title: '100k × 5-min calls', blurb: 'Call-center scale',
+      icon: Phone, title: '100k × 5-min calls', blurb: 'Call-center scale',
       cost: '~$5,750', footnote: '100k × $0.0575/call (50/50 split) — before grounding, tools, or STT fallbacks',
       inputs: { kind: 'voice', minutes: 5, outputShare: 50 },
     },
@@ -856,10 +864,10 @@ const world: Modality = {
   disclaimer: 'No vendor has published serving cluster sizes, fps targets, or per-session costs for interactive world models. The tiers below (1× / 4× / 8× H100) are illustrative — chosen to teach the cost shape, not to predict what Genie, Oasis, or GameNGen actually run on.',
   primer: [
     'World models (Genie 3, Oasis, GameNGen) are video models with a twist: every frame, you give them an action — an arrow key, a mouse move, a controller input — and they draw what happens next.',
-    'These are research-only systems right now — there\'s no public price list, and vendors haven\'t said exactly how big the serving clusters are or how fast they run. What\'s clear is the cost *shape*: you rent the whole cluster for the duration of a session, not per frame.',
+    'The cost shape is unusual: you rent the whole cluster for the duration of a session, not per frame. Because each frame depends on the input the user just pressed, there\'s nothing to batch.',
     'Consistency is the other wall: after about two minutes of play, generated worlds start to drift — textures jitter, collision rules break, rooms you\'ve already visited look different when you come back. That\'s why none of this has replaced a real game engine yet.',
   ],
-  whyExpensive: 'A regular video model can pre-plan a whole clip and generate many frames together, sharing the work. A world model can\'t — it only knows what to draw next after you\'ve pressed a key. Every frame is generated one at a time, under a deadline, which throws away the usual savings. So you rent the whole GPU cluster for as long as someone is playing.',
+  whyExpensive: 'A regular video model pre-plans a whole clip and generates many frames together, sharing the work. A world model can\'t — it only knows what to draw next after you\'ve pressed a key. Every frame is generated one at a time, under a deadline, which throws away the usual savings. So you rent the whole GPU cluster for as long as someone is playing.',
   formula: 'cluster_size (H100s) = Lite 1 · Mid 4 · SOTA 8\ngpu_hours            = (minutes / 60) × cluster_size\ndollars              = gpu_hours × $2.16/hr × 1.5   # blended retail\n\n# no Vertex list price exists — these are teaching estimates.\n# you rent the whole cluster for the session; fps and resolution\n# are absorbed into the tier multiplier.',
   fields: [
     { id: 'minutes', type: 'slider', label: 'Session length', min: 1, max: 120, step: 1, default: 10, unit: 'min',
@@ -900,11 +908,11 @@ const world: Modality = {
     }
   },
   scenarios: [
-    { icon: '🕹️', title: '2-min demo playthrough', blurb: 'Lite · 1× H100',    cost: '~$0.11',  footnote: 'research / solo session',
+    { icon: Joystick, title: '2-min demo playthrough', blurb: 'Lite · 1× H100',    cost: '~$0.11',  footnote: 'research / solo session',
       inputs: { minutes: 2, tier: 'lite' },
     },
     {
-      icon: '🎮', title: '1hr gameplay session', blurb: 'varies by model tier',
+      icon: Gamepad2, title: '1hr gameplay session', blurb: 'varies by model tier',
       cost: '$3.24 → $26', footnote: 'tier drives cluster size — Lite 1×, Mid 4×, SOTA 8× H100',
       inputs: { minutes: 60 },
       tiers: [
@@ -913,8 +921,8 @@ const world: Modality = {
         { label: 'SOTA (film-quality)', cost: '~$26',   inputs: { tier: 'sota' } },
       ],
     },
-    { icon: '🧪', title: '10k evaluation rollouts', blurb: 'Lite tier · 30s each',  cost: '~$270',   footnote: '10k × 30s on 1× H100 ≈ 83 GPU-hrs × $3.24/hr retail' },
-    { icon: '🌍', title: '1M users × 20min',        blurb: 'SOTA tier · multi-GPU/session',   cost: '~$4M',    footnote: 'why this isn\'t yet free-to-play — the unit economics still assume a rented cluster per player' },
+    { icon: FlaskConical, title: '10k evaluation rollouts', blurb: 'Lite tier · 30s each',  cost: '~$270',   footnote: '10k × 30s on 1× H100 ≈ 83 GPU-hrs × $3.24/hr retail' },
+    { icon: Globe, title: '1M users × 20min',        blurb: 'SOTA tier · multi-GPU/session',   cost: '~$4M',    footnote: 'why this isn\'t yet free-to-play — the unit economics still assume a rented cluster per player' },
   ],
   deepDive: [
     {
