@@ -1,5 +1,5 @@
 {
-  "updated": "2026-04-14T00:00:00Z",
+  "updated": "2026-07-22T00:00:00Z",
   "modality": "video",
   "entries": [
     {
@@ -42,7 +42,7 @@
       "version": "3.1-fast",
       "variant": "with-audio",
       "unit": "per_second_of_video",
-      "price_usd": 0.10,
+      "price_usd": 0.1,
       "resolution": "720p",
       "max_duration_s": 8,
       "source_url": "https://cloud.google.com/vertex-ai/generative-ai/pricing",
@@ -59,7 +59,7 @@
       "version": "3.1-standard",
       "variant": "with-audio",
       "unit": "per_second_of_video",
-      "price_usd": 0.40,
+      "price_usd": 0.4,
       "resolution": "720p",
       "max_duration_s": 8,
       "source_url": "https://cloud.google.com/vertex-ai/generative-ai/pricing",
@@ -68,6 +68,23 @@
       "confidence": "high",
       "confidence_reason": "Post-April-7 2026 price cut. Anchored to Vertex pricing page used site-wide.",
       "notes": "Flagship. 6s clip = $2.40. Durations 4/6/8s.",
+      "history": []
+    },
+    {
+      "provider": "google",
+      "model": "gemini-omni-flash",
+      "version": "preview",
+      "variant": "720p-audio-token-billed",
+      "unit": "per_second_of_video",
+      "price_usd": 0.1,
+      "resolution": "720p",
+      "max_duration_s": 10,
+      "source_url": "https://ai.google.dev/gemini-api/docs/pricing",
+      "source_fetched_at": "2026-07-22T00:00:00Z",
+      "source_quality": "official",
+      "confidence": "high",
+      "confidence_reason": "Published Gemini API rate: $17.50 per 1M video-output tokens, quoted by Google as approximately $0.10 per second at 720p.",
+      "notes": "Billed as output tokens, not seconds (~5.7k tokens per second of 720p). Native audio included. 10s per call; each conversational edit turn regenerates the clip.",
       "history": []
     },
     {

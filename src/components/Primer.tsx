@@ -39,20 +39,20 @@ export function Primer() {
       <div className="mt-10 max-w-3xl rounded-2xl border border-slate-200 bg-white/60 p-5 sm:p-6">
         <div className="flex items-baseline justify-end gap-4 flex-wrap">
           <a
-            href="https://cloud.google.com/vertex-ai/generative-ai/pricing"
+            href="https://ai.google.dev/gemini-api/docs/pricing"
             target="_blank"
             rel="noopener noreferrer"
             className="text-[11px] text-slate-400 hover:text-slate-600 hover:underline"
           >
-            Google Vertex AI list prices, April 2026 ↗
+            Google list prices, July 2026 ↗
           </a>
         </div>
 
         <dl className="mt-4 grid grid-cols-1 sm:grid-cols-[auto_1fr] gap-x-6 gap-y-2.5 text-sm">
           <PriceRow
             label="Images · Nano Banana"
-            prices={['$0.039', '$0.067', '$0.134']}
-            note="per image · Gemini 2.5 / 3.1 Flash Image / 3 Pro Image"
+            prices={['$0.034', '$0.067', '$0.134']}
+            note="per image · 3.1 Flash-Lite / 3.1 Flash / 3 Pro Image"
           />
           <PriceRow
             label="Video · Veo 3.1"
@@ -60,9 +60,14 @@ export function Primer() {
             note="per second · Lite / Fast / Standard"
           />
           <PriceRow
-            label="Music · Lyria 2"
-            prices={['$0.06']}
-            note="per 30s clip"
+            label="Video · Gemini Omni Flash"
+            prices={['$0.10']}
+            note="per second · $17.50 / 1M video-output tokens"
+          />
+          <PriceRow
+            label="Music · Lyria 3"
+            prices={['$0.04', '$0.08']}
+            note="per 30s clip · per full song (Pro)"
           />
           <PriceRow
             label="Voice · Gemini 3.1 Flash Live"

@@ -19,21 +19,21 @@ const ROWS: Row[] = [
     modality: 'Images',
     anchor: 'zone-images',
     accent: 'text-indigo-600',
-    amount: '15',
-    unit: 'Nano Banana 2 images',
+    amount: '29',
+    unit: 'Nano Banana 2 Lite images',
     priced: true,
-    source: { label: 'Vertex AI pricing', href: 'https://cloud.google.com/vertex-ai/generative-ai/pricing' },
-    note: '$0.067 / image · Gemini 3.1 Flash Image at 1K',
+    source: { label: 'Gemini API pricing', href: 'https://ai.google.dev/gemini-api/docs/pricing' },
+    note: '$0.034 / image · Gemini 3.1 Flash-Lite Image at 1K · 15 on Nano Banana 2',
   },
   {
     modality: 'Video',
     anchor: 'zone-video',
     accent: 'text-rose-600',
     amount: '10 seconds',
-    unit: 'of Veo 3.1 Fast (720p, with audio)',
+    unit: 'of Veo 3.1 Fast — or of Omni Flash',
     priced: true,
-    source: { label: 'Vertex AI pricing', href: 'https://cloud.google.com/vertex-ai/generative-ai/pricing' },
-    note: '$0.10 / second at 720p (post-4/7 cut from $0.15)',
+    source: { label: 'Gemini API pricing', href: 'https://ai.google.dev/gemini-api/docs/pricing' },
+    note: '$0.10 / second at 720p, either way — per-second on Veo, ~5.7k tokens/sec on Omni Flash',
   },
   {
     modality: 'Music',
@@ -42,8 +42,8 @@ const ROWS: Row[] = [
     amount: '~37 minutes',
     unit: 'of Lyria 3 Pro music (48 kHz WAV)',
     priced: true,
-    source: { label: 'Vertex AI pricing', href: 'https://cloud.google.com/vertex-ai/generative-ai/pricing' },
-    note: '~$0.08 flat per song (≤3 min) · 12 songs/$'
+    source: { label: 'Gemini API pricing', href: 'https://ai.google.dev/gemini-api/docs/pricing' },
+    note: '$0.08 flat per song (≤3 min) · 12 songs/$'
   },
   {
     modality: 'Voice',
@@ -52,8 +52,8 @@ const ROWS: Row[] = [
     amount: '55 minutes',
     unit: 'of Gemini 3.1 Flash Live spoken output',
     priced: true,
-    source: { label: 'Vertex AI pricing', href: 'https://cloud.google.com/vertex-ai/generative-ai/pricing' },
-    note: '$0.018 / min audio output ($0.005 / min input)',
+    source: { label: 'Gemini API pricing', href: 'https://ai.google.dev/gemini-api/docs/pricing' },
+    note: '$0.018 / min audio output ($0.005 / min input) · 32 min on Live Translate',
   },
   {
     modality: 'World models',
@@ -62,8 +62,8 @@ const ROWS: Row[] = [
     amount: '~4.6 minutes',
     unit: 'of real-time world-model gameplay (est.)',
     priced: false,
-    source: { label: 'Genie 3 — Google DeepMind', href: 'https://deepmind.google/models/genie/' },
-    note: 'Not sold on any public API. Cost is a teaching estimate: ~4× H100 per session at blended retail ($2.16/GPU-hr × 1.5). Cluster size is not vendor-published.',
+    source: { label: 'Project Genie — Google', href: 'https://blog.google/innovation-and-ai/models-and-research/google-deepmind/project-genie/' },
+    note: 'Still not sold by the unit — Project Genie ships inside an AI Ultra subscription. Cost is a teaching estimate: ~4× H100 per session at blended retail ($2.16/GPU-hr × 1.5). Cluster size is not vendor-published.',
   },
 ]
 

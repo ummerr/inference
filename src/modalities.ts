@@ -7,7 +7,7 @@
 import type { LucideIcon } from 'lucide-react'
 import {
   Image, Printer, Package, Scissors,
-  Smartphone, Tv, Clapperboard, Film,
+  Smartphone, Tv, Clapperboard, Film, Sparkles, MessagesSquare,
   Music, Disc, Sofa, PhoneCall, Globe, Headphones, Phone,
   Joystick, Gamepad2, FlaskConical,
 } from 'lucide-react'
@@ -171,6 +171,11 @@ const GPU_SECOND = 0.0006
 // (custom chips, compiled graphs, lower-precision weights, caching, batch
 // economics, and yes, margin). Call them calibration, not markup.
 const VERTEX_CALIBRATION_IMAGE = 27  // anchors Nano Banana 2 default = $0.067/img
+// Gemini Omni Flash bills video as output tokens rather than per second.
+// $17.50 / 1M video-output tokens, and a second of 720p video is ~5,700
+// tokens — which is where the quoted "≈$0.10 per second" comes from.
+const OMNI_VIDEO_TOKENS_PER_SECOND = 5700
+const OMNI_VIDEO_PER_MTOK = 17.5
 const VERTEX_CALIBRATION_VIDEO = 11  // anchors Veo 3.1 Standard 6s/720p = $2.40
 
 // ---------------------------------------------------------------------------
@@ -193,10 +198,10 @@ const images: Modality = {
   tagline: 'Diffusion: sculpt an image out of pure static.',
   primer: [
     'Image models start with random noise — a screen of static — and gradually clean it up into a picture. Each round of cleanup ("denoising") is one full pass through the network, and a typical image takes about 25 passes.',
-    'Google\'s current image lineup on Vertex AI is the Gemini Flash Image family — nicknamed "Nano Banana" in the developer community: Nano Banana / Gemini 2.5 Flash Image ($0.039/image), Nano Banana 2 / Gemini 3.1 Flash Image ($0.067), and Nano Banana Pro / Gemini 3 Pro Image ($0.134). Same underlying technique — the top tier just spends more compute per call.',
+    'Google\'s current image lineup is the Gemini Flash Image family — nicknamed "Nano Banana" in the developer community. As of May 2026 the ladder is Nano Banana 2 Lite / Gemini 3.1 Flash-Lite Image ($0.034/image, ~4 seconds), Nano Banana 2 / Gemini 3.1 Flash Image ($0.067), and Nano Banana Pro / Gemini 3 Pro Image ($0.134). Same underlying technique — the top tier just spends more compute per call. The older 2.5 Flash Image tier is still callable but no longer the price floor.',
   ],
-  whyExpensive: 'More denoising steps = a cleaner image and a linearly bigger bill. "Guidance" — the trick that makes the image match your prompt — runs the model twice per step, so turning it on roughly doubles the cost. Doubling the resolution quadruples the work (twice as wide × twice as tall). Vertex hides these knobs behind a tier name: you pick Nano Banana / NB 2 / NB Pro, it picks the rest for you.',
-  formula: 'gpu_seconds = steps × passes × size_mul × (res / 1024)² × 0.083\ndollars    = gpu_seconds × $0.0006/s × 27   # calibration, not margin\n\n# size_mul: Nano Banana 0.58, NB 2 1.0, NB Pro 2.0\n# passes:   guided = 2, unguided = 1\n# the 27× is back-solved from Vertex list price, not a measured markup.',
+  whyExpensive: 'More denoising steps = a cleaner image and a linearly bigger bill. "Guidance" — the trick that makes the image match your prompt — runs the model twice per step, so turning it on roughly doubles the cost. Doubling the resolution quadruples the work (twice as wide × twice as tall). Google hides these knobs behind a tier name: you pick NB 2 Lite / NB 2 / NB Pro, it picks the rest for you. Worth knowing: the *bill* no longer follows that quadratic, because images are now billed as output tokens and a 2K image costs barely more tokens than a 1K one.',
+  formula: 'gpu_seconds = steps × passes × size_mul × (res / 1024)² × 0.083\ndollars    = gpu_seconds × $0.0006/s × 27   # calibration, not margin\n\n# size_mul: NB 2 Lite 0.5, NB 2 1.0, NB Pro 2.0\n# passes:   guided = 2, unguided = 1\n# the 27× is back-solved from Google list price, not a measured markup.\n# this models the *work*; the token-based price ladder is flatter (see below).',
   fields: [
     {
       id: 'steps', type: 'slider', label: 'Denoising steps',
@@ -217,9 +222,9 @@ const images: Modality = {
       ],
     },
     {
-      id: 'modelSize', type: 'select', label: 'Vertex tier', default: 'medium',
+      id: 'modelSize', type: 'select', label: 'Model tier', default: 'medium',
       options: [
-        { value: 'small',  label: 'Gemini 2.5 Flash Image · "Nano Banana" ($0.039/img)' },
+        { value: 'small',  label: 'Gemini 3.1 Flash-Lite Image · "Nano Banana 2 Lite" ($0.034/img)' },
         { value: 'medium', label: 'Gemini 3.1 Flash Image · "Nano Banana 2" ($0.067/img)' },
         { value: 'large',  label: 'Gemini 3 Pro Image · "Nano Banana Pro" ($0.134/img)' },
       ],
@@ -233,7 +238,9 @@ const images: Modality = {
 
     // Per-step cost scales ~linearly with pixel count and ~linearly with params.
     const pixelMul = (res / 1024) ** 2     // 0.25 at 512, 1 at 1024, 4 at 2048
-    const sizeMul  = size === 'small' ? 0.58 : size === 'medium' ? 1 : 2
+    // Lite is exactly half NB 2's list price, Pro exactly double — the family
+    // lands on a clean 0.5 / 1 / 2 compute ladder.
+    const sizeMul  = size === 'small' ? 0.5 : size === 'medium' ? 1 : 2
     const passes   = guided ? 2 : 1
 
     // Scaling is physical: linear in denoising steps × guidance passes,
@@ -260,17 +267,17 @@ const images: Modality = {
   scenarios: [
     {
       icon: Image, title: 'One 1024² image', blurb: 'Single Gemini image call',
-      cost: '$0.039 → $0.134', footnote: 'Vertex list price per image — tier = Nano Banana (2.5 Flash Image) / NB 2 (3.1 Flash Image) / NB Pro (3 Pro Image)',
+      cost: '$0.034 → $0.134', footnote: 'List price per image — tier = NB 2 Lite (3.1 Flash-Lite Image) / NB 2 (3.1 Flash Image) / NB Pro (3 Pro Image)',
       inputs: { steps: 25, guided: true, resolution: '1024' },
       tiers: [
-        { label: 'Gemini 2.5 Flash Image', cost: '$0.039', inputs: { modelSize: 'small' } },
-        { label: 'Gemini 3.1 Flash Image', cost: '$0.067', inputs: { modelSize: 'medium' } },
-        { label: 'Gemini 3 Pro Image',     cost: '$0.134', inputs: { modelSize: 'large' } },
+        { label: 'Gemini 3.1 Flash-Lite Image', cost: '$0.034', inputs: { modelSize: 'small' } },
+        { label: 'Gemini 3.1 Flash Image',      cost: '$0.067', inputs: { modelSize: 'medium' } },
+        { label: 'Gemini 3 Pro Image',          cost: '$0.134', inputs: { modelSize: 'large' } },
       ],
     },
     {
       icon: Printer, title: '2K print-ready', blurb: 'Native 2048² output',
-      cost: '$0.101 → $0.134', footnote: '3.1 Flash Image scales with resolution ($0.101 at 2K); 3 Pro Image is flat $0.134 through 2K (then $0.24 at 4K). 2.5 Flash Image is fixed at 1024².',
+      cost: '$0.101 → $0.134', footnote: '3.1 Flash Image scales gently with resolution ($0.045 at 512², $0.067 at 1K, $0.101 at 2K, $0.151 at 4K); 3 Pro Image is flat $0.134 through 2K, then $0.24 at 4K.',
       inputs: { steps: 25, guided: true, resolution: '2048' },
       tiers: [
         { label: 'Gemini 3.1 Flash Image', cost: '$0.101', inputs: { modelSize: 'medium' } },
@@ -278,17 +285,17 @@ const images: Modality = {
       ],
     },
     {
-      icon: Package, title: 'Catalogue of 10k', blurb: 'Batched via Vertex batch API',
-      cost: '$195 → $670', footnote: 'Batch API is ~50% cheaper than online; committed-use discounts stack on top',
+      icon: Package, title: 'Catalogue of 10k', blurb: 'Batched via the Batch API',
+      cost: '$168 → $670', footnote: 'Batch API is exactly 50% of online list; committed-use discounts stack on top',
       tiers: [
-        { label: 'Gemini 2.5 Flash Image', cost: '$195' },
-        { label: 'Gemini 3.1 Flash Image', cost: '$335' },
-        { label: 'Gemini 3 Pro Image',     cost: '$670' },
+        { label: 'Gemini 3.1 Flash-Lite Image', cost: '$168' },
+        { label: 'Gemini 3.1 Flash Image',      cost: '$335' },
+        { label: 'Gemini 3 Pro Image',          cost: '$670' },
       ],
     },
     {
       icon: Scissors, title: 'Edit pass', blurb: 'Send an image in, get an edited image back',
-      cost: '$0.039 – $0.134', footnote: 'Editing costs the same as generating from scratch — price is per output image, regardless of whether you supplied one as input',
+      cost: '$0.034 – $0.134', footnote: 'Editing costs the same as generating from scratch — price is per output image, regardless of whether you supplied one as input',
     },
   ],
   deepDive: [
@@ -316,7 +323,7 @@ const images: Modality = {
         'A small helper network squashes a 1024×1024 image (~3 million numbers) down to a 128×128 representation (~66k numbers).',
         'The main model does its 20–30 cleanup passes on that compressed version.',
         'One final pass expands the result back into full-resolution pixels.',
-        'Without this shortcut, $0.039/image pricing wouldn\'t exist — every call would cost dollars instead of cents.',
+        'Without this shortcut, $0.034/image pricing wouldn\'t exist — every call would cost dollars instead of cents.',
       ],
       body: 'Every serious modern image model — Imagen 3/4, the Nano Banana line, Flux 2, GPT Image 1.5 — uses some version of this trick for the same reason: it\'s the only way the math pencils out.',
       sources: [
@@ -324,16 +331,32 @@ const images: Modality = {
       ],
     },
     {
-      title: 'Nano Banana / NB 2 / NB Pro: one family, three compute budgets',
+      title: 'NB 2 Lite / NB 2 / NB Pro: one family, three compute budgets',
       hook: 'Same underlying model, same brand — the cheaper tiers are squeezed and shortcut for speed, while Pro runs the full Gemini 3 weights.',
       bullets: [
-        'Nano Banana ($0.039) — the fastest tier: trained to skip most of the cleanup steps and stored in a lower-precision format to save memory. Fixed 1024×1024.',
-        'Nano Banana 2 ($0.067 at 1024², $0.101 at 2K) — same speed profile, but scales up to higher resolutions.',
-        'Nano Banana Pro ($0.134–$0.24) — the full-quality model. This is the tier that handles multiple objects in one scene and legible text inside the image.',
-        'Think of them as three points on a cost/quality curve, not three different products.',
+        'Nano Banana 2 Lite ($0.034) — shipped May 2026 as the new floor: an image in about 4 seconds, roughly 2.7× faster than 3.1 Flash Image, aimed at high-throughput catalogue and ad workloads.',
+        'Nano Banana 2 ($0.067 at 1K, $0.101 at 2K, $0.151 at 4K) — the default tier, and the only one that scales cleanly across the whole resolution ladder.',
+        'Nano Banana Pro ($0.134 through 2K, $0.24 at 4K) — the full-quality model. This is the tier that handles multiple objects in one scene and legible text inside the image.',
+        'The list prices land on a clean 0.5× / 1× / 2× ladder, which is the tell that these are three compute budgets for one model, not three products.',
       ],
       sources: [
-        { label: 'Vertex AI pricing (Apr 2026)', href: 'https://cloud.google.com/vertex-ai/generative-ai/pricing' },
+        { label: 'Google — Nano Banana 2 Lite & Gemini Omni Flash launch', href: 'https://blog.google/innovation-and-ai/models-and-research/gemini-models/gemini-omni-flash-nano-banana-2-lite/' },
+        { label: 'Gemini API pricing (Jul 2026)', href: 'https://ai.google.dev/gemini-api/docs/pricing' },
+      ],
+    },
+    {
+      title: 'The physics is quadratic. The price ladder isn\'t.',
+      hook: 'Doubling an image\'s width and height quadruples the pixels — but only raises the bill about 50%, because you\'re billed for tokens, not pixels.',
+      stat: { value: '1,120', label: 'output tokens for a 1K image — and for a 2K one on NB Pro' },
+      metaphor: 'You\'re not buying canvas by the square inch. You\'re buying a description of the painting, and longer paintings barely need longer descriptions.',
+      bullets: [
+        'Every Gemini output — text, image, and now video — is metered in tokens on one bill. An image is priced at $30 / $60 / $120 per million image-output tokens across the three tiers.',
+        'A 1K image is ~1,120 output tokens. Nano Banana Pro charges the same 1,120 through 2K, so 2K output is literally free relative to 1K on that tier.',
+        'On 3.1 Flash Image the ladder runs $0.045 → $0.067 → $0.101 → $0.151 across 512² → 4K. That is 64× the pixels for 3.4× the price.',
+        'The calculator on this page models the *work*, which really is quadratic in resolution. The gap between that curve and the price ladder is Google absorbing the difference — a bet on volume, not a measurement of cost.',
+      ],
+      sources: [
+        { label: 'Gemini API pricing — image output tokens', href: 'https://ai.google.dev/gemini-api/docs/pricing' },
       ],
     },
     {
@@ -343,7 +366,7 @@ const images: Modality = {
       bullets: [
         'This is the trick that makes image models listen to prompts at all — turn it off and you get mushy, generic output.',
         'But it means every step costs double: one pass with the prompt, one without.',
-        'Faster tiers ("step-distilled" variants like Nano Banana, Flux Schnell) train a smaller model to do both passes in one, which is mostly why they\'re so much cheaper.',
+        'Faster tiers ("step-distilled" variants like NB 2 Lite, Flux Schnell) train a smaller model to do both passes in one, which is mostly why they\'re so much cheaper — and why Lite returns an image in about 4 seconds.',
         'And at 1024×1024 the quality gap is rarely visible, so you\'re paying for speed without giving up much.',
       ],
       sources: [
@@ -351,8 +374,8 @@ const images: Modality = {
       ],
     },
     {
-      title: 'Why Vertex\'s $0.039 beats self-hosting Flux',
-      hook: 'On paper, renting your own GPU can match Vertex per image. In practice, Google\'s serving infrastructure is what you can\'t easily replicate.',
+      title: 'Why Google\'s $0.034 beats self-hosting Flux',
+      hook: 'On paper, renting your own GPU can match Google per image. In practice, its serving infrastructure is what you can\'t easily replicate.',
       metaphor: 'Anyone can buy the same flour. Google runs the bakery 24/7 with the ovens always full.',
       bullets: [
         'Raw GPU rental gets close: an RTX 5090 on spot (~$0.89/hr) or H100 (~$2/hr) is in the ballpark.',
@@ -391,16 +414,41 @@ const video: Modality = {
   primer: [
     'A video model has to generate every frame *and* keep them consistent with each other — a cup on a table in frame 1 has to be the same cup in frame 120.',
     'Early video models compared every frame to every other frame, which got painful fast: a clip twice as long cost four times as much to generate. Newer models (Veo 3.1, Kling, Runway Gen-4) only compare each frame to its neighbors, which is why an 8-second clip now renders in about a minute instead of several.',
-    'Providers bill per second of output because flat-rate subscriptions can\'t hide the true cost — one heavy user can burn more compute in a day than they pay in a month.',
+    'Two things sell video today. Veo 3.1 is the dedicated generator, billed per second of output on a Lite / Fast / Standard ladder. Gemini Omni Flash, launched May 2026, is the other shape: video generation folded into a Gemini model, billed in output tokens like everything else, with conversational editing on top — "make it night, keep the same car" as a follow-up turn rather than a fresh prompt.',
   ],
-  whyExpensive: 'Cost ≈ (work per frame) × (number of frames). Older video models got drastically more expensive as clips got longer, because every frame had to "look at" every other frame. Newer models only check nearby frames, which keeps cost roughly linear with length. Each frame still does almost as much work as a full image, though, so seconds and pixels add up quickly.',
-  formula: 'frames      = seconds × fps\nper_frame   = 2.5 × (res / 720)² × tier_mul     # linear\ntemporal    = frames² / 8000 × tier_mul × pixel_mul  # quadratic residue\ngpu_seconds = frames × per_frame + temporal\ndollars     = gpu_seconds × $0.0006/s × 11       # calibration, not margin\n\n# tier_mul: Lite 0.125, Fast 0.25, Standard 1.0\n# 8000 is a shape constant (not a measurement) tuned so the quadratic tail\n# is ~5% at 8s/24fps/720p; the 11× back-solves to Vertex list price.',
+  whyExpensive: 'Cost ≈ (work per frame) × (number of frames). Older video models got drastically more expensive as clips got longer, because every frame had to "look at" every other frame. Newer models only check nearby frames, which keeps cost roughly linear with length. Each frame still does almost as much work as a full image, though, so seconds and pixels add up quickly. Omni Flash adds a second cost driver that has nothing to do with pixels: every conversational edit turn regenerates the clip from scratch.',
+  formula: [
+    '# Veo 3.1 — per-second billing, modelled bottom-up',
+    'frames      = seconds × fps',
+    'per_frame   = 2.5 × (res / 720)² × tier_mul     # linear',
+    'temporal    = frames² / 8000 × tier_mul × pixel_mul  # quadratic residue',
+    'gpu_seconds = frames × per_frame + temporal',
+    'dollars     = gpu_seconds × $0.0006/s × 11       # calibration, not margin',
+    '',
+    '# tier_mul: Lite 0.125, Fast 0.25, Standard 1.0',
+    '# 8000 is a shape constant (not a measurement) tuned so the quadratic tail',
+    '# is ~5% at 8s/24fps/720p; the 11× back-solves to Google list price.',
+    '',
+    '# Gemini Omni Flash — token billing, straight off the price sheet',
+    'video_tokens = seconds × 5,700          # ~5.7k tokens per second at 720p',
+    'dollars      = turns × video_tokens / 1M × $17.50   # ≈ $0.10 / second',
+  ].join('\n'),
   fields: [
+    { id: 'engine', type: 'select', label: 'Engine', default: 'veo', prominent: true,
+      options: [
+        { value: 'veo',  label: 'Veo 3.1 · per second' },
+        { value: 'omni', label: 'Omni Flash · per token' },
+      ],
+    },
     { id: 'seconds',    type: 'slider', label: 'Length',     min: 4, max: 8, step: 2,  default: 6, unit: 's',
+      visibleWhen: i => i.engine !== 'omni',
       hint: v => v === 4 ? 'short take' : v === 6 ? 'default clip' : 'max single generation',
     },
-    { id: 'fps',        type: 'slider', label: 'Frame rate', min: 8, max: 30, step: 2, default: 24, unit: ' fps' },
+    { id: 'fps',        type: 'slider', label: 'Frame rate', min: 8, max: 30, step: 2, default: 24, unit: ' fps',
+      visibleWhen: i => i.engine !== 'omni',
+    },
     { id: 'resolution', type: 'select', label: 'Resolution', default: '720',
+      visibleWhen: i => i.engine !== 'omni',
       options: [
         { value: '480', label: '480p' },
         { value: '720', label: '720p' },
@@ -408,15 +456,53 @@ const video: Modality = {
         { value: '2160', label: '4K' },
       ],
     },
-    { id: 'tier', type: 'select', label: 'Vertex tier', default: 'fast',
+    { id: 'tier', type: 'select', label: 'Veo tier', default: 'fast',
+      visibleWhen: i => i.engine !== 'omni',
       options: [
         { value: 'lite', label: 'Veo 3.1 Lite ($0.05/s, no audio)' },
         { value: 'fast', label: 'Veo 3.1 Fast ($0.10/s, w/ audio)' },
         { value: 'good', label: 'Veo 3.1 Standard ($0.40/s, w/ audio)' },
       ],
     },
+    // --- Omni Flash fields ---
+    { id: 'omniSeconds', type: 'slider', label: 'Clip length', min: 2, max: 10, step: 1, default: 8, unit: 's',
+      visibleWhen: i => i.engine === 'omni',
+      hint: v => v <= 4 ? 'beat' : v <= 8 ? 'shot' : 'current per-call ceiling',
+    },
+    { id: 'turns', type: 'slider', label: 'Conversation turns', min: 1, max: 12, step: 1, default: 3,
+      visibleWhen: i => i.engine === 'omni',
+      hint: v => v === 1 ? 'one-shot generation' : v <= 4 ? 'a few refinements' : v <= 8 ? 'real direction session' : 'this is where the bill lives',
+    },
   ],
   calc: (inputs) => {
+    if (String(inputs.engine) === 'omni') {
+      const secs  = Number(inputs.omniSeconds)
+      const turns = Number(inputs.turns)
+
+      // Omni Flash needs no bottom-up model: video output is metered in
+      // tokens on the same bill as text, at a published per-token rate.
+      const tokensPerTurn = secs * OMNI_VIDEO_TOKENS_PER_SECOND
+      const dollars = turns * (tokensPerTurn / 1e6) * OMNI_VIDEO_PER_MTOK
+
+      const warn = turns >= 8
+        ? 'Every edit turn regenerates the whole clip. Eight turns on an 8-second shot costs more than a full 30-second Veo 3.1 Fast spot — conversational editing is convenience priced by the round trip.'
+        : undefined
+
+      return {
+        headline: fmt(dollars),
+        sub: `for a ${secs}s clip over ${turns} turn${turns === 1 ? '' : 's'}`,
+        dollars,
+        unitLabel: `per ${secs}s clip · ${turns} turn${turns === 1 ? '' : 's'}`,
+        breakdown: [
+          { label: 'Video output tokens', value: `${(tokensPerTurn * turns).toLocaleString()} (${secs}s × ~5.7k × ${turns})` },
+          { label: 'Rate',                value: '$17.50 / 1M video-output tokens' },
+          { label: 'Effective per second', value: '≈ $0.10 at 720p, audio included' },
+          { label: 'Regenerations',       value: `${turns}× — each turn redraws the clip` },
+        ],
+        warn,
+      }
+    }
+
     const seconds = Number(inputs.seconds)
     const fps     = Number(inputs.fps)
     const res     = Number(inputs.resolution)
@@ -466,7 +552,7 @@ const video: Modality = {
     {
       icon: Smartphone, title: '6s social clip', blurb: '720p, one generation',
       cost: '$0.30 → $2.40', footnote: 'Lite has no audio; Fast/Standard include synchronized audio',
-      inputs: { seconds: 6, fps: 24, resolution: '720' },
+      inputs: { engine: 'veo', seconds: 6, fps: 24, resolution: '720' },
       tiers: [
         { label: 'Lite',     cost: '$0.30', inputs: { tier: 'lite' } },
         { label: 'Fast',     cost: '$0.60', inputs: { tier: 'fast' } },
@@ -475,8 +561,8 @@ const video: Modality = {
     },
     {
       icon: Tv, title: '30s ad spot', blurb: 'Stitched from ≤8s clips',
-      cost: '$1.50 → $12', footnote: 'Vertex list price: 30s × per-second rate. Retries and edits are extra in practice.',
-      inputs: { fps: 24, resolution: '720' },
+      cost: '$1.50 → $12', footnote: 'List price: 30s × per-second rate. Retries and edits are extra in practice.',
+      inputs: { engine: 'veo', fps: 24, resolution: '720' },
       tiers: [
         { label: 'Lite',     cost: '$1.50', inputs: { tier: 'lite' } },
         { label: 'Fast',     cost: '$3',    inputs: { tier: 'fast' } },
@@ -485,13 +571,23 @@ const video: Modality = {
     },
     {
       icon: Clapperboard, title: '2min short scene', blurb: '~15 clips stitched',
-      cost: '$6 → $48', footnote: 'Vertex list price: 120s × per-second rate, before the VFX/color pass a real short needs.',
-      inputs: { fps: 24, resolution: '720' },
+      cost: '$6 → $48', footnote: 'List price: 120s × per-second rate, before the VFX/color pass a real short needs.',
+      inputs: { engine: 'veo', fps: 24, resolution: '720' },
       tiers: [
         { label: 'Lite',     cost: '$6',  inputs: { tier: 'lite' } },
         { label: 'Fast',     cost: '$12', inputs: { tier: 'fast' } },
         { label: 'Standard', cost: '$48', inputs: { tier: 'good' } },
       ],
+    },
+    {
+      icon: Sparkles, title: '10s Omni Flash clip', blurb: 'One-shot, native audio',
+      cost: '$1.00', footnote: '10s × ~5.7k video-output tokens × $17.50/1M ≈ $0.10/s — the same headline rate as Veo 3.1 Fast, reached through a completely different meter',
+      inputs: { engine: 'omni', omniSeconds: 10, turns: 1 },
+    },
+    {
+      icon: MessagesSquare, title: 'Directed shot', blurb: 'Omni Flash · 8s over 5 turns',
+      cost: '$4.00', footnote: 'Each "now make it night" is a full regeneration at $0.80. Conversational editing is priced by the round trip, not by the change.',
+      inputs: { engine: 'omni', omniSeconds: 8, turns: 5 },
     },
     {
       icon: Film, title: '1hr generated film', blurb: 'Linear extrapolation',
@@ -510,18 +606,48 @@ const video: Modality = {
       bullets: [
         'A single 8s clip can burn dollars of real compute — no fixed-price tier survives heavy users.',
         'Veo 3.1, Kling, and Runway Gen-4 all use per-second billing; it\'s the only unit that tracks what GPUs actually do.',
-        'Veo 3.1 ladder at 720p: Lite $0.05/s, Fast $0.10/s, Standard $0.40/s (post-April-7 cut).',
+        'Veo 3.1 ladder at 720p: Lite $0.05/s, Fast $0.10/s, Standard $0.40/s. 4K costs more on every rung — Fast jumps to $0.30/s, Standard to $0.60/s.',
         'The ladder lets you trade fidelity for cost explicitly instead of guessing at a tier name.',
       ],
       sources: [
-        { label: 'Vertex AI Veo pricing (Apr 2026)', href: 'https://cloud.google.com/vertex-ai/generative-ai/pricing' },
+        { label: 'Gemini API pricing — Veo (Jul 2026)', href: 'https://ai.google.dev/gemini-api/docs/pricing' },
         { label: 'Veo on Vertex — video generation docs (durations & tiers)', href: 'https://cloud.google.com/vertex-ai/generative-ai/docs/video/generate-videos' },
+      ],
+    },
+    {
+      title: 'Omni Flash: video generation moved into the chat model',
+      hook: 'Google I/O, May 2026 — Gemini Omni Flash makes a clip an output type of a Gemini model, not a call to a separate video product.',
+      stat: { value: '~5.7k', label: 'output tokens per second of 720p video' },
+      metaphor: 'Veo is a render farm you send a brief to. Omni Flash is a director you keep talking to.',
+      bullets: [
+        'Same meter as everything else Gemini emits: $1.50/1M in, $9/1M for text out, $17.50/1M for video out — which works out to about $0.10 per second at 720p, audio included.',
+        'Ten seconds per call today, "longer durations coming soon." Video references are capped at 3 seconds, and audio input isn\'t supported yet — you describe the audio in the prompt.',
+        'The real feature is multi-turn editing: "same shot, now at night" preserves the character, lighting, and continuity instead of rerolling a fresh clip from a longer prompt.',
+        'The catch that shows up on the invoice: each turn regenerates the whole clip. Five turns on an 8-second shot is $4.00 — the edits are conversational, the billing isn\'t.',
+        'Every generation carries a SynthID watermark. It shipped in public preview across AI Studio, the Gemini API, the Gemini app, and Flow.',
+      ],
+      sources: [
+        { label: 'Google — Start building with Nano Banana 2 Lite and Gemini Omni Flash', href: 'https://blog.google/innovation-and-ai/models-and-research/gemini-models/gemini-omni-flash-nano-banana-2-lite/' },
+        { label: 'Gemini API pricing — Omni Flash video output', href: 'https://ai.google.dev/gemini-api/docs/pricing' },
+      ],
+    },
+    {
+      title: 'Two meters, one price — for now',
+      hook: 'Omni Flash lands at $0.10/second, exactly Veo 3.1 Fast. That coincidence is a positioning decision, not a physics result.',
+      bullets: [
+        'Per-second billing prices the artifact. Token billing prices the computation — and lets video share one bill, one rate card, and one rate limit with text and images.',
+        'Token billing is also what makes editing coherent: the conversation is context, and context is already the unit Gemini charges for.',
+        'Where they diverge: Veo still owns the long tail — 4K, 1080p, the $0.05/s Lite floor, and durations past 10 seconds. Omni Flash owns iteration.',
+        'Choose by workflow, not by rate: one-shot render at a spec sheet, or a directed session where you expect to say "not quite" four times.',
+      ],
+      sources: [
+        { label: 'Gemini API pricing (Jul 2026)', href: 'https://ai.google.dev/gemini-api/docs/pricing' },
       ],
     },
     {
       title: 'Why a video clip costs 40× an image',
       hook: 'A 6-second clip is 144 images that all have to agree with each other.',
-      stat: { value: '~36×', label: 'the cost of one Nano Banana image' },
+      stat: { value: '~36×', label: 'the cost of one Nano Banana 2 image ($0.067)' },
       bullets: [
         '6s × 24fps = 144 frames, each doing ~1024² image diffusion plus cross-frame attention.',
         'Veo 3.1 Standard at $0.40/s → $2.40 per 6s clip.',
@@ -605,18 +731,20 @@ const audio: Modality = {
   },
   tagline: 'Two cost shapes under one roof: songs that bill per clip, conversations that bill per minute.',
   primer: [
-    'Audio on Vertex splits cleanly in two. Music is the Lyria line — Lyria 2 at $0.06 per 30-second clip (Vertex list price). Lyria 3 Pro is access-gated and we use ~$0.08/song (≤3 min) as a working estimate based on published tier structure; treat it as indicative, not invoiceable.',
-    'Voice is Gemini 3.1 Flash Live — one model that both listens and speaks, replacing the old three-step pipeline (speech-to-text → language model → text-to-speech). Billing is split: $0.005 per minute of audio you send in, $0.018 per minute of audio it speaks back.',
+    'Audio splits cleanly in two. Music is the Lyria line, and as of the April 2026 Lyria 3 release it finally has published list prices: Lyria 3 at $0.04 per 30-second clip, Lyria 3 Pro at $0.08 flat for a full song up to three minutes. Both take text or a reference image as the prompt, and both can sing.',
+    'Voice is Gemini 3.1 Flash Live — one model that both listens and speaks, replacing the old three-step pipeline (speech-to-text → language model → text-to-speech). Billing is split: $0.005 per minute of audio you send in, $0.018 per minute of audio it speaks back. Gemini 3.5 Live Translate is the specialist sibling, priced at $0.0053 in and $0.0315 out.',
   ],
   whyExpensive: 'Music bills per clip (or flat per song) because the Lyria models are trained to emit one fixed-size chunk of high-quality audio per call. Voice splits input and output because listening is cheap (one pass through the model) but speaking is expensive (the model has to generate each chunk of audio one after another, each one building on the last). That\'s why output costs ~3.6× input. Two different billing shapes, one category.',
   formula: [
-    '# Music (Lyria)',
-    'clips       = ceil(seconds / 30)     # Lyria 2 per-clip billing',
-    'dollars_L2  = clips × $0.06',
-    'dollars_L3P = $0.08                   # flat per song, up to ~180s',
+    '# Music (Lyria 3)',
+    'clips        = ceil(seconds / 30)     # Lyria 3 per-clip billing',
+    'dollars_L3   = clips × $0.04',
+    'dollars_L3P  = $0.08                  # flat per song, up to 180s',
     '',
-    '# Voice (Gemini 3.1 Flash Live)',
-    'dollars = input_min × $0.005 + output_min × $0.018',
+    '# Voice (Live models)',
+    'dollars = input_min × in_rate + output_min × out_rate',
+    '# Flash Live:    $0.005 in / $0.018 out',
+    '# Live Translate: $0.0053 in / $0.0315 out',
   ].join('\n'),
   fields: [
     { id: 'kind', type: 'select', label: 'Mode', default: 'music',
@@ -627,11 +755,11 @@ const audio: Modality = {
       ],
     },
     // --- Music fields ---
-    { id: 'tier', type: 'select', label: 'Vertex model', default: 'lyria2',
+    { id: 'tier', type: 'select', label: 'Music model', default: 'lyria3',
       visibleWhen: i => i.kind === 'music',
       options: [
-        { value: 'lyria2',    label: 'Lyria 2 · $0.06 / 30s clip' },
-        { value: 'lyria3pro', label: 'Lyria 3 Pro · ~$0.08 flat per song (≤3 min)', estimated: true },
+        { value: 'lyria3',    label: 'Lyria 3 · $0.04 / 30s clip' },
+        { value: 'lyria3pro', label: 'Lyria 3 Pro · $0.08 flat per song (≤3 min)' },
       ],
     },
     { id: 'seconds', type: 'slider', label: 'Track length', min: 5, max: 300, step: 5, default: 30, unit: 's',
@@ -639,6 +767,13 @@ const audio: Modality = {
       hint: v => v <= 15 ? 'stinger' : v <= 45 ? 'jingle' : v <= 120 ? 'single cue' : v <= 180 ? 'full song' : 'extended',
     },
     // --- Voice fields ---
+    { id: 'voiceModel', type: 'select', label: 'Voice model', default: 'flashLive',
+      visibleWhen: i => i.kind === 'voice',
+      options: [
+        { value: 'flashLive', label: 'Gemini 3.1 Flash Live · $0.005 / $0.018 per min' },
+        { value: 'translate', label: 'Gemini 3.5 Live Translate · $0.0053 / $0.0315 per min' },
+      ],
+    },
     { id: 'minutes', type: 'slider', label: 'Session length', min: 1, max: 600, step: 1, default: 10, unit: 'min',
       visibleWhen: i => i.kind === 'voice',
       hint: v => v < 5 ? 'quick exchange' : v < 30 ? 'conversation' : v < 120 ? 'long call' : 'marathon session',
@@ -657,17 +792,17 @@ const audio: Modality = {
 
       let dollars: number
       let clipInfo: string
-      if (tier === 'lyria2') {
+      if (tier === 'lyria3') {
         const clips = Math.max(1, Math.ceil(seconds / 30))
-        dollars = clips * 0.06
-        clipInfo = `${clips} × 30s clip @ $0.06`
+        dollars = clips * 0.04
+        clipInfo = `${clips} × 30s clip @ $0.04`
       } else {
         dollars = 0.08
         clipInfo = 'flat per-song rate'
       }
 
       const warn = tier === 'lyria3pro' && seconds > 180
-        ? 'Lyria 3 Pro caps at roughly 3-minute tracks — longer runs have to be stitched from multiple calls.'
+        ? 'Lyria 3 Pro caps at 3-minute tracks — longer runs have to be stitched from multiple calls.'
         : undefined
 
       return {
@@ -677,7 +812,7 @@ const audio: Modality = {
         unitLabel: `per ${seconds}s track`,
         breakdown: [
           { label: 'Mode',         value: 'Music' },
-          { label: 'Model',        value: tier === 'lyria2' ? 'Lyria 2' : 'Lyria 3 Pro' },
+          { label: 'Model',        value: tier === 'lyria3' ? 'Lyria 3' : 'Lyria 3 Pro' },
           { label: 'Billing unit', value: clipInfo },
           { label: 'Sample rate',  value: '48 kHz WAV' },
         ],
@@ -689,10 +824,19 @@ const audio: Modality = {
     const minutes     = Number(inputs.minutes)
     const outputShare = Number(inputs.outputShare) / 100
 
+    const model       = String(inputs.voiceModel ?? 'flashLive')
+    const translating = model === 'translate'
+
     const outputMin = minutes * outputShare
     const inputMin  = minutes * (1 - outputShare)
 
-    const dollars = inputMin * 0.005 + outputMin * 0.018
+    // Live Translate carries a premium on both legs, and a much steeper one
+    // on output — it is speaking continuously, in a second language, while
+    // still listening to the first.
+    const inRate  = translating ? 0.0053 : 0.005
+    const outRate = translating ? 0.0315 : 0.018
+
+    const dollars = inputMin * inRate + outputMin * outRate
 
     return {
       headline: fmt(dollars),
@@ -701,58 +845,58 @@ const audio: Modality = {
       unitLabel: `per ${minutes}-min session`,
       breakdown: [
         { label: 'Mode',         value: 'Voice' },
-        { label: 'Input audio',  value: `${inputMin.toFixed(1)} min × $0.005` },
-        { label: 'Output audio', value: `${outputMin.toFixed(1)} min × $0.018` },
-        { label: 'Model',        value: 'Gemini 3.1 Flash Live' },
+        { label: 'Input audio',  value: `${inputMin.toFixed(1)} min × $${inRate}` },
+        { label: 'Output audio', value: `${outputMin.toFixed(1)} min × $${outRate}` },
+        { label: 'Model',        value: translating ? 'Gemini 3.5 Live Translate' : 'Gemini 3.1 Flash Live' },
       ],
     }
   },
   scenarios: [
     // --- Music ---
     {
-      icon: Music, title: '30s jingle', blurb: 'One Lyria 2 clip',
-      cost: '$0.06', footnote: 'exactly one billing unit on Lyria 2',
-      inputs: { kind: 'music', tier: 'lyria2', seconds: 30 },
+      icon: Music, title: '30s jingle', blurb: 'One Lyria 3 clip',
+      cost: '$0.04', footnote: 'exactly one billing unit on Lyria 3',
+      inputs: { kind: 'music', tier: 'lyria3', seconds: 30 },
     },
     {
-      icon: Disc, title: '3-min full song', blurb: 'Lyria 3 Pro flat vs Lyria 2 stitched',
-      cost: '$0.08 → $0.36', footnote: 'Lyria 2: 6 × $0.06 = $0.36 (Vertex list). Lyria 3 Pro ~$0.08 is our working estimate for access-gated pricing.',
+      icon: Disc, title: '3-min full song', blurb: 'Lyria 3 Pro flat vs Lyria 3 stitched',
+      cost: '$0.08 → $0.24', footnote: 'Lyria 3: 6 × $0.04 = $0.24, and the six clips have to be made to agree. Lyria 3 Pro writes the whole arrangement — intro, verse, chorus, bridge — for $0.08.',
       inputs: { kind: 'music', seconds: 180 },
       tiers: [
-        { label: 'Lyria 3 Pro (flat)', cost: '~$0.08', inputs: { tier: 'lyria3pro' } },
-        { label: 'Lyria 2 (6 clips)',  cost: '$0.36',  inputs: { tier: 'lyria2' } },
+        { label: 'Lyria 3 Pro (flat)', cost: '$0.08', inputs: { tier: 'lyria3pro' } },
+        { label: 'Lyria 3 (6 clips)',  cost: '$0.24', inputs: { tier: 'lyria3' } },
       ],
     },
     {
       icon: Package, title: '20-song album', blurb: 'Lyria 3 Pro batch',
-      cost: '~$1.60', footnote: '20 × ~$0.08/song — before iteration and rejected takes',
+      cost: '$1.60', footnote: '20 × $0.08/song — before iteration and rejected takes',
       inputs: { kind: 'music', tier: 'lyria3pro', seconds: 180 },
     },
     {
-      icon: Sofa, title: '1hr background bed', blurb: 'Lyria 2 continuous',
-      cost: '$7.20', footnote: '120 × 30s clips at $0.06 — crossfaded to loop seamlessly',
-      inputs: { kind: 'music', tier: 'lyria2' },
+      icon: Sofa, title: '1hr background bed', blurb: 'Lyria 3 continuous',
+      cost: '$4.80', footnote: '120 × 30s clips at $0.04 — crossfaded to loop seamlessly',
+      inputs: { kind: 'music', tier: 'lyria3' },
     },
     // --- Voice ---
     {
       icon: PhoneCall, title: '10-min support call', blurb: 'Flash Live · balanced turns',
       cost: '$0.12', footnote: '5 min in @ $0.005 + 5 min out @ $0.018',
-      inputs: { kind: 'voice', minutes: 10, outputShare: 50 },
+      inputs: { kind: 'voice', voiceModel: 'flashLive', minutes: 10, outputShare: 50 },
     },
     {
-      icon: Globe, title: '1hr live translation', blurb: 'Model talks most of the time',
-      cost: '~$0.85', footnote: '42 min out @ $0.018 + 18 min in @ $0.005 — model speaking ~70% of the session',
-      inputs: { kind: 'voice', minutes: 60, outputShare: 70 },
+      icon: Globe, title: '1hr live translation', blurb: 'Gemini 3.5 Live Translate',
+      cost: '~$1.42', footnote: '42 min out @ $0.0315 + 18 min in @ $0.0053 — the specialist model costs 1.75× Flash Live on output, because it speaks continuously while still listening',
+      inputs: { kind: 'voice', voiceModel: 'translate', minutes: 60, outputShare: 70 },
     },
     {
       icon: Headphones, title: '30-min listening agent', blurb: 'Mostly intake, short replies',
       cost: '~$0.21', footnote: '25.5 min in + 4.5 min out — cheap because the model listens',
-      inputs: { kind: 'voice', minutes: 30, outputShare: 15 },
+      inputs: { kind: 'voice', voiceModel: 'flashLive', minutes: 30, outputShare: 15 },
     },
     {
       icon: Phone, title: '100k × 5-min calls', blurb: 'Call-center scale',
       cost: '~$5,750', footnote: '100k × $0.0575/call (50/50 split) — before grounding, tools, or STT fallbacks',
-      inputs: { kind: 'voice', minutes: 5, outputShare: 50 },
+      inputs: { kind: 'voice', voiceModel: 'flashLive', minutes: 5, outputShare: 50 },
     },
   ],
   deepDive: [
@@ -760,27 +904,28 @@ const audio: Modality = {
       title: 'Why music bills per-clip (or per-song), not per-second',
       hook: 'The pricing unit follows whatever the model was trained to produce in a single call.',
       bullets: [
-        'Lyria 2 returns a fixed 30s WAV — billed as one unit at $0.06. Need 31s? Pay for two.',
-        'Lyria 3 Pro was retrained for full-song coherence and priced flat (~$0.08 per song).',
-        'The marginal cost of seconds 31–180 inside one Pro call is much lower than starting a new Lyria 2 call.',
-        'Per-clip vs per-song is the biggest pricing knob in music generation today.',
+        'Lyria 3 returns a fixed 30s track — billed as one unit at $0.04. Need 31s? Pay for two.',
+        'Lyria 3 Pro was retrained for full-song coherence — it understands intros, verses, choruses, bridges — and is priced flat at $0.08 per song up to three minutes.',
+        'So the sixth 30-second clip costs the same $0.04 as the first, while seconds 31–180 inside one Pro call are free. Past ~60 seconds, Pro is simply cheaper *and* better.',
+        'Both take a reference image as a prompt and can generate vocals over supplied lyrics; both carry SynthID watermarks and C2PA provenance.',
       ],
       sources: [
-        { label: 'Vertex AI Lyria pricing', href: 'https://cloud.google.com/vertex-ai/generative-ai/pricing' },
+        { label: 'Google Cloud — Lyria 3 and Lyria 3 Pro on Vertex AI', href: 'https://cloud.google.com/blog/products/ai-machine-learning/lyria-3-and-lyria-3-pro-on-vertex-ai' },
+        { label: 'Gemini API pricing — Lyria', href: 'https://ai.google.dev/gemini-api/docs/pricing' },
       ],
     },
     {
       title: 'Why music costs many times speech per second',
       hook: 'Music is a denser signal that the model must keep coherent across instruments and minutes.',
-      stat: { value: '~7×', label: 'Lyria 2 per-second rate vs. Flash Live voice output' },
+      stat: { value: '~4.4×', label: 'Lyria 3 per-second rate vs. Flash Live voice output' },
       bullets: [
         'Speech: 16–24 kHz mono, one speaker at a time — thin signal.',
         'Music: 48 kHz, multiple instruments, full audible band, often stereo — several-times-denser token stream.',
         'The model must predict harmony + rhythm across instruments and stay coherent over minutes.',
-        'Concrete: Lyria 2 at $0.002/s ($0.06/30s) vs. Gemini 3.1 Flash Live voice output ~$0.0003/s.',
+        'Concrete: Lyria 3 at $0.0013/s ($0.04/30s) vs. Gemini 3.1 Flash Live voice output ~$0.0003/s.',
       ],
       sources: [
-        { label: 'Vertex AI Lyria & Flash Live pricing', href: 'https://cloud.google.com/vertex-ai/generative-ai/pricing' },
+        { label: 'Gemini API pricing — Lyria & Live models', href: 'https://ai.google.dev/gemini-api/docs/pricing' },
         { label: 'Google DeepMind — Lyria', href: 'https://deepmind.google/technologies/lyria/' },
       ],
     },
@@ -806,6 +951,7 @@ const audio: Modality = {
         'Output: each chunk of spoken audio depends on everything spoken so far, so the model runs over and over, one chunk at a time.',
         'A voice agent that listens more than it talks is materially cheaper than one that monologues.',
         'Product decisions — when to speak, when to stay quiet — now have a direct line to the bill.',
+        'The ratio gets steeper for specialists: Gemini 3.5 Live Translate charges $0.0315/min out against $0.0053/min in — nearly 6×, because a translator talks through the entire session.',
       ],
       sources: [
         { label: 'Vertex AI Gemini Live pricing', href: 'https://cloud.google.com/vertex-ai/generative-ai/pricing' },
@@ -816,8 +962,8 @@ const audio: Modality = {
       title: 'Licensing is the enterprise moat for music',
       hook: 'Quality between Lyria, Suno, Udio, and ElevenLabs Music has largely converged — provenance is the differentiator.',
       bullets: [
-        'Lyria trained in partnership with YouTube and music-industry licensors.',
-        'Ships under Vertex\'s standard generative-AI indemnification — Google absorbs the provenance risk.',
+        'Lyria trained on material YouTube and Google hold rights to, and outputs are filtered against existing recordings before they come back.',
+        'Ships under Vertex\'s standard generative-AI indemnification, with SynthID watermarks and C2PA metadata on every track — Google absorbs the provenance risk.',
         'Suno, Udio are cheaper but carry ongoing copyright exposure.',
       ],
       sources: [
@@ -861,11 +1007,12 @@ const world: Modality = {
     hex: '#f59e0b',
   },
   tagline: 'Video you can *play*. Every input generates the next frame in real time.',
-  disclaimer: 'No vendor has published serving cluster sizes, fps targets, or per-session costs for interactive world models. The tiers below (1× / 4× / 8× H100) are illustrative — chosen to teach the cost shape, not to predict what Genie, Oasis, or GameNGen actually run on.',
+  disclaimer: 'Still the one modality with no public per-unit price. Project Genie shipped to consumers in January 2026, but as a subscription perk — no vendor has published serving cluster sizes, fps targets, or per-session costs. The tiers below (1× / 4× / 8× H100) are illustrative, chosen to teach the cost shape, not to predict what Genie or Oasis actually run on.',
   primer: [
     'World models (Genie 3, Oasis, GameNGen) are video models with a twist: every frame, you give them an action — an arrow key, a mouse move, a controller input — and they draw what happens next.',
     'The cost shape is unusual: you rent the whole cluster for the duration of a session, not per frame. Because each frame depends on the input the user just pressed, there\'s nothing to batch.',
-    'Consistency is the other wall: after about two minutes of play, generated worlds start to drift — textures jitter, collision rules break, rooms you\'ve already visited look different when you come back. That\'s why none of this has replaced a real game engine yet.',
+    'This is the only modality here you still can\'t buy by the unit. Project Genie opened to Google AI Ultra subscribers in the US on 29 January 2026, capped at 60-second generations — a rationed subscription, not an API with a rate card. The prices below are ours, not Google\'s.',
+    'Consistency is the other wall: after a minute or two of play, generated worlds start to drift — textures jitter, collision rules break, rooms you\'ve already visited look different when you come back. That\'s why none of this has replaced a real game engine yet.',
   ],
   whyExpensive: 'A regular video model pre-plans a whole clip and generates many frames together, sharing the work. A world model can\'t — it only knows what to draw next after you\'ve pressed a key. Every frame is generated one at a time, under a deadline, which throws away the usual savings. So you rent the whole GPU cluster for as long as someone is playing.',
   formula: 'cluster_size (H100s) = Lite 1 · Mid 4 · SOTA 8\ngpu_hours            = (minutes / 60) × cluster_size\ndollars              = gpu_hours × $2.16/hr × 1.5   # blended retail\n\n# no Vertex list price exists — these are teaching estimates.\n# you rent the whole cluster for the session; fps and resolution\n# are absorbed into the tier multiplier.',
@@ -941,6 +1088,22 @@ const world: Modality = {
       ],
     },
     {
+      title: 'Project Genie shipped — as a subscription, not an API',
+      hook: 'The first consumer world model went live on 29 January 2026, and the way it\'s sold tells you everything about what it costs to serve.',
+      stat: { value: '60s', label: 'cap on a single generation at launch' },
+      metaphor: 'When a product ships with a queue and a cap instead of a price, the price is the part that isn\'t ready.',
+      bullets: [
+        'Access is bundled into Google AI Ultra, US-only, 18+, as an "experimental research prototype" — not a metered endpoint.',
+        'Every other modality on this page has a published per-unit rate. This one has a monthly fee and a daily allowance, which is what rationing looks like when marginal cost is high and unpredictable.',
+        'Run the arithmetic against our Mid tier estimate (~$13 per gameplay hour): an hour a day would cost several times a single subscription. Caps are doing the work a price would.',
+        'When world models get a per-second rate, that\'s the signal the serving cost finally fits inside a normal unit economic — the same transition video made in 2024.',
+      ],
+      sources: [
+        { label: 'Google — Project Genie for AI Ultra subscribers', href: 'https://blog.google/innovation-and-ai/models-and-research/google-deepmind/project-genie/' },
+        { label: 'Google DeepMind — Genie 3', href: 'https://deepmind.google/discover/blog/genie-3/' },
+      ],
+    },
+    {
       title: 'The bottleneck is memory speed, not raw math',
       hook: 'World models aren\'t limited by how many calculations the GPU can do. They\'re limited by how fast the GPU can shuffle the model\'s memory of the world in and out.',
       stat: { value: '3.35 TB/s', label: 'H100 memory bandwidth — the current ceiling' },
@@ -948,7 +1111,7 @@ const world: Modality = {
         'The model has to keep track of everything you\'ve seen — objects, rooms, where you\'ve been — and pull that memory into the chip for every new frame.',
         'It has to do that within ~100 ms per frame or the game feels laggy.',
         'The H100 is the workhorse; the newer B200 raises the ceiling a bit but is still in short supply.',
-        'This is why world models are gated to research access instead of sold by the second — the hardware can barely keep up.',
+        'This is why world models are gated behind subscriptions instead of sold by the second — the hardware can barely keep up.',
       ],
       sources: [
         { label: 'NVIDIA H100 datasheet', href: 'https://www.nvidia.com/en-us/data-center/h100/' },
@@ -971,7 +1134,7 @@ const world: Modality = {
       bullets: [
         'Textures shimmer, collision rules break, rooms you visited earlier look different when you come back.',
         'The cause: the model\'s memory of what just happened fades as new frames push old ones out.',
-        'Nobody has yet replaced a real game engine with a world model for more than short demos.',
+        'Nobody has yet replaced a real game engine with a world model for more than short demos — Project Genie ships with a 60-second cap for exactly this reason.',
         'This memory wall — not picture quality — is the real blocker for shipping a real game.',
       ],
       sources: [

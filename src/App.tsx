@@ -82,8 +82,8 @@ function MainPage() {
 function Footer() {
   return (
     <footer className="py-12 text-center text-xs text-slate-500 border-t border-slate-200/60">
-      <div>Prices anchored to Vertex AI list rates (April 2026); FLOPs and latency derived from published model cards and H100/TPUv5 throughput.</div>
-      <div className="mt-2 text-slate-400">Last updated April 16, 2026.</div>
+      <div>Prices anchored to Google list rates (July 2026), including the May 2026 Gemini Omni Flash and Nano Banana 2 Lite releases; FLOPs and latency derived from published model cards and H100/TPUv5 throughput.</div>
+      <div className="mt-2 text-slate-400">Last updated July 22, 2026.</div>
       <div className="mt-4 print-hide">
         <a
           href="#"

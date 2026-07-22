@@ -44,7 +44,7 @@ const FRICTIONS: Friction[] = [
     color: { text: 'text-rose-700', bg: 'bg-rose-600', border: 'border-rose-200', bgSoft: 'bg-rose-50' },
     bottleneck: 'Temporal attention memory. Frames are not independent — each frame attends across a context window, and the KV-cache grows with length × resolution × layers. HBM bandwidth, not FLOPs, is usually the binding constraint on long clips.',
     tenX: 'A 10× cheaper second of video needs sub-quadratic temporal attention (linear or state-space variants), better frame-token compression, or hierarchical generation that plans once and fills in cheaply.',
-    delta: 'Veo 3.1 Standard dropped to $0.40/sec on 2026-04-07 — 60% cut in one release.',
+    delta: 'Veo 3.1 Standard dropped to $0.40/sec on 2026-04-07 — 60% cut in one release. Gemini Omni Flash then arrived on 2026-05-19 at ~$0.10/sec, billed as video-output tokens rather than seconds.',
     zoneId: 'video',
     papers: [
       { label: 'Lumiere: Space-Time Diffusion (Bar-Tal et al., 2024)', href: 'https://arxiv.org/abs/2401.12945' },
@@ -193,6 +193,24 @@ const COST_EVENTS: CostEvent[] = [
     headline: '$1.00 → $0.40 / sec (flagship cut)',
     detail: '60% price drop on the Vertex AI flagship tier with audio. 6s clip now $2.40.',
     href: 'https://cloud.google.com/vertex-ai/generative-ai/pricing',
+  },
+  {
+    id: 'evt-omni-flash',
+    date: '2026-05-19',
+    provider: 'Google',
+    model: 'Gemini Omni Flash',
+    headline: 'Video output enters the token meter — ~$0.10 / sec',
+    detail: 'Announced at I/O. Video generation and conversational editing inside a Gemini model, billed at $17.50 / 1M video-output tokens (~5.7k tokens per second of 720p). 10-second clips, native audio, public preview.',
+    href: 'https://blog.google/innovation-and-ai/models-and-research/gemini-models/gemini-omni-flash-nano-banana-2-lite/',
+  },
+  {
+    id: 'evt-nb2-lite',
+    date: '2026-05-19',
+    provider: 'Google',
+    model: 'Nano Banana 2 Lite',
+    headline: 'New image floor — $0.034 / image, ~4 seconds',
+    detail: 'Gemini 3.1 Flash-Lite Image: half the price of Nano Banana 2 and ~2.7× faster, aimed at catalogue-scale throughput. $0.0168 on Batch.',
+    href: 'https://blog.google/innovation-and-ai/models-and-research/gemini-models/gemini-omni-flash-nano-banana-2-lite/',
   },
   {
     id: 'evt-grok-imagine-ga',
@@ -698,6 +716,7 @@ const MODEL_DISPLAY: Record<string, string> = {
   'google:veo:3.1-lite': 'Veo 3.1 Lite',
   'google:veo:3.1-fast': 'Veo 3.1 Fast',
   'google:veo:3.1-standard': 'Veo 3.1 Standard',
+  'google:gemini-omni-flash:preview': 'Gemini Omni Flash',
   'runway:gen4-turbo:4.0': 'Gen-4 Turbo',
   'runway:gen4.5:4.5': 'Gen-4.5',
   'kuaishou:kling:2.5-turbo-pro': 'Kling 2.5 Turbo Pro',
@@ -714,6 +733,7 @@ const VARIANT_DISPLAY: Record<string, string> = {
   'fal-standard': 'fal.ai',
   'fal-720p-audio': 'fal.ai, 720p + audio',
   'volcengine-direct-1080p': 'Volcengine direct, 1080p',
+  '720p-audio-token-billed': 'Gemini API, token-billed',
 }
 
 function sourceLabel(url: string): string {
@@ -897,7 +917,10 @@ function VideoPriceWatch() {
           <span className="font-medium">Source tier</span> matters more than the headline number: <em>Official</em> means the provider's own pricing doc; <em>Reseller</em> is a hosted inference platform (fal, Replicate) that adds margin and infra; <em>Third-party</em> is a news or blog quote, so trust it less. Filters and sort live in the URL — share a view.
         </p>
         <p>
-          Three price bands are forming. A <span className="font-medium">$0.05/sec floor</span> (Grok Imagine, Runway Gen-4 Turbo, Veo 3.1 Lite) for draft-tier 720p, a <span className="font-medium">$0.07–0.14/sec mid band</span> (Kling 2.5 Turbo, Runway Gen-4.5, Seedance direct), and a <span className="font-medium">$0.24–0.40/sec flagship band</span> (Seedance on fal, Veo 3.1 Standard). Hover the confidence chip for the reason.
+          Three price bands are forming. A <span className="font-medium">$0.05/sec floor</span> (Grok Imagine, Runway Gen-4 Turbo, Veo 3.1 Lite) for draft-tier 720p, a <span className="font-medium">$0.07–0.14/sec mid band</span> (Kling 2.5 Turbo, Runway Gen-4.5, Seedance direct, Gemini Omni Flash), and a <span className="font-medium">$0.24–0.40/sec flagship band</span> (Seedance on fal, Veo 3.1 Standard). Hover the confidence chip for the reason.
+        </p>
+        <p>
+          The row to watch is <span className="font-medium">Gemini Omni Flash</span>. It lands mid-band at the same ~$0.10/sec as Veo 3.1 Fast, but it is the only entry here not actually sold by the second — it bills $17.50 per million video-output tokens, and the per-second figure is Google's own conversion at 720p. If the meter for video is becoming the token, this table's unit has a shelf life.
         </p>
         <p className="text-xs text-slate-500">
           <span className="font-medium text-slate-600">A note on the sticker price:</span> list $/sec is a first-try, in-region generation. Draft-tier models usually need 2–3 tries to land one usable clip, so the honest number per <em>shipped</em> asset is 2–4× the table value. Procurement teams budget 1.5–2× list; that's why.
@@ -1149,7 +1172,7 @@ function FailureModes() {
     <section id="failure-modes" className="py-12 border-t border-slate-200/60">
       <SectionHeader
         kicker="B · 03"
-        title="What still breaks — April 2026"
+        title="What still breaks — July 2026"
         lede="The cheapest thing in each modality that still fails visibly. This is the gap between list price and shipped output."
       />
 
